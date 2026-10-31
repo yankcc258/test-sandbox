@@ -7,7 +7,7 @@
 //   整条缓慢自转。左右各一条，相位错开半圈；跟着镜头转，始终在画面两侧，沿世界的 y 轴一直向下延续。
 // 纯几何工厂，不读 DOM。
 import * as THREE from '../vendor/three/three.module.min.js';
-import { loadSculptedSpine } from './sculpted-spine.js?v=11';
+import { loadSculptedSpine } from './sculpted-spine.js?v=12';
 
 export const SPINE = {
   pitch: 0.78, // 近似平均节距；实际按各节高度与关节形态拟合
@@ -39,6 +39,8 @@ export function createSpine() {
       cord.geometry.dispose();
       cord.geometry = new THREE.TubeGeometry(curve, pts.length * 6, 0.035, 10, false);
       cord.position.set(0, 0, 0);
+      signalMesh.geometry = cord.geometry;
+      signalMesh.position.copy(cord.position);
     }
   });
   // 脊髓：穿过椎孔的一根发光细线
@@ -50,6 +52,19 @@ export function createSpine() {
     cordBeat = new THREE.Color(0xc9e755);
   cord.position.set(0, (SPINE.top + SPINE.bottom) / 2, -0.2);
   group.add(cord);
+  const signalMaterial = new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    toneMapped: false,
+    uniforms: { uY: { value: 0 }, uStrength: { value: 0 } },
+    vertexShader: `varying float vY; void main() { vec4 p=modelMatrix*vec4(position,1.0); vY=p.y; gl_Position=projectionMatrix*viewMatrix*p; }`,
+    fragmentShader: `uniform float uY,uStrength; varying float vY; void main() { float a=exp(-pow((vY-uY)/.75,2.0))*uStrength; gl_FragColor=vec4(vec3(.7,.92,.83)*1.7,a); }`,
+  });
+  const signalMesh = new THREE.Mesh(cord.geometry, signalMaterial);
+  signalMesh.position.copy(cord.position);
+  signalMesh.visible = false;
+  group.add(signalMesh);
 
   // ---------- DNA：标准双螺旋，左右各一条 ----------
   const dna = new THREE.Group(); // 页面会让它跟着镜头绕脊柱转，始终在画面两侧
@@ -255,6 +270,11 @@ export function createSpine() {
     group,
     dna,
     uniforms,
+    signal(y, strength) {
+      signalMesh.visible = strength > 0.001;
+      signalMaterial.uniforms.uY.value = y;
+      signalMaterial.uniforms.uStrength.value = strength;
+    },
     // t：时间；beat：心跳包络 0～1；burst：过载炸散 0～1
     update(t, beat = 0, burst = 0) {
       uniforms.uTime.value = t % 1000;

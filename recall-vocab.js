@@ -77,7 +77,10 @@ const GRADES = [
   { key: '3', id: 'good', label: '记得', next: '3 天后' },
 ];
 
-export function createVocabSession(root, { words = SAMPLE_WORDS, remaining = 24, onDone } = {}) {
+export function createVocabSession(
+  root,
+  { words = SAMPLE_WORDS, remaining = words.length, onProgress, onDone } = {},
+) {
   const queue = words.map((w, k) => ({ ...w, k, seen: 0 })),
     tally = { again: 0, hard: 0, good: 0 },
     done = new Set(),
@@ -145,6 +148,7 @@ export function createVocabSession(root, { words = SAMPLE_WORDS, remaining = 24,
     else if (id === 'hard' && c.seen === 1) queue.push(c);
     else done.add(c.k);
     flipped = false;
+    onProgress?.({ completedKeys: [...done], tally: { ...tally } });
     if (!queue.length) {
       finished = true;
       onDone?.({ completed: total, tally: { ...tally } });
@@ -156,15 +160,18 @@ export function createVocabSession(root, { words = SAMPLE_WORDS, remaining = 24,
       left = Math.max(0, remaining - total);
     root.innerHTML = `
       <div class="vs vs-done">
-        <small>本组完成 · ${total} 个单词 · 约 ${mins} 分钟</small>
+        <small>CONSOLIDATED / 连接已稳定</small>
+        <h3>本轮巩固 <b>${total}</b> 个词</h3>
+        <p class="vs-duration">约 ${mins} 分钟 · 本轮示例已记录</p>
         <div class="vs-tally">
           <span><b>${tally.good}</b>记得</span>
           <span><b>${tally.hard}</b>模糊</span>
           <span><b>${tally.again}</b>忘了</span>
         </div>
-        <p>${left ? `背单词还有 ${left} 个到期。` : '今天的单词都复习完了。'}忘了和模糊的词已经在本组里重新过了一遍。</p>
+        <p>${left ? `背单词还有 ${left} 个到期。` : '本轮示例单词已完成。'}${tally.again + tally.hard ? '忘了和模糊的词已经在本组里重新过了一遍。' : '这组单词均在首次回想时记得。'}</p>
+        <p class="vs-scope">其余系统仍是内容预览，本次成果只计入这 ${total} 个示例单词。</p>
         <div class="vs-actions">
-          <button type="button" class="vs-flip" data-act="back">返回螺旋 <kbd>ESC</kbd></button>
+          <button type="button" class="vs-flip" data-act="back">返回生命体 · 查看连接 <kbd>ESC</kbd></button>
         </div>
       </div>`;
     root.querySelector('[data-act="back"]').onclick = () =>

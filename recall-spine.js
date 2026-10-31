@@ -6,12 +6,14 @@
 import * as THREE from './vendor/three/three.module.min.js';
 import { RoomEnvironment } from './vendor/three/RoomEnvironment.js';
 // 版本号：更新时一起改，避免浏览器把新旧文件混在一起用
-import { PANEL, createSpine, panelPose } from './models/spine.js?v=11';
-import { createBackdrop, createHeart } from './recall-backdrop.js?v=11';
-import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js?v=11';
-import { createDock } from './recall-dock.js?v=11';
-import { SYSTEMS, drawSpecimen } from './recall-specimen.js?v=11';
-import { bindPulseInput } from './recall-pulse-input.js?v=11';
+import { PANEL, createSpine, panelPose } from './models/spine.js?v=12';
+import { createBackdrop, createHeart } from './recall-backdrop.js?v=12';
+import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js?v=12';
+import { createDock } from './recall-dock.js?v=12';
+import { SYSTEMS, drawSpecimen } from './recall-specimen.js?v=12';
+import { bindPulseInput } from './recall-pulse-input.js?v=12';
+import { createLifeState, createSignal } from './recall-life.js?v=12';
+import { createOpening } from './recall-opening.js?v=12';
 
 // 示例数据；images 留空。以后在 IMAGES 里登记图片路径，屏幕就会以那张图做底，没有图就只显示复习信息。
 const IMAGES = {};
@@ -26,18 +28,18 @@ const ENTRIES = [
     id: 'today',
     title: '今日复习',
     en: 'RECALL',
-    count: 41,
+    count: 25,
     unit: '项待复习',
-    line: '单词 24 · 笔记 9 · 测验 2 · 错题 6',
+    line: '单词 8 · 笔记 9 · 测验 2 · 错题 6',
     note: '按任务来源排好，可以从任意一类开始。',
   },
   {
     id: 'vocab',
     title: '背单词',
     en: 'LEXICON',
-    count: 24,
+    count: 8,
     unit: '个到期',
-    line: '新词 10 · 上次 昨天 22:40',
+    line: '本轮示例 8 词 · 可随时暂停',
     note: '下一组：ephemeral · lucid · tenacious · candor',
   },
   {
@@ -71,10 +73,10 @@ const ENTRIES = [
     id: 'log',
     title: '复习记录',
     en: 'CONSOLIDATION',
-    count: 12,
-    unit: '天连续',
-    line: '本周 5 天 · 共 186 项',
-    note: '最近一次：昨天 22:40 · 背单词 30 个',
+    count: 0,
+    unit: '轮已完成',
+    line: '本次沙盒 · 尚无完成记录',
+    note: '完成示例单词后，这里会留下本轮记录。',
   },
   {
     id: 'settings',
@@ -96,6 +98,57 @@ let motionPref = params.get('motion') !== '0',
 // testLive：自动截图用，按「动效开」的规则画，但不跑自动循环
 let testLive = false;
 const motion = () => testLive || (motionPref && !reduced.matches && !document.hidden);
+const life = createLifeState(SAMPLE_WORDS.length);
+let opening = null,
+  pendingFeedback = false,
+  feedbackTimer = 0;
+
+function systemState(id) {
+  const state = life.snapshot;
+  if (id === 'vocab') return `${state.label} · ${state.done}/${state.total}`;
+  if (id === 'today')
+    return state.active ? '单词巩固中' : state.record ? '单词已完成 · 其余待接入' : '等待记忆供给';
+  if (id === 'log') return state.record ? '已记录本轮成果' : '等待首轮记录';
+  return id === 'settings' ? '配置预览' : '待接入 · 示例内容';
+}
+function updateLife() {
+  const state = life.snapshot,
+    vocab = ENTRIES[1],
+    today = ENTRIES[0],
+    log = ENTRIES[5];
+  vocab.count = state.left;
+  today.count = state.left + 17; // 其余 17 项只展示，不冒充已完成。
+  today.line = `单词 ${state.left} · 笔记 9 · 测验 2 · 错题 6`;
+  vocab.note = state.record
+    ? '本轮已巩固 8 个词 · 连接已稳定'
+    : state.phase === 'pending'
+      ? 'ephemeral · lucid · tenacious · candor'
+      : `已巩固 ${state.done} / ${state.total} · 继续本轮`;
+  log.count = state.record ? 1 : 0;
+  log.line = state.record ? `本次沙盒 · 已巩固 ${state.done} 个词` : '本次沙盒 · 尚无完成记录';
+  log.note = state.record
+    ? '大脑 / 记忆皮层 · 本轮连接已稳定'
+    : '完成示例单词后，这里会留下本轮记录。';
+  document.getElementById('spine').dataset.life = state.phase;
+  document.getElementById('life-state').textContent = state.record
+    ? '本轮连接已稳定'
+    : state.active
+      ? '记忆巩固中'
+      : state.phase === 'paused'
+        ? '静息 · 进度已保留'
+        : '静息待命';
+  document.getElementById('life-detail').textContent = state.record
+    ? `${state.done} 个词已巩固 · 其余系统待接入`
+    : `已巩固 ${state.done} / ${state.total} 个示例单词`;
+  document.getElementById('life-progress').style.width = `${(state.done / state.total) * 100}%`;
+  document.getElementById('specimen-state').textContent = systemState(
+    ENTRIES[Math.max(0, describedEntry)].id,
+  );
+  listButtons[1].dataset.life = state.phase;
+  document.getElementById('open-entry').textContent =
+    state.record && Math.round(target) === 1 ? '查看本轮成果 ↗' : '进入当前系统 ↗';
+  scene?.refreshPanels();
+}
 
 // ---------- 左侧列表、计数、时钟 ----------
 const list = document.getElementById('list');
@@ -115,7 +168,9 @@ function markList(i) {
     document.getElementById('specimen-code').textContent = `ZH-01 / ${code(i)} · ${organ.en}`;
     document.getElementById('specimen-name').textContent = `${organ.name} · ${organ.tissue}`;
     document.getElementById('specimen-description').textContent = organ.description;
-    document.getElementById('specimen-state').textContent = organ.state;
+    document.getElementById('specimen-state').textContent = systemState(ENTRIES[i].id);
+    document.getElementById('open-entry').textContent =
+      life.snapshot.record && i === 1 ? '查看本轮成果 ↗' : '进入当前系统 ↗';
     describedEntry = i;
   }
 }
@@ -178,6 +233,8 @@ function drawPanel(ctx, e, i, img, anim) {
   ctx.font = `500 25px ${sans}`;
   ctx.fillStyle = 'rgba(193,218,209,0.72)';
   ctx.fillText(`${organ.name} / ${organ.tissue}`, L, 188);
+  ctx.font = `400 23px ${sans}`;
+  ctx.fillText(systemState(e.id), L, 518);
   drawSpecimen(ctx, e.id, 953, 238, 0.87);
   ctx.fillStyle = ink;
   const hv = anim?.hover || 0;
@@ -308,6 +365,12 @@ function createScene() {
 
   const spine = createSpine();
   three.add(spine.group);
+  const signal = createSignal(),
+    handoff = document.getElementById('scene-handoff');
+  let wake = 1,
+    travel = null,
+    linkTarget = Math.round(target),
+    feedbackIndex = -1;
   const heart = createHeart(),
     bgCanvas = document.getElementById('bg'),
     backdrop = createBackdrop(bgCanvas, heart),
@@ -317,7 +380,12 @@ function createScene() {
     pulseEl = bpmEl.parentElement,
     dotEl = document.getElementById('pulse-dot');
   bindPulseInput(stageEl, {
-    enabled: () => motion() && !entered && document.getElementById('about').hidden,
+    enabled: () =>
+      motion() &&
+      !entered &&
+      !opening?.running &&
+      !travel &&
+      document.getElementById('about').hidden,
     onPulse: () => heart.click(performance.now() / 1000),
   });
   const OV = {
@@ -532,7 +600,7 @@ function createScene() {
       // 总览：离屏幕 6.4；进入：推近到屏幕几乎占满画面
       far = narrow ? 9.6 : 6.8,
       near = narrow ? 7.4 : 3.5,
-      dist = far + (near - far) * ease(enterK) + 1.3 * f,
+      dist = far + (near - far) * ease(enterK) + 1.3 * f + 1.1 * (1 - ease(wake)),
       sway = motion() ? Math.sin(time * 0.25) * 0.05 : 0;
     camPos
       .copy(dir)
@@ -562,6 +630,12 @@ function createScene() {
     side.target.position.set(0, y, 0);
     rim.position.copy(at(-6, 2, 4));
     rim.target.position.set(0, y, 0);
+    // 灯光交接仅轻压中间帧，不黑场、不改变常态配色。
+    const bridge = travel?.kind === 'switch' ? travel.strength : 0;
+    key.intensity = 2.6 * (0.22 + 0.78 * ease(wake)) * (1 - 0.12 * bridge);
+    side.intensity = 1.3 * (0.3 + 0.7 * ease(wake));
+    rim.intensity = 3.2 * (0.45 + 0.55 * ease(wake)) + 0.35 * bridge;
+    three.environmentIntensity = 0.4 * (0.35 + 0.65 * ease(wake));
   }
   const ease = (t) => t * t * (3 - 2 * t);
   // 屏幕：不跟心跳；各自极慢地、若有若无地摆动；悬停时立刻摆正、放大一点、扫过一道光；边缘发光缓慢呼吸
@@ -605,6 +679,7 @@ function createScene() {
       p.rim.uniforms.uGlow.value =
         (0.42 + 0.08 * Math.sin(t * 0.7 + i * 1.3) + 0.5 * p.hov + 0.9 * graze) *
         Math.max(0.3, 1 - Math.abs(i - s) * 0.4);
+      if (i === 1 && life.snapshot.record) p.rim.uniforms.uGlow.value += 0.15;
       const d = Math.abs(i - s);
       p.face.material.opacity = Math.max(0.12, 1 - d * 0.7) * (i === cur ? 1 - 0.9 * enterK : 1);
     });
@@ -619,17 +694,30 @@ function createScene() {
         n.ring.material.opacity = 0.9;
       } else {
         const h = panels[i].hov * (entered ? 0 : 1);
-        u.uReveal.value = h > 0 ? 1.05 : u.uReveal.value;
+        const stable = i === 1 && life.snapshot.record ? 0.17 : 0;
+        const linking = travel?.kind === 'switch' && i === linkTarget ? travel.strength * 0.38 : 0;
+        const feedback = travel?.kind === 'complete' && i === feedbackIndex;
+        u.uReveal.value = h > 0 || stable || linking || feedback ? 1.05 : u.uReveal.value;
         u.uPulse.value = -1;
-        u.uAlpha.value = 0.35 * h;
-        n.ring.material.opacity = 0.4 * h;
+        u.uAlpha.value = Math.max(0.35 * h, stable, linking);
+        n.ring.material.opacity = Math.max(0.4 * h, stable, linking);
+        if (feedback) {
+          u.uPulse.value = 1.12 - travel.p * 1.4;
+          u.uAlpha.value = Math.max(stable, 0.65 * travel.strength);
+          n.ring.material.opacity = 0.75 * travel.strength;
+        }
       }
     });
   }
   // 进入后：内容有自己的版面（CSS 里桌面居中、手机全屏），镜头推近到位后淡入
   const contentEl = document.getElementById('content');
   function placeContent() {
-    contentEl.classList.toggle('on', enterK > 0.96);
+    const visible = entered && enterK > 0.96;
+    const arriving = visible && !contentEl.classList.contains('on');
+    contentEl.classList.toggle('on', visible);
+    contentEl.inert = !visible;
+    if (arriving)
+      contentEl.querySelector('.vs-card, .vs-flip, #back')?.focus({ preventScroll: true });
   }
   function draw(dt, render = true) {
     const live = motion(),
@@ -656,7 +744,24 @@ function createScene() {
         entered && live && time - enterAt > tr.push && time - enterAt < tr.push + 0.6,
       );
     time += dt;
-    heart.locked = entered;
+    const destination = Math.max(0, Math.min(N - 1, Math.round(target)));
+    if (destination !== linkTarget) {
+      signal.start('switch', -s * PANEL.drop + 1.25, -destination * PANEL.drop + 1.25);
+      linkTarget = destination;
+      document.getElementById('handoff-name').textContent =
+        `${code(destination)} / ${SYSTEMS[ENTRIES[destination].id].name}`;
+    }
+    travel = signal.step(dt, live);
+    handoff.classList.toggle(
+      'on',
+      !!travel && travel.kind === 'switch' && !entered && !opening?.running,
+    );
+    if (travel) handoff.style.setProperty('--link-progress', travel.p);
+    spine.signal(
+      wake < 1 ? -s * PANEL.drop + 5 - wake * 10 : (travel?.y ?? 0),
+      wake < 1 ? Math.sin(Math.PI * wake) : (travel?.strength ?? 0),
+    );
+    heart.locked = entered || opening?.running || !!travel;
     const pulseNow = performance.now() / 1000,
       pulseDt = live && dt > 0 ? Math.min(0.25, Math.max(0, pulseNow - lastPulseTime)) : 0;
     lastPulseTime = pulseNow;
@@ -729,7 +834,7 @@ function createScene() {
   function tick(now) {
     frame = 0;
     if (!motion() || testLive) return;
-    const dt = Math.min(0.05, last ? (now - last) / 1000 : 0.016);
+    const dt = Math.min(0.12, last ? (now - last) / 1000 : 0.016);
     last = now;
     draw(dt);
     frame = requestAnimationFrame(tick);
@@ -856,7 +961,10 @@ function createScene() {
     if (!motion()) draw(0);
   });
   canvas.addEventListener('pointerup', release);
-  canvas.addEventListener('pointercancel', release);
+  canvas.addEventListener('pointercancel', () => {
+    drag = null;
+    canvas.classList.remove('dragging');
+  });
   function resize() {
     const r = canvas.parentElement.getBoundingClientRect();
     size = [Math.max(1, r.width), Math.max(1, r.height)];
@@ -873,12 +981,14 @@ function createScene() {
       modelStatus.hidden = true;
       canvas.dataset.modelReady = 'true';
       canvas.dataset.modelRevision = '3';
+      opening?.ready();
       draw(0); // Also render when motion is disabled or the tab is currently idle.
     })
     .catch((error) => {
       console.error(error);
       modelStatus.textContent = '骨架加载失败，请刷新重试。复习入口仍可使用。';
       canvas.dataset.modelReady = 'error';
+      opening?.ready(); // 保留可用入口，不让模型失败锁住开场。
     });
   new ResizeObserver(resize).observe(canvas.parentElement);
   resize();
@@ -887,6 +997,15 @@ function createScene() {
   sync();
   return {
     sync,
+    awaken(k) {
+      wake = k;
+      if (!motion()) draw(0);
+    },
+    complete(i) {
+      feedbackIndex = i;
+      signal.start('complete', -i * PANEL.drop + 1.25, 1.25, 2.1);
+      if (!motion()) draw(0);
+    },
     redraw: () => draw(0),
     // 复习数据变了（例如完成一组单词）：重画所有屏幕上的排版
     refreshPanels() {
@@ -959,7 +1078,7 @@ function createScene() {
 
 // ---------- 切换、进入、返回 ----------
 function go(i) {
-  if (entered) return;
+  if (entered || opening?.running) return;
   // 列表、方向键：准确跳到某个入口（不经过吸附）
   target = Math.max(0, Math.min(N - 1, Math.round(i)));
   document.getElementById('hint').style.opacity = 0;
@@ -967,7 +1086,9 @@ function go(i) {
     markList(target); // 没有立体场景时，列表和计数也要更新
   else if (!motion()) scene.redraw();
 }
-let session = null;
+let session = null,
+  vocabSession = null,
+  vocabHost = null;
 function setMeta(e) {
   document.getElementById('c-meta').textContent = `${e.count} ${e.unit} · ${e.line}`;
 }
@@ -980,51 +1101,83 @@ function fillContent(i) {
   setMeta(e);
   const body = document.getElementById('c-body');
   session = null;
-  const vocab = ENTRIES.find((x) => x.id === 'vocab');
-  if ((e.id === 'vocab' || e.id === 'today') && vocab.count > 0) {
-    // 背单词示例：今日复习也先从单词这一类开始
-    session = createVocabSession(body, {
-      words: SAMPLE_WORDS.slice(0, Math.min(SAMPLE_WORDS.length, vocab.count)),
-      remaining: vocab.count,
-      onDone: ({ completed }) => applyDone(completed),
-    });
-  } else if (e.id === 'vocab' || e.id === 'today')
-    body.innerHTML = `<div class="card"><strong>0</strong><span>今天的单词都复习完了。</span></div>`;
-  else
+  if (e.id === 'vocab' || e.id === 'today') {
+    // 今日复习和大脑共享同一组卡片，保留 DOM 和队列以支持暂停后继续。
+    life.begin();
+    if (!vocabSession) {
+      vocabHost = document.createElement('div');
+      vocabHost.className = 'vocab-host';
+      vocabSession = createVocabSession(vocabHost, {
+        words: SAMPLE_WORDS,
+        onProgress: ({ completedKeys }) => {
+          life.progress(completedKeys);
+          updateLife();
+          setMeta(ENTRIES[Math.round(target)]);
+        },
+        onDone: ({ tally }) => {
+          if (!life.finish(tally)) return;
+          pendingFeedback = true;
+          updateLife();
+          setMeta(ENTRIES[Math.round(target)]);
+        },
+      });
+    }
+    body.replaceChildren(vocabHost);
+    session = vocabSession;
+    updateLife();
+  } else if (e.id === 'log' && life.snapshot.record) {
+    const r = life.snapshot.record;
+    body.innerHTML = `<div class="card"><strong>${r.completed}</strong><span>本轮巩固的示例单词</span><span>首次回想：记得 ${r.tally.good} · 模糊 ${r.tally.hard} · 忘了 ${r.tally.again}</span><span class="soon">大脑 / 记忆皮层 · 本轮连接已稳定<br>记录仅保留在当前页面；刷新或重置后清空。</span></div>`;
+  } else
     body.innerHTML = `<div class="card"><strong>${e.count}</strong><span>${e.note}</span>
       <span class="soon">这一类的内容页还没接入，目前只做了背单词示例。</span></div>`;
 }
-// 完成一组单词：背单词和今日复习的数字同步减少，屏幕和列表跟着更新
-function applyDone(completed) {
-  const vocab = ENTRIES.find((x) => x.id === 'vocab'),
-    today = ENTRIES.find((x) => x.id === 'today');
-  vocab.count = Math.max(0, vocab.count - completed);
-  today.count = Math.max(0, today.count - completed);
-  today.line = today.line.replace(/单词 \d+/, `单词 ${vocab.count}`);
-  vocab.note = vocab.count ? '下一组已经准备好了' : '今天的单词都复习完了';
-  setMeta(ENTRIES[Math.round(target)]);
-  scene?.refreshPanels();
-}
 document.getElementById('c-body').addEventListener('vs-back', () => leave());
 function enter() {
-  if (entered) return;
+  if (entered || opening?.running) return;
   const i = Math.round(target);
   target = i;
   fillContent(i);
   entered = true;
   document.getElementById('content').hidden = false;
   document.getElementById('spine').classList.add('entered');
+  document.getElementById('list').inert = true;
+  document.querySelector('.specimen-note').inert = true;
+  if (!scene) {
+    document.getElementById('content').classList.add('on');
+    document.getElementById('content').inert = false;
+  }
   if (!motion()) scene?.redraw();
 }
 function leave() {
   if (!entered) return;
   entered = false;
+  life.pause();
   document.getElementById('content').classList.remove('on');
+  document.getElementById('content').inert = true;
   document.getElementById('spine').classList.remove('entered');
+  document.getElementById('list').inert = false;
+  document.querySelector('.specimen-note').inert = false;
+  document.getElementById('open-entry').focus({ preventScroll: true });
+  updateLife();
+  if (pendingFeedback) {
+    pendingFeedback = false;
+    scene?.complete(Math.round(target));
+    const notice = document.getElementById('completion-notice');
+    notice.textContent = `本轮巩固 ${life.snapshot.done} 个词 · 连接已稳定`;
+    notice.hidden = false;
+    clearTimeout(feedbackTimer);
+    feedbackTimer = setTimeout(() => {
+      notice.hidden = true;
+    }, 4600);
+  }
+  if (!scene) document.getElementById('content').hidden = true;
   if (!motion()) scene?.redraw();
 }
 document.getElementById('back').onclick = leave;
+document.getElementById('open-entry').onclick = enter;
 addEventListener('keydown', (e) => {
+  if (opening?.running) return;
   if (dock?.open) return; // 关于页打开时，螺旋不响应按键
   // 进入后：空格 / 回车 / 1 2 3 交给单词卡
   // （焦点在按钮上时，空格和回车留给按钮本身；数字键始终交给单词卡）
@@ -1045,6 +1198,7 @@ function syncMotion() {
   motionBtn.setAttribute('aria-pressed', String(motionPref));
   motionBtn.textContent = `动效 · ${motionPref ? '开' : '关'}`;
   document.body.classList.toggle('still', !motion());
+  if (!motionPref || reduced.matches) opening?.finish();
   scene?.sync();
 }
 motionBtn.onclick = () => {
@@ -1052,6 +1206,7 @@ motionBtn.onclick = () => {
   syncMotion();
 };
 // 立体场景出错时，按钮、列表和音乐照常可用，页面底部显示错误信息
+opening = createOpening({ motion, onWake: (k) => scene?.awaken(k) });
 try {
   scene = createScene();
 } catch (err) {
@@ -1062,6 +1217,7 @@ try {
   el.textContent = '立体场景出错：' + err.message;
 }
 if (!scene) {
+  opening.ready();
   document.getElementById('fallback').hidden = false;
   document.getElementById('model-status').hidden = true;
 }
@@ -1069,9 +1225,33 @@ syncMotion();
 // 胶囊导航：ARCHIVE 回到螺旋最上面（在内容页里就先返回）
 const dock = createDock({
   motion,
+  onOpen: () => {
+    leave();
+    document.getElementById('dock-about').focus({ preventScroll: true });
+  },
   onArchive: () => {
     leave();
     go(0);
   },
 });
+document.getElementById('replay-opening').onclick = () => {
+  dock.setOpen(false);
+  leave();
+  opening.start(true);
+};
+document.getElementById('reset-round').onclick = () => {
+  dock.setOpen(false);
+  leave();
+  life.reset();
+  vocabSession = vocabHost = session = null;
+  pendingFeedback = false;
+  clearTimeout(feedbackTimer);
+  document.getElementById('completion-notice').hidden = true;
+  go(1);
+  updateLife();
+};
+reduced.addEventListener('change', syncMotion);
+markList(Math.round(target));
+updateLife();
+opening.start();
 window.zhixuSpine = { ready: !!scene, go, enter, leave, scene, dock };

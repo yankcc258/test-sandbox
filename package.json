@@ -5,7 +5,8 @@
   "scripts": {
     "build:models": "node scripts/spine/build.mjs",
     "check:models": "node scripts/spine/check.mjs",
-    "check:pulse": "node scripts/check-pulse.mjs"
+    "check:pulse": "node scripts/check-pulse.mjs",
+    "check:experience": "node scripts/check-experience.mjs"
   },
   "devDependencies": {
     "meshoptimizer": "1.3.0"
