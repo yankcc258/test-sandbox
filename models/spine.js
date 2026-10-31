@@ -7,7 +7,7 @@
 //   整条缓慢自转。左右各一条，相位错开半圈；跟着镜头转，始终在画面两侧，沿世界的 y 轴一直向下延续。
 // 纯几何工厂，不读 DOM。
 import * as THREE from '../vendor/three/three.module.min.js';
-import { loadSculptedSpine } from './sculpted-spine.js?v=12';
+import { loadSculptedSpine } from './sculpted-spine.js?v=13';
 
 export const SPINE = {
   pitch: 0.78, // 近似平均节距；实际按各节高度与关节形态拟合

@@ -6,14 +6,14 @@
 import * as THREE from './vendor/three/three.module.min.js';
 import { RoomEnvironment } from './vendor/three/RoomEnvironment.js';
 // 版本号：更新时一起改，避免浏览器把新旧文件混在一起用
-import { PANEL, createSpine, panelPose } from './models/spine.js?v=12';
-import { createBackdrop, createHeart } from './recall-backdrop.js?v=12';
-import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js?v=12';
-import { createDock } from './recall-dock.js?v=12';
-import { SYSTEMS, drawSpecimen } from './recall-specimen.js?v=12';
-import { bindPulseInput } from './recall-pulse-input.js?v=12';
-import { createLifeState, createSignal } from './recall-life.js?v=12';
-import { createOpening } from './recall-opening.js?v=12';
+import { PANEL, createSpine, panelPose } from './models/spine.js?v=13';
+import { createBackdrop, createHeart } from './recall-backdrop.js?v=13';
+import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js?v=13';
+import { createDock } from './recall-dock.js?v=13';
+import { SYSTEMS, drawSpecimen } from './recall-specimen.js?v=13';
+import { bindPulseInput } from './recall-pulse-input.js?v=13';
+import { createLifeState, createSignal } from './recall-life.js?v=13';
+import { createOpening } from './recall-opening.js?v=13';
 
 // 示例数据；images 留空。以后在 IMAGES 里登记图片路径，屏幕就会以那张图做底，没有图就只显示复习信息。
 const IMAGES = {};
@@ -681,7 +681,7 @@ function createScene() {
         Math.max(0.3, 1 - Math.abs(i - s) * 0.4);
       if (i === 1 && life.snapshot.record) p.rim.uniforms.uGlow.value += 0.15;
       const d = Math.abs(i - s);
-      p.face.material.opacity = Math.max(0.12, 1 - d * 0.7) * (i === cur ? 1 - 0.9 * enterK : 1);
+      p.face.material.opacity = Math.max(0.12, 1 - d * 0.7) * (i === cur ? 1 - enterK : 1);
     });
     // 神经：悬停时淡淡地连上；进入时从椎骨长出，光脉冲流进屏幕
     nerves.forEach((n, i) => {
