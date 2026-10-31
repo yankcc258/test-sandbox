@@ -6,10 +6,10 @@
 import * as THREE from './vendor/three/three.module.min.js';
 import { RoomEnvironment } from './vendor/three/RoomEnvironment.js';
 // 版本号：更新时一起改，避免浏览器把新旧文件混在一起用
-import { PANEL, createSpine, panelPose } from './models/spine.js?v=8';
-import { createBackdrop, createHeart } from './recall-backdrop.js?v=8';
-import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js?v=8';
-import { createDock } from './recall-dock.js?v=8';
+import { PANEL, createSpine, panelPose } from './models/spine.js?v=9';
+import { createBackdrop, createHeart } from './recall-backdrop.js?v=9';
+import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js?v=9';
+import { createDock } from './recall-dock.js?v=9';
 
 // 示例数据；images 留空。以后在 IMAGES 里登记图片路径，屏幕就会以那张图做底，没有图就只显示复习信息。
 const IMAGES = {};
@@ -842,6 +842,19 @@ function createScene() {
     if (!motion()) backdrop.prefill();
     draw(0);
   }
+  const modelStatus = document.getElementById('model-status');
+  spine.ready
+    .then(() => {
+      modelStatus.hidden = true;
+      canvas.dataset.modelReady = 'true';
+      canvas.dataset.modelRevision = '3';
+      draw(0); // Also render when motion is disabled or the tab is currently idle.
+    })
+    .catch((error) => {
+      console.error(error);
+      modelStatus.textContent = '骨架加载失败，请刷新重试。复习入口仍可使用。';
+      canvas.dataset.modelReady = 'error';
+    });
   new ResizeObserver(resize).observe(canvas.parentElement);
   resize();
   document.addEventListener('visibilitychange', sync);
@@ -925,7 +938,8 @@ function go(i) {
   // 列表、方向键：准确跳到某个入口（不经过吸附）
   target = Math.max(0, Math.min(N - 1, Math.round(i)));
   document.getElementById('hint').style.opacity = 0;
-  if (!scene) markList(target); // 没有立体场景时，列表和计数也要更新
+  if (!scene)
+    markList(target); // 没有立体场景时，列表和计数也要更新
   else if (!motion()) scene.redraw();
 }
 let session = null;
@@ -1020,7 +1034,10 @@ try {
   el.hidden = false;
   el.textContent = '立体场景出错：' + err.message;
 }
-if (!scene) document.getElementById('fallback').hidden = false;
+if (!scene) {
+  document.getElementById('fallback').hidden = false;
+  document.getElementById('model-status').hidden = true;
+}
 syncMotion();
 // 胶囊导航：ARCHIVE 回到螺旋最上面（在内容页里就先返回）
 const dock = createDock({

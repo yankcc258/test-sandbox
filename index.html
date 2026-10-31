@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>知序 · 复习脊柱</title>
-    <link rel="stylesheet" href="recall-spine.css?v=8" />
+    <link rel="stylesheet" href="recall-spine.css?v=9" />
   </head>
   <body>
     <section id="spine" class="stage" aria-label="复习区">
@@ -117,6 +117,7 @@
             >
           </li>
           <li><a href="preview/">ROUND PREVIEWS</a></li>
+          <li><a href="preview/organic-spine/">SPINE MODEL / 3D</a></li>
           <li><a href="https://threejs.org/" target="_blank" rel="noopener">THREE.JS</a></li>
         </ul>
       </section>
@@ -126,6 +127,7 @@
         <span>滚轮 / 拖动 / ↑ ↓ 切换 &nbsp;·&nbsp; ENTER 进入 &nbsp;·&nbsp; ESC 返回</span>
         <span><b id="clock">--:--:--</b> JST</span>
       </footer>
+      <p class="model-status" id="model-status" role="status">正在载入脊柱…</p>
       <p class="fallback" id="fallback" hidden>立体预览暂时无法显示，可以用左侧列表进入复习。</p>
     </section>
     <p class="boot-error" id="boot-error" hidden></p>
@@ -149,6 +151,6 @@
         }
       });
     </script>
-    <script type="module" src="recall-spine.js?v=8"></script>
+    <script type="module" src="recall-spine.js?v=9"></script>
   </body>
 </html>

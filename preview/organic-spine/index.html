@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>知序 · 有机脊柱 / 模型研究 03</title>
+    <link rel="stylesheet" href="style.css?v=3" />
+  </head>
+  <body>
+    <main class="viewer">
+      <section id="stage" aria-label="脊柱三维预览">
+        <canvas
+          id="scene"
+          tabindex="0"
+          aria-label="可旋转的脊柱模型。拖动旋转，滚轮缩放，方向键旋转，R 复位。"
+        ></canvas>
+        <header class="brand">
+          <a href="#" id="home" aria-label="复位模型">知序 <span>ZHIXU</span></a>
+          <p id="revision-tag">FORM STUDIES / 03</p>
+        </header>
+        <div class="headline">
+          <span class="eyebrow">BIOLOGY × COMPUTATION</span>
+          <h1>有机脊柱</h1>
+          <p>有机椎体，钛金属支撑与连接。</p>
+          <span class="local"><i></i> 独立模型预览</span>
+        </div>
+        <div class="specimen">
+          <span id="specimen-id">SPECIMEN 01—09</span><span id="view-label">斜侧视图</span>
+        </div>
+        <div id="loading" role="status">正在载入模型…</div>
+        <nav class="views" aria-label="模型视角">
+          <button data-view="hero" aria-pressed="true">斜侧</button
+          ><button data-view="front" aria-pressed="false">正面</button
+          ><button data-view="side" aria-pressed="false">侧面</button
+          ><button data-view="back" aria-pressed="false">背面</button
+          ><button data-view="top" aria-pressed="false">俯视</button
+          ><button id="reset" title="快捷键 R">复位 ↺</button>
+        </nav>
+        <p class="gesture">拖动旋转 <span>·</span> 滚轮 / 双指缩放 <span>·</span> 方向键旋转</p>
+      </section>
+      <aside aria-label="模型查看选项">
+        <div class="aside-top"><span>STRUCTURAL STUDY</span><b id="revision-number">003</b></div>
+        <h2>从整体，到关节。</h2>
+        <p class="intro">保留已确认的九节椎体与骨弓，加入开槽支撑片、六角紧固件和后方关节连接。</p>
+        <div class="section-label">观察尺度 <span>01</span></div>
+        <div class="modes" role="group" aria-label="观察尺度">
+          <button data-mode="whole" aria-pressed="true">
+            <strong>整体</strong><span>九节 · 连续走势</span></button
+          ><button data-mode="joint" aria-pressed="false">
+            <strong>关节</strong><span>三节 · 层叠关系</span></button
+          ><button data-mode="single" aria-pressed="false">
+            <strong>单节</strong><span>骨弓 · 椎孔 · 侧突</span>
+          </button>
+        </div>
+        <div class="section-label">观察辅助 <span>02</span></div>
+        <div class="toggles">
+          <button id="spin" aria-pressed="false">缓慢旋转 <span>关</span></button
+          ><button id="separate" aria-pressed="false">展开关节 <span>关</span></button
+          ><button id="wireframe" aria-pressed="false">查看线框 <span>关</span></button>
+        </div>
+        <div class="section-label">沿用材质 <span>03</span></div>
+        <div class="palette">
+          <span><i style="--swatch: #d6d3ca"></i>象牙白</span
+          ><span><i style="--swatch: #b9c0c2"></i>钛金属</span
+          ><span><i style="--swatch: #c4c1b8"></i>椎间层</span>
+        </div>
+        <div class="aside-bottom">
+          <a href="../../">返回复习沙盒 <span>↗</span></a
+          ><a id="download-model" href="../../assets/models/organic-spine-study-v3.glb" download
+            >下载 3D 模型 <span>GLB ↓</span></a
+          >
+          <p>高精度模型预览<br />复习场景使用优化版本</p>
+        </div>
+      </aside>
+    </main>
+
+    <script type="module" src="app.js?v=3"></script>
+  </body>
+</html>

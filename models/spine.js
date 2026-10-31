@@ -1,16 +1,16 @@
 // 复习区「脊柱」原型（露娜）：中心是一根有机与无机结合的脊柱，左右两条光点 DNA 双螺旋交替着向下延续，
 // 七块磨砂玻璃屏幕沿螺旋从左往右一块接一块往下排。全部程序生成，不使用参考站的任何代码、模型或贴图。
 //
-// 脊柱（第二稿）：每节椎骨按真实椎骨的俯视轮廓生成——前方圆润的椎体、后方中空的椎孔环、两侧翼状横突、
-//   后方向下斜伸的棘突。整块轮廓挤出成带倒角的钛金属骨片（无机），前方嵌一块象牙白的瓷质椎体（有机），
-//   椎骨之间是象牙白椎间盘。椎孔里穿过一根发光的细线（脊髓，也像一根数据线）。
+// 脊柱（第三稿）：九种楔形椎体、片状骨弓与贴合关节，增加开槽钛支撑片和紧固件。
+// 资产在构建时优化、运行时实例化；保留 DNA、扫描环、脊髓和心跳响应。
 // DNA（第二稿）：标准的双螺旋——两条骨架链 + 一格一格的碱基对横档（两半两种颜色）+ 大沟小沟，
 //   整条缓慢自转。左右各一条，相位错开半圈；跟着镜头转，始终在画面两侧，沿世界的 y 轴一直向下延续。
 // 纯几何工厂，不读 DOM。
 import * as THREE from '../vendor/three/three.module.min.js';
+import { loadSculptedSpine } from './sculpted-spine.js?v=9';
 
 export const SPINE = {
-  pitch: 0.56, // 每节椎骨的高度
+  pitch: 0.78, // 近似平均节距；实际按各节高度与关节形态拟合
   top: 9,
   bottom: -46,
 };
@@ -24,134 +24,13 @@ export const panelPose = (i) => {
   };
 };
 
-// 椎骨的俯视轮廓：极坐标 r(θ)，θ = 90° 朝前（+z）。几个高斯形的瓣叠加，前方圆润、两翼和棘突尖细。
-function vertebraOutline() {
-  const g = (d, w) => Math.exp(-(d * d) / (w * w)),
-    wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a)),
-    pts = [];
-  for (let k = 0; k < 160; k++) {
-    const t = (k / 160) * Math.PI * 2,
-      front = g(wrap(t - Math.PI / 2), 0.95),
-      wingL = g(wrap(t - Math.PI * 1.06), 0.13),
-      wingR = g(wrap(t + Math.PI * 0.06), 0.13),
-      back = g(wrap(t + Math.PI / 2), 0.1),
-      shoulderL = g(wrap(t - Math.PI * 1.22), 0.22),
-      shoulderR = g(wrap(t + Math.PI * 0.22), 0.22),
-      r =
-        0.42 + 0.22 * front + 0.78 * (wingL + wingR) + 0.82 * back + 0.12 * (shoulderL + shoulderR);
-    pts.push(new THREE.Vector2(Math.cos(t) * r, Math.sin(t) * r));
-  }
-  const shape = new THREE.Shape(pts);
-  // 椎孔：后方的圆孔
-  const hole = new THREE.Path();
-  hole.absarc(0, -0.2, 0.17, 0, Math.PI * 2, true);
-  shape.holes.push(hole);
-  return shape;
-}
-
 export function createSpine() {
-  const group = new THREE.Group();
-  const titanium = new THREE.MeshPhysicalMaterial({
-      color: 0xb9c0c2,
-      roughness: 0.3,
-      metalness: 1,
-      clearcoat: 0.5,
-      clearcoatRoughness: 0.25,
-    }),
-    // 瓷质椎体：整体亮度压低一些，粗糙度略高，让侧光下的表面过渡更细腻、不发白
-    porcelain = new THREE.MeshPhysicalMaterial({
-      color: 0xd6d3ca,
-      roughness: 0.42,
-      clearcoat: 0.6,
-      clearcoatRoughness: 0.22,
-      sheen: 0.25,
-      sheenColor: new THREE.Color(0xe3ebe7),
-    }),
-    disc = new THREE.MeshPhysicalMaterial({
-      color: 0xc4c1b8,
-      roughness: 0.55,
-      transmission: 0.25,
-      thickness: 0.2,
-      sheen: 0.6,
-      sheenColor: new THREE.Color(0xe8efec),
-    });
-
-  const count = Math.round((SPINE.top - SPINE.bottom) / SPINE.pitch);
-  // 钛骨片：挤出轮廓，转成水平（挤出方向 → y）
-  const plateGeo = new THREE.ExtrudeGeometry(vertebraOutline(), {
-    depth: 0.07,
-    bevelEnabled: true,
-    bevelThickness: 0.03,
-    bevelSize: 0.03,
-    bevelSegments: 4,
-    curveSegments: 8,
+  const group = new THREE.Group(),
+    stats = { vertebrae: 0 };
+  const ready = loadSculptedSpine().then((model) => {
+    group.add(model.group);
+    Object.assign(stats, model.stats);
   });
-  plateGeo.rotateX(-Math.PI / 2);
-  plateGeo.translate(0, -0.035, 0);
-  // 瓷质椎体：前方一块更高的圆柱，边缘倒圆，腰部微收
-  const prof = [];
-  for (let k = 0; k <= 24; k++) {
-    const t = k / 24,
-      y = (t - 0.5) * 0.42,
-      r = (0.34 + 0.04 * Math.pow(Math.abs(2 * t - 1), 2)) * Math.sin(Math.PI * t) ** 0.14;
-    prof.push(new THREE.Vector2(r, y));
-  }
-  const bodyGeo = new THREE.LatheGeometry(prof, 48);
-  const discGeo = new THREE.CylinderGeometry(0.31, 0.31, 0.12, 40);
-  // 棘突：从后方斜向下伸出的一片钛刀片
-  const spinous = new THREE.BoxGeometry(0.06, 0.12, 0.7, 1, 1, 6);
-  {
-    const p = spinous.attributes.position;
-    for (let i = 0; i < p.count; i++) {
-      const z = p.getZ(i) / 0.7 + 0.5; // 0 根部 → 1 末端
-      p.setY(i, p.getY(i) * (1 - 0.6 * z));
-      p.setX(i, p.getX(i) * (1 - 0.4 * z));
-    }
-    spinous.computeVertexNormals();
-    spinous.translate(0, 0, -0.35);
-    spinous.rotateX(0.55); // 向下斜
-  }
-  const parts = {
-    plate: new THREE.InstancedMesh(plateGeo, titanium, count),
-    body: new THREE.InstancedMesh(bodyGeo, porcelain, count),
-    disc: new THREE.InstancedMesh(discGeo, disc, count),
-    spinous: new THREE.InstancedMesh(spinous, titanium, count),
-  };
-  Object.values(parts).forEach((m) => {
-    m.castShadow = m.receiveShadow = true;
-    group.add(m);
-  });
-  const M = new THREE.Matrix4(),
-    q = new THREE.Quaternion(),
-    e = new THREE.Euler(),
-    s = new THREE.Vector3(),
-    p = new THREE.Vector3();
-  const set = (mesh, i, pos, euler, scale) => {
-    q.setFromEuler(euler);
-    mesh.setMatrixAt(i, M.compose(pos, q, scale));
-  };
-  for (let i = 0; i < count; i++) {
-    const y = SPINE.top - i * SPINE.pitch,
-      k = 0.94 + 0.08 * Math.sin(i * 0.31), // 逐节略有大小变化
-      wing = 0.92 + 0.12 * Math.sin(i * 0.23 + 1),
-      tilt = 0.035 * Math.sin(i * 0.4); // 每节略微前后俯仰
-    set(parts.plate, i, p.set(0, y, 0), e.set(tilt, 0, 0), s.set(k * wing, 1, k));
-    set(parts.body, i, p.set(0, y, 0.33 * k), e.set(tilt, 0, 0), s.set(k, 1, k * 0.86));
-    set(
-      parts.disc,
-      i,
-      p.set(0, y - SPINE.pitch / 2, 0.33 * k),
-      e.set(0, 0, 0),
-      s.set(k, 1, k * 0.86),
-    );
-    set(
-      parts.spinous,
-      i,
-      p.set(0, y - 0.02, -0.62 * k),
-      e.set(tilt, 0, 0),
-      s.set(1, 1, 0.9 + 0.2 * k),
-    );
-  }
   // 脊髓：穿过椎孔的一根发光细线
   const cord = new THREE.Mesh(
     new THREE.CylinderGeometry(0.035, 0.035, SPINE.top - SPINE.bottom + 2, 12),
@@ -378,6 +257,7 @@ export function createSpine() {
       tickMat.opacity = 0.2 + 0.2 * beat;
       cord.material.color.copy(cordBase).lerp(cordBeat, beat * 0.6);
     },
-    stats: { vertebrae: count },
+    ready,
+    stats,
   };
 }

@@ -1094,3 +1094,17 @@ body.still * {
 .boot-error[hidden] {
   display: none;
 }
+
+.model-status {
+  position: absolute;
+  left: 28px;
+  bottom: 66px;
+  z-index: 4;
+  margin: 0;
+  font-size: 11px;
+  color: #9cc2b9;
+  pointer-events: none;
+}
+.model-status[hidden] {
+  display: none;
+}
