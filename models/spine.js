@@ -58,16 +58,17 @@ export function createSpine() {
       clearcoat: 0.5,
       clearcoatRoughness: 0.25,
     }),
+    // 瓷质椎体：整体亮度压低一些，粗糙度略高，让侧光下的表面过渡更细腻、不发白
     porcelain = new THREE.MeshPhysicalMaterial({
-      color: 0xeceae3,
-      roughness: 0.3,
-      clearcoat: 0.9,
-      clearcoatRoughness: 0.15,
-      sheen: 0.5,
+      color: 0xd6d3ca,
+      roughness: 0.42,
+      clearcoat: 0.6,
+      clearcoatRoughness: 0.22,
+      sheen: 0.25,
       sheenColor: new THREE.Color(0xe3ebe7),
     }),
     disc = new THREE.MeshPhysicalMaterial({
-      color: 0xd9d7cf,
+      color: 0xc4c1b8,
       roughness: 0.55,
       transmission: 0.25,
       thickness: 0.2,
@@ -154,9 +155,9 @@ export function createSpine() {
   // 脊髓：穿过椎孔的一根发光细线
   const cord = new THREE.Mesh(
     new THREE.CylinderGeometry(0.035, 0.035, SPINE.top - SPINE.bottom + 2, 12),
-    new THREE.MeshBasicMaterial({ color: 0xdff3ee, toneMapped: false }),
+    new THREE.MeshBasicMaterial({ color: 0x9cc2b9, toneMapped: false }),
   );
-  const cordBase = new THREE.Color(0xdff3ee),
+  const cordBase = new THREE.Color(0x9cc2b9),
     cordBeat = new THREE.Color(0xc9e755);
   cord.position.set(0, (SPINE.top + SPINE.bottom) / 2, -0.2);
   group.add(cord);
@@ -206,7 +207,7 @@ export function createSpine() {
     uBaseA: { value: new THREE.Color(0x8fd3cf) },
     uBaseB: { value: new THREE.Color(0xe7e1cf) },
     uAccent: { value: new THREE.Color(0xc9e755) },
-    uFogRange: { value: new THREE.Vector2(15, 32) },
+    uFogRange: { value: new THREE.Vector2(10.5, 24) },
     uBeat: { value: 0 }, // 心跳包络 0～1
     uBurst: { value: 0 }, // 过载时光点炸散 0～1
     uBottom: { value: SPINE.bottom },
@@ -236,9 +237,9 @@ export function createSpine() {
         float depth = -mv.z;
         float size = aKind < 0.5 ? 1.15 : aKind < 2.5 ? 0.85 : 0.5;
         float tw = 0.8 + 0.2 * sin(uTime * 1.4 + aSeed * 50.0);
-        gl_PointSize = size * uScale / depth * tw * (1.0 + 0.35 * uBeat * step(aKind, 2.5));
+        gl_PointSize = size * uScale / depth * tw * (1.0 + 0.12 * uBeat * step(aKind, 2.5));
         float fog = 1.0 - smoothstep(uFogRange.x, uFogRange.y, depth);
-        vA = fog * (aKind < 0.5 ? 1.0 : aKind < 2.5 ? 0.9 : 0.3) * (0.75 + 0.45 * uBeat);
+        vA = fog * (aKind < 0.5 ? 0.85 : aKind < 2.5 ? 0.75 : 0.3) * (0.85 + 0.2 * uBeat);
         vKind = aKind;
         vAccent = step(0.985, aSeed) * step(aKind, 2.5);
         gl_Position = projectionMatrix * mv;
@@ -256,8 +257,9 @@ export function createSpine() {
       }`,
   });
   const helices = [
-    { x: -2.9, z: -0.6, phase: 0 },
-    { x: 2.9, z: -0.6, phase: Math.PI }, // 相位错开半圈：左右交替
+    // 一近一远：左边这条离镜头近、细节清楚；右边那条更靠后、更淡，镜头转动时会从脊柱后面经过
+    { x: -2.55, z: 0.9, phase: 0 },
+    { x: 3.05, z: -1.9, phase: Math.PI }, // 相位错开半圈：左右交替
   ].map((h) => {
     const pts = new THREE.Points(helix(h.phase), pointMat);
     pts.position.set(h.x, 0, h.z);
@@ -372,8 +374,8 @@ export function createSpine() {
       // 双螺旋绕自己的轴缓慢自转（过载时转得飞快）
       helices.forEach((h, i) => (h.rotation.y = (i ? -1 : 1) * (t * 0.18 + burst * 6)));
       rings.children.forEach((r, i) => (r.rotation.y = i * 0.9 + r.userData.spin * t * 0.05));
-      ringMat.opacity = 0.16 + 0.22 * beat;
-      tickMat.opacity = 0.3 + 0.4 * beat;
+      ringMat.opacity = 0.1 + 0.1 * beat;
+      tickMat.opacity = 0.2 + 0.2 * beat;
       cord.material.color.copy(cordBase).lerp(cordBeat, beat * 0.6);
     },
     stats: { vertebrae: count },

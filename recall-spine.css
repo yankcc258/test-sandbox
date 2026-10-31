@@ -809,3 +809,17 @@ body.still * {
     gap: 24px;
   }
 }
+
+@media (max-width: 760px) {
+  /* 底部入口列表压一层底色，不和脊柱抢 */
+  .index {
+    left: 0;
+    right: 0;
+    bottom: 34px;
+    padding: 26px 18px 30px;
+    background: linear-gradient(to top, #15191bf2 62%, #15191b00);
+  }
+  .hint {
+    display: none;
+  }
+}

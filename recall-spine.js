@@ -123,6 +123,14 @@ const CW = 1200,
 // anim：{ t, bpm, tail }——当前屏幕每帧重画：扫描线、迷你心电图、心率；有图片时图片缓慢平移
 function drawPanel(ctx, e, i, img, anim) {
   ctx.clearRect(0, 0, CW, CH);
+  {
+    const g = ctx.createLinearGradient(0, 0, CW * 0.85, CH * 0.35);
+    g.addColorStop(0, 'rgba(8,11,12,0.5)');
+    g.addColorStop(0.65, 'rgba(8,11,12,0.3)');
+    g.addColorStop(1, 'rgba(8,11,12,0.08)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, CW, CH);
+  }
   if (img) {
     ctx.globalAlpha = 0.55;
     const s = Math.max(CW / img.width, CH / img.height) * 1.08,
@@ -258,11 +266,14 @@ function createScene() {
   const pmrem = new THREE.PMREMGenerator(renderer);
   three.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
   pmrem.dispose();
-  three.environmentIntensity = 0.55;
+  // 共同光照：主光从镜头左上前方来；侧光从右侧略后方补出关节内侧；轮廓光从背后勾出脊柱和玻璃的边。
+  // 环境光和半球光压低，让暗部留在暗处，不靠整体提亮来出细节。
+  three.environmentIntensity = 0.4;
   three.fog = new THREE.Fog(0x15191b, 11, 30);
-  const hemi = new THREE.HemisphereLight(0xdfe8ec, 0x0d1011, 0.35),
-    key = new THREE.DirectionalLight(0xf2f4f0, 2.4),
-    rim = new THREE.DirectionalLight(0xa9c4c8, 2.2);
+  const hemi = new THREE.HemisphereLight(0xdfe8ec, 0x0d1011, 0.16),
+    key = new THREE.DirectionalLight(0xf2f4f0, 2.6),
+    side = new THREE.DirectionalLight(0xb8d2d8, 1.3),
+    rim = new THREE.DirectionalLight(0xa9c4c8, 3.2);
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
   Object.assign(key.shadow.camera, {
@@ -275,7 +286,7 @@ function createScene() {
   });
   key.shadow.bias = -0.0003;
   key.shadow.normalBias = 0.01;
-  three.add(hemi, key, key.target, rim, rim.target);
+  three.add(hemi, key, key.target, side, side.target, rim, rim.target);
 
   const spine = createSpine();
   three.add(spine.group);
@@ -312,8 +323,8 @@ function createScene() {
   glassGeo.translate(0, 0, -0.025);
   // 深色磨砂玻璃：透出后面模糊的脊柱和光点，文字是浅色
   const glassMat = new THREE.MeshPhysicalMaterial({
-    color: 0x6f7b7e,
-    roughness: 0.55,
+    color: 0x75817f,
+    roughness: 0.4,
     metalness: 0,
     transmission: 1,
     thickness: 0.5,
@@ -322,8 +333,8 @@ function createScene() {
     attenuationDistance: 0.6,
     clearcoat: 1,
     clearcoatRoughness: 0.18,
-    specularIntensity: 0.35,
-    envMapIntensity: 0.35,
+    specularIntensity: 0.6,
+    envMapIntensity: 0.55,
   });
   const panels = ENTRIES.map((e, i) => {
     const { pos, angle } = panelPose(i),
@@ -364,11 +375,12 @@ function createScene() {
         uSize: { value: new THREE.Vector2(PANEL.w + 0.6, PANEL.h + 0.6) },
         uBox: { value: new THREE.Vector2(PANEL.w / 2, PANEL.h / 2) },
         uGlow: { value: 0.3 },
+        uLight: { value: new THREE.Vector2(-0.7, 0.7) },
         uSweep: { value: -1 },
       },
       vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
       fragmentShader: `
-        uniform vec2 uSize, uBox; uniform float uGlow, uSweep; varying vec2 vUv;
+        uniform vec2 uSize, uBox, uLight; uniform float uGlow, uSweep; varying vec2 vUv;
         float sdRound(vec2 p, vec2 b, float r) { vec2 q = abs(p) - b + r; return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r; }
         void main() {
           vec2 p = (vUv - 0.5) * uSize;
@@ -378,7 +390,9 @@ function createScene() {
           float inside = 1.0 - smoothstep(-0.02, 0.0, d);
           float x = (p.x / uBox.x) * 0.5 + 0.5 + (p.y / uBox.y) * 0.22;
           float band = exp(-pow((x - uSweep) / 0.07, 2.0)) * inside * 0.5;
-          float a = (line + halo) * uGlow + band;
+          // 朝向主光的那几条边亮，背光的边几乎熄灭
+          float lit = 0.18 + 0.82 * pow(max(0.0, dot(normalize(p / uBox), uLight)), 1.6);
+          float a = (line + halo) * uGlow * lit + band;
           gl_FragColor = vec4(vec3(0.78, 0.96, 0.9) * a, a);
         }`,
     });
@@ -480,7 +494,8 @@ function createScene() {
   });
 
   // ---------- 镜头：沿螺旋下降 ----------
-  let s = target,
+  let lastInputAt = -9,
+    s = target,
     enterK = 0,
     size = [1, 1],
     time = 0;
@@ -489,13 +504,17 @@ function createScene() {
   function frameCamera() {
     const [w, h] = size,
       narrow = w < 760,
-      a = s * PANEL.step,
+      // 两个入口之间：镜头角度略微领先（下一块更正对、上一块露出侧面），并稍微退后、
+      // 视线往脊柱收，让中间的骨架进入构图。f 在入口处为 0，正中间为 1。
+      f = Math.sin(Math.PI * (s - Math.floor(s))) * (1 - enterK),
+      a = (s + 0.16 * f) * PANEL.step,
       y = -s * PANEL.drop,
       dir = new THREE.Vector3(Math.sin(a), 0, Math.cos(a)),
+      perp = new THREE.Vector3(Math.cos(a), 0, -Math.sin(a)),
       // 总览：离屏幕 6.4；进入：推近到屏幕几乎占满画面
       far = narrow ? 9.6 : 6.8,
       near = narrow ? 7.4 : 3.5,
-      dist = far + (near - far) * ease(enterK),
+      dist = far + (near - far) * ease(enterK) + 1.3 * f,
       sway = motion() ? Math.sin(time * 0.25) * 0.05 : 0;
     camPos
       .copy(dir)
@@ -503,19 +522,27 @@ function createScene() {
       .setY(y + 0.42 * (1 - enterK) + sway);
     look
       .copy(dir)
-      .multiplyScalar(PANEL.radius - 1.4 * (1 - enterK))
+      .multiplyScalar((PANEL.radius - 1.4 * (1 - enterK)) * (1 - 0.6 * f))
       .setY(y + 0.05 * (1 - enterK));
     camera.position.copy(camPos);
     camera.lookAt(look);
     camera.fov = narrow ? 46 : 32;
     camera.setViewOffset(w, h, narrow ? 0 : -w * 0.05 * (1 - enterK), 0, w, h);
     camera.updateProjectionMatrix();
-    // DNA 跟着镜头绕脊柱转，始终在画面两侧
-    spine.dna.rotation.y = a;
-    // 主光和轮廓光跟着镜头的高度走
-    key.position.set(dir.x * 6 - dir.z * 4, y + 7, dir.z * 6 + dir.x * 4);
+    // DNA 只以不到一半的速度跟着镜头转：大体还在两侧，但会和脊柱、屏幕错开、互相遮挡，产生视差
+    spine.dna.rotation.y = a * 0.45 + 0.35;
+    // 灯光跟着镜头的高度和方向走
+    const at = (d, p, dy) =>
+      dir
+        .clone()
+        .multiplyScalar(d)
+        .addScaledVector(perp, p)
+        .setY(y + dy);
+    key.position.copy(at(4, -5, 6));
     key.target.position.set(0, y, 0);
-    rim.position.set(-dir.x * 6 + dir.z * 3, y + 3, -dir.z * 6 - dir.x * 3);
+    side.position.copy(at(-1.5, 6, 0.5));
+    side.target.position.set(0, y, 0);
+    rim.position.copy(at(-6, 2, 4));
     rim.target.position.set(0, y, 0);
   }
   const ease = (t) => t * t * (3 - 2 * t);
@@ -550,9 +577,16 @@ function createScene() {
       p.g.scale.setScalar(1 + 0.06 * p.hov * (entered ? 0 : 1));
       const sw = live ? (time - p.sweepAt) / 0.75 : 2;
       p.rim.uniforms.uSweep.value = sw < 1.3 ? sw * 1.6 - 0.3 : -1;
+      // 边缘光：屏幕越侧向镜头越亮（掠射角），并按主光在屏幕上的方向只点亮一侧的边
+      p.g.updateMatrixWorld();
+      const n = new THREE.Vector3(0, 0, 1).transformDirection(p.g.matrixWorld),
+        toCam = camera.position.clone().sub(p.g.position).normalize(),
+        graze = 1 - Math.abs(n.dot(toCam)),
+        L = p.g.worldToLocal(key.position.clone());
+      p.rim.uniforms.uLight.value.set(L.x, L.y).normalize();
       p.rim.uniforms.uGlow.value =
-        (0.32 + 0.1 * Math.sin(t * 0.7 + i * 1.3) + 0.6 * p.hov) *
-        Math.max(0.25, 1 - Math.abs(i - s) * 0.45);
+        (0.42 + 0.08 * Math.sin(t * 0.7 + i * 1.3) + 0.5 * p.hov + 0.9 * graze) *
+        Math.max(0.3, 1 - Math.abs(i - s) * 0.4);
       const d = Math.abs(i - s);
       p.face.material.opacity = Math.max(0.12, 1 - d * 0.7) * (i === cur ? 1 - 0.9 * enterK : 1);
     });
@@ -582,8 +616,15 @@ function createScene() {
   function draw(dt, render = true) {
     const live = motion(),
       k = live ? 1 - Math.exp(-dt * 5.5) : 1;
-    if (!drag) s += (target - s) * k;
-    if (Math.abs(target - s) < 0.0005 && !drag) s = target;
+    // 停止输入 0.16 秒后，目标平缓吸附到最近的入口；新的输入会立刻接管
+    if (live && !drag && !entered && time - lastInputAt > 0.16) {
+      const snap = Math.max(0, Math.min(N - 1, Math.round(target)));
+      target += (snap - target) * (1 - Math.exp(-dt * 3.2));
+      if (Math.abs(snap - target) < 0.0008) target = snap;
+    }
+    if (!live) s = target;
+    else s += (target - s) * (1 - Math.exp(-dt * (drag ? 16 : 7)));
+    if (Math.abs(target - s) < 0.0005) s = target;
     if (entered && !wasEntered) enterAt = time;
     wasEntered = entered;
     const tr = TRANSITIONS[ENTRIES[Math.round(s)].transition || 'default'],
@@ -679,21 +720,32 @@ function createScene() {
   }
 
   // ---------- 输入 ----------
-  let wheelAcc = 0,
-    wheelLock = 0,
-    drag = null;
+  // 滚轮和拖动连续控制进度：小幅输入就是小幅位移；越过两端时有一点余量，松开后吸回
+  let drag = null,
+    stillSnap = 0;
+  const clampLoose = (v) => Math.max(-0.25, Math.min(N - 0.75, v));
+  function nudge(v) {
+    target = clampLoose(v);
+    lastInputAt = time;
+    document.getElementById('hint').style.opacity = 0;
+    if (!motion()) {
+      // 关闭动效：直接到位，停手后立刻落到最近的入口
+      s = target;
+      draw(0);
+      clearTimeout(stillSnap);
+      stillSnap = setTimeout(() => {
+        target = s = Math.max(0, Math.min(N - 1, Math.round(target)));
+        draw(0);
+      }, 160);
+    }
+  }
   canvas.addEventListener(
     'wheel',
     (e) => {
       e.preventDefault();
       if (entered) return;
-      wheelAcc += e.deltaY;
-      const now = performance.now();
-      if (Math.abs(wheelAcc) > 40 && now > wheelLock) {
-        go(target + Math.sign(wheelAcc));
-        wheelAcc = 0;
-        wheelLock = now + 420;
-      }
+      const px = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
+      nudge(target + px / 520);
     },
     { passive: false },
   );
@@ -711,7 +763,15 @@ function createScene() {
   }
   canvas.addEventListener('pointerdown', (e) => {
     if (entered) return;
-    drag = { y: e.clientY, s0: s, moved: false, id: e.pointerId };
+    drag = {
+      y: e.clientY,
+      t0: target,
+      moved: false,
+      id: e.pointerId,
+      v: 0,
+      ly: e.clientY,
+      lt: performance.now(),
+    };
     canvas.setPointerCapture(e.pointerId);
   });
   canvas.addEventListener('pointermove', (e) => {
@@ -720,9 +780,13 @@ function createScene() {
       if (Math.abs(dy) > 6) {
         drag.moved = true;
         canvas.classList.add('dragging');
-        // 往上推 = 往下走（和触屏滚动的手感一致）
-        s = Math.max(-0.3, Math.min(N - 0.7, drag.s0 - dy / 260));
-        if (!motion()) draw(0);
+        // 往上推 = 往下走（和触屏滚动的手感一致）；记下速度，松手时带一点惯性
+        const now = performance.now(),
+          dt = Math.max(1, now - drag.lt);
+        drag.v = 0.7 * drag.v + (0.3 * ((-(e.clientY - drag.ly) / 260) * 1000)) / dt;
+        drag.ly = e.clientY;
+        drag.lt = now;
+        nudge(drag.t0 - dy / 260);
       }
       return;
     }
@@ -748,7 +812,8 @@ function createScene() {
     drag = null;
     canvas.classList.remove('dragging');
     if (d.moved) {
-      go(Math.round(s));
+      // 惯性：按松手时的速度再往前送一段，然后照常吸附
+      if (performance.now() - d.lt < 120) nudge(target + Math.max(-1.2, Math.min(1.2, d.v * 0.22)));
       return;
     }
     const i = pick(e);
@@ -792,6 +857,7 @@ function createScene() {
     // 测试用：跳到某个状态并画一帧
     settle(i, inside) {
       target = s = i;
+      lastInputAt = time;
       entered = !!inside;
       enterK = entered ? 1 : 0;
       if (entered) fillContent(i);
@@ -818,6 +884,15 @@ function createScene() {
       draw(0.001);
     },
     heart,
+    // 测试用：按真实规则推进 t 秒（不渲染中间帧），返回进度
+    run(t) {
+      testLive = true;
+      cancelAnimationFrame(frame);
+      frame = 0;
+      for (let k = 0; k < Math.round(t / 0.033); k++) draw(0.033, false);
+      draw(0.001);
+      return { s: +s.toFixed(3), target: +target.toFixed(3) };
+    },
     // 测试用：悬停某块屏幕，或在进入后的第 t 秒停住
     hoverTest(i, t = 0.3) {
       testLive = true;
@@ -843,7 +918,8 @@ function createScene() {
 // ---------- 切换、进入、返回 ----------
 function go(i) {
   if (entered) return;
-  target = Math.max(0, Math.min(N - 1, i));
+  // 列表、方向键：准确跳到某个入口（不经过吸附）
+  target = Math.max(0, Math.min(N - 1, Math.round(i)));
   document.getElementById('hint').style.opacity = 0;
   if (!motion()) scene?.redraw();
 }

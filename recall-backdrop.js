@@ -181,7 +181,7 @@ export function createBackdrop(canvas, heart) {
       ctx.moveTo(rx, Math.round(y) + 0.5);
       ctx.lineTo(rx + (major ? 14 : 6), Math.round(y) + 0.5);
       ctx.stroke();
-      if (major && y > 110 && y < H - 120) {
+      if (major && W >= 760 && y > 110 && y < H - 120) {
         ctx.fillStyle = ink(0.28);
         ctx.fillText(`−${(k / 2 - H / pxPerUnit).toFixed(2).replace('-', '')}`, rx - 6, y + 3);
       }
@@ -231,11 +231,14 @@ export function createBackdrop(canvas, heart) {
       `DEPTH  −${depth.toFixed(2)} U`,
       `TRACE  ${hex(t * 37)} ${hex(t * 11 + 4096)} ${hex(heart.phase * 977)}`,
     ];
-    lines.forEach((s, k) => ctx.fillText(s, 54, 196 + k * 15));
+    // 窄屏不画读数，避免压在脊柱上
+    if (W >= 760) lines.forEach((s, k) => ctx.fillText(s, 54, 196 + k * 15));
     ctx.textAlign = 'right';
     ctx.fillStyle = ink(0.22);
-    ctx.fillText(`LAT 35.6812 N · LON 139.7671 E`, W - 128, H - 150);
-    ctx.fillText(live ? 'SIGNAL · LIVE' : 'SIGNAL · STILL', W - 128, H - 135);
+    if (W >= 760) {
+      ctx.fillText(`LAT 35.6812 N · LON 139.7671 E`, W - 128, H - 150);
+      ctx.fillText(live ? 'SIGNAL · LIVE' : 'SIGNAL · STILL', W - 128, H - 135);
+    }
   }
   resize();
   return {
