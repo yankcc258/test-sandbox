@@ -1075,3 +1075,22 @@ body.still * {
     justify-items: center;
   }
 }
+
+.boot-error {
+  position: fixed;
+  left: 50%;
+  bottom: 54px;
+  z-index: 20;
+  translate: -50% 0;
+  max-width: calc(100vw - 32px);
+  margin: 0;
+  padding: 8px 14px;
+  border: 1px solid #ff9d8a66;
+  border-radius: 8px;
+  background: #1a1112ee;
+  color: #ffc9bd;
+  font: 500 12px/1.5 var(--mono);
+}
+.boot-error[hidden] {
+  display: none;
+}

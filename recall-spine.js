@@ -5,10 +5,11 @@
 //   进入：点当前屏幕或按 ENTER——镜头推近，屏幕放大，换成同样排版、可以操作的内容层；ESC 返回螺旋。
 import * as THREE from './vendor/three/three.module.min.js';
 import { RoomEnvironment } from './vendor/three/RoomEnvironment.js';
-import { PANEL, createSpine, panelPose } from './models/spine.js';
-import { createBackdrop, createHeart } from './recall-backdrop.js';
-import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js';
-import { createDock } from './recall-dock.js';
+// 版本号：更新时一起改，避免浏览器把新旧文件混在一起用
+import { PANEL, createSpine, panelPose } from './models/spine.js?v=8';
+import { createBackdrop, createHeart } from './recall-backdrop.js?v=8';
+import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js?v=8';
+import { createDock } from './recall-dock.js?v=8';
 
 // 示例数据；images 留空。以后在 IMAGES 里登记图片路径，屏幕就会以那张图做底，没有图就只显示复习信息。
 const IMAGES = {};
@@ -924,7 +925,8 @@ function go(i) {
   // 列表、方向键：准确跳到某个入口（不经过吸附）
   target = Math.max(0, Math.min(N - 1, Math.round(i)));
   document.getElementById('hint').style.opacity = 0;
-  if (!motion()) scene?.redraw();
+  if (!scene) markList(target); // 没有立体场景时，列表和计数也要更新
+  else if (!motion()) scene.redraw();
 }
 let session = null;
 function setMeta(e) {
@@ -1008,7 +1010,16 @@ motionBtn.onclick = () => {
   motionPref = !motionPref;
   syncMotion();
 };
-scene = createScene();
+// 立体场景出错时，按钮、列表和音乐照常可用，页面底部显示错误信息
+try {
+  scene = createScene();
+} catch (err) {
+  scene = null;
+  console.error(err);
+  const el = document.getElementById('boot-error');
+  el.hidden = false;
+  el.textContent = '立体场景出错：' + err.message;
+}
 if (!scene) document.getElementById('fallback').hidden = false;
 syncMotion();
 // 胶囊导航：ARCHIVE 回到螺旋最上面（在内容页里就先返回）

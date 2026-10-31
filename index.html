@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>知序 · 复习脊柱</title>
-    <link rel="stylesheet" href="recall-spine.css" />
+    <link rel="stylesheet" href="recall-spine.css?v=8" />
   </head>
   <body>
     <section id="spine" class="stage" aria-label="复习区">
@@ -128,6 +128,27 @@
       </footer>
       <p class="fallback" id="fallback" hidden>立体预览暂时无法显示，可以用左侧列表进入复习。</p>
     </section>
-    <script type="module" src="recall-spine.js"></script>
+    <p class="boot-error" id="boot-error" hidden></p>
+    <script>
+      // 出错时在页面底部显示一行，方便反馈（不影响按钮）
+      addEventListener(
+        'error',
+        (e) => {
+          const el = document.getElementById('boot-error');
+          if (!el) return;
+          el.hidden = false;
+          el.textContent = '页面脚本出错：' + (e.message || e.target?.src || '资源加载失败');
+        },
+        true,
+      );
+      addEventListener('unhandledrejection', (e) => {
+        const el = document.getElementById('boot-error');
+        if (el) {
+          el.hidden = false;
+          el.textContent = '页面脚本出错：' + (e.reason?.message || e.reason);
+        }
+      });
+    </script>
+    <script type="module" src="recall-spine.js?v=8"></script>
   </body>
 </html>
