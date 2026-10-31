@@ -19,6 +19,28 @@
       <nav class="top" aria-label="区域">
         <span class="gateway"><small>前往区域</small> <b>复习区</b> <i>⌄</i></span>
         <button type="button" id="motion" aria-pressed="true">动效 · 开</button>
+        <div class="dock" id="dock">
+          <div class="pill">
+            <button type="button" id="dock-archive" title="回到最上面">ARCHIVE</button>
+            <button
+              type="button"
+              id="dock-wave"
+              class="wave"
+              aria-pressed="false"
+              aria-label="播放背景音乐"
+            >
+              <svg viewBox="0 0 64 22" aria-hidden="true"><path d="M0,11 L64,11" /></svg>
+            </button>
+            <button type="button" id="dock-about" aria-expanded="false" aria-controls="about">
+              ABOUT
+            </button>
+          </div>
+          <div class="tracks" id="dock-track">
+            <button type="button" id="dock-prev" aria-label="上一首">&lt;&lt;</button>
+            <span>01. FIRST LIGHT</span>
+            <button type="button" id="dock-next" aria-label="下一首">&gt;&gt;</button>
+          </div>
+        </div>
       </nav>
 
       <nav class="index" aria-label="复习入口">
@@ -55,6 +77,49 @@
           <span class="c-note">沙盒示例数据 · 接入主站后换成真实的复习内容</span>
         </footer>
       </article>
+
+      <section class="about" id="about" hidden aria-label="关于知序">
+        <svg class="globe" viewBox="-320 -320 640 640" aria-hidden="true">
+          <circle cx="0" cy="0" r="300" />
+          <ellipse cx="0" cy="-259.8" rx="150.0" ry="24.0" />
+          <ellipse cx="0" cy="-192.8" rx="229.8" ry="36.8" />
+          <ellipse cx="0" cy="-102.6" rx="281.9" ry="45.1" />
+          <ellipse cx="0" cy="0.0" rx="300.0" ry="48.0" />
+          <ellipse cx="0" cy="102.6" rx="281.9" ry="45.1" />
+          <ellipse cx="0" cy="192.8" rx="229.8" ry="36.8" />
+          <ellipse cx="0" cy="259.8" rx="150.0" ry="24.0" />
+          <ellipse class="meridian" cx="0" cy="0" rx="300" ry="300" />
+          <ellipse class="meridian" cx="0" cy="0" rx="300" ry="300" />
+          <ellipse class="meridian" cx="0" cy="0" rx="300" ry="300" />
+          <ellipse class="meridian" cx="0" cy="0" rx="300" ry="300" />
+          <ellipse class="meridian" cx="0" cy="0" rx="300" ry="300" />
+          <ellipse class="meridian" cx="0" cy="0" rx="300" ry="300" />
+          <ellipse class="meridian" cx="0" cy="0" rx="300" ry="300" />
+          <ellipse class="meridian" cx="0" cy="0" rx="300" ry="300" />
+        </svg>
+        <p class="about-kicker"><i>✦</i> ZHIXU LAB <i>✦</i></p>
+        <h2 class="about-title">LEARN <i>→</i> RECALL <i>→</i> BEYOND</h2>
+        <p class="about-motto">天空并非极限 · THE SKY IS NOT THE LIMIT</p>
+        <a
+          class="about-repo"
+          href="https://github.com/yankcc258/test-sandbox"
+          target="_blank"
+          rel="noopener"
+          >GITHUB / YANKCC258</a
+        >
+        <ul class="about-links">
+          <li>
+            <a
+              href="https://github.com/yankcc258/test-sandbox#来源与许可"
+              target="_blank"
+              rel="noopener"
+              >SOURCES &amp; LICENSES</a
+            >
+          </li>
+          <li><a href="preview/">ROUND PREVIEWS</a></li>
+          <li><a href="https://threejs.org/" target="_blank" rel="noopener">THREE.JS</a></li>
+        </ul>
+      </section>
 
       <footer class="foot">
         <span><i></i> SESSION · YANK · 复习脊柱 · 沙盒原型（示例数据）</span>

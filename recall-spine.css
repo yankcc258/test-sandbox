@@ -823,3 +823,255 @@ body.still * {
     display: none;
   }
 }
+
+/* ---------- 胶囊导航：ARCHIVE · 音乐 · ABOUT ---------- */
+.top {
+  z-index: 8;
+  align-items: flex-start;
+}
+.dock {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+.top .dock button {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+.pill {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 46px;
+  padding: 0 22px;
+  border: 1px solid #cfe6dd55;
+  border-radius: 999px;
+  background: linear-gradient(#141a1bf2, #0f1415f2);
+  box-shadow:
+    inset 0 1px 0 #ffffff14,
+    0 10px 30px #0008;
+}
+/* 底部一道淡绿的光 */
+.pill::after {
+  content: '';
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: -14px;
+  height: 22px;
+  pointer-events: none;
+  background: radial-gradient(ellipse 50% 50% at 50% 0%, #8fe3b866, transparent 70%);
+  filter: blur(4px);
+  transition: opacity 0.4s;
+  opacity: 0.55;
+}
+.dock.playing .pill::after {
+  opacity: 1;
+}
+.pill > button {
+  background: none;
+  font: 500 12.5px/1 var(--mono);
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  transition: color 0.2s;
+}
+.pill > button:hover {
+  color: #fff;
+  text-shadow: 0 0 8px #cfe6dd88;
+}
+.pill > button i {
+  font-style: normal;
+  margin-left: 4px;
+}
+.wave {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 22px;
+}
+.wave svg {
+  width: 64px;
+  height: 22px;
+  overflow: visible;
+}
+.wave path {
+  fill: none;
+  stroke: #e8f4ef;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 3px #cfe6dd99);
+}
+.dock:not(.playing) .wave path {
+  stroke: #e8f4efb0;
+}
+.tracks {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border: 1px solid #e8ebe41f;
+  border-radius: 8px;
+  background: #0f1415cc;
+}
+.tracks > button {
+  width: 30px;
+  height: 26px;
+  border: 1px solid #e8ebe42e !important;
+  border-radius: 5px !important;
+  background: none;
+  font: 600 11px/1 var(--mono);
+  color: var(--muted);
+}
+.tracks > button:hover {
+  color: var(--ink);
+}
+.tracks span {
+  width: 132px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: center;
+  font: 500 10px/1 var(--mono);
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+.dock.playing .tracks span {
+  color: var(--ink);
+}
+
+/* ---------- 关于页 ---------- */
+.about {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 18px;
+  padding: 0 6vw;
+  background: radial-gradient(ellipse 60% 55% at 50% 50%, #1c2a2ccc, transparent 75%), #0b0f10e6;
+  backdrop-filter: blur(14px);
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+.about.on {
+  opacity: 1;
+}
+.about[hidden] {
+  display: none;
+}
+.globe {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(74vh, 86vw);
+  height: min(74vh, 86vw);
+  translate: -50% -50%;
+  pointer-events: none;
+  fill: none;
+  stroke: #cfe6dd;
+  stroke-width: 0.8;
+  opacity: 0.22;
+}
+.about-kicker {
+  margin: 0;
+  font: 500 15px/1 var(--mono);
+  letter-spacing: 0.18em;
+}
+.about-kicker i {
+  font-style: normal;
+  margin: 0 12px;
+}
+.about-title {
+  position: relative;
+  margin: 0;
+  font: 300 clamp(30px, 4.9vw, 84px) / 1.1 var(--mono);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  text-shadow: 0 0 30px #cfe6dd33;
+}
+.about-title i {
+  font-style: normal;
+  font-weight: 200;
+  margin: 0 0.25em;
+  color: #e8ebe4cc;
+}
+.about-motto {
+  margin: 0;
+  font: 500 14px/1.6 var(--sans);
+  letter-spacing: 0.3em;
+  color: var(--muted);
+}
+.about-repo,
+.about-links a {
+  position: relative;
+  color: var(--ink);
+  font: 500 17px/1 var(--mono);
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 4px;
+}
+.about-repo {
+  margin-top: 44px;
+}
+.about-links {
+  position: absolute;
+  left: 8vw;
+  bottom: 14vh;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 18px;
+}
+.about-links a {
+  font-size: 13px;
+}
+.about a:hover {
+  color: var(--accent);
+}
+@media (max-width: 760px) {
+  .pill {
+    height: 40px;
+    gap: 12px;
+    padding: 0 14px;
+  }
+  .pill > button {
+    font-size: 11px;
+  }
+  .wave,
+  .wave svg {
+    width: 48px;
+  }
+  .tracks span {
+    width: 112px;
+    letter-spacing: 0.04em;
+  }
+  .top #motion {
+    display: none;
+  }
+  .about-title {
+    white-space: normal;
+    text-align: center;
+    display: grid;
+    gap: 6px;
+    font-size: 40px;
+  }
+  .about-title i {
+    display: block;
+    transform: rotate(90deg);
+    margin: 0;
+  }
+  .about-motto {
+    letter-spacing: 0.12em;
+    text-align: center;
+  }
+  .about-links {
+    position: static;
+    margin-top: 18px;
+    justify-items: center;
+  }
+}

@@ -8,6 +8,7 @@ import { RoomEnvironment } from './vendor/three/RoomEnvironment.js';
 import { PANEL, createSpine, panelPose } from './models/spine.js';
 import { createBackdrop, createHeart } from './recall-backdrop.js';
 import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js';
+import { createDock } from './recall-dock.js';
 
 // 示例数据；images 留空。以后在 IMAGES 里登记图片路径，屏幕就会以那张图做底，没有图就只显示复习信息。
 const IMAGES = {};
@@ -301,7 +302,9 @@ function createScene() {
   // 页面上任何地方的点击都算进心率
   // 只有总览里的点击计入心率；内容区、进入后的任何点击都不算
   stageEl.addEventListener('pointerdown', (e) => {
-    if (motion() && !entered && !e.target.closest('.content')) heart.click(time);
+    // 胶囊导航、关于页、按钮和链接上的点击也不算
+    if (motion() && !entered && !e.target.closest('.content, .dock, .about, button, a'))
+      heart.click(time);
   });
   const OV = {
     overload: ['ERR 0x7F · NODE 7', 'MEMORY OVERLOAD', '记忆过载 · 连接数超出阈值'],
@@ -979,6 +982,7 @@ function leave() {
 }
 document.getElementById('back').onclick = leave;
 addEventListener('keydown', (e) => {
+  if (dock?.open) return; // 关于页打开时，螺旋不响应按键
   // 进入后：空格 / 回车 / 1 2 3 交给单词卡
   // （焦点在按钮上时，空格和回车留给按钮本身；数字键始终交给单词卡）
   const onButton = e.target.closest?.('button') && (e.key === ' ' || e.key === 'Enter');
@@ -1007,4 +1011,12 @@ motionBtn.onclick = () => {
 scene = createScene();
 if (!scene) document.getElementById('fallback').hidden = false;
 syncMotion();
-window.zhixuSpine = { ready: !!scene, go, enter, leave, scene };
+// 胶囊导航：ARCHIVE 回到螺旋最上面（在内容页里就先返回）
+const dock = createDock({
+  motion,
+  onArchive: () => {
+    leave();
+    go(0);
+  },
+});
+window.zhixuSpine = { ready: !!scene, go, enter, leave, scene, dock };
