@@ -1109,3 +1109,125 @@ body.still * {
 .model-status[hidden] {
   display: none;
 }
+
+/* Quiet specimen notes: functional review names stay on the glass and in navigation. */
+.specimen-note {
+  position: absolute;
+  left: 52px;
+  top: 194px;
+  width: 228px;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.specimen-note > small {
+  font: 500 9px/1.5 var(--mono);
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+.specimen-note h1 {
+  margin: 12px 0 9px;
+  font: 500 17px/1.5 var(--sans);
+  letter-spacing: 0.08em;
+}
+.specimen-note p {
+  margin: 0;
+  font: 400 11px/1.9 var(--sans);
+  color: #a5b1ac;
+}
+.specimen-note > div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 17px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font: 500 8px/1.5 var(--mono);
+  color: var(--muted);
+}
+.specimen-note i {
+  width: 3px;
+  height: 3px;
+  background: #9cc2b9;
+}
+.specimen-note > div span:last-child {
+  margin-left: auto;
+  font-size: 7px;
+}
+.entered .specimen-note,
+.stage:has(.about:not([hidden])) .specimen-note {
+  opacity: 0;
+}
+.pulse-caption {
+  margin-bottom: 8px;
+  font: 500 8px/1.4 var(--mono);
+  color: var(--muted);
+  letter-spacing: 0.06em;
+}
+.counter .pulse-caption span {
+  margin: 0;
+  font: inherit;
+}
+.content header .c-system {
+  margin: 0 0 8px;
+  font: 500 10px/1.6 var(--mono);
+  color: #9cc2b9;
+  letter-spacing: 0.05em;
+}
+@media (max-height: 720px) and (min-width: 761px) {
+  .specimen-note {
+    top: 172px;
+  }
+  .specimen-note h1 {
+    margin: 6px 0;
+  }
+  .specimen-note > div {
+    display: none;
+  }
+}
+@media (max-height: 610px) and (min-width: 761px) {
+  .specimen-note p {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  .top {
+    left: 18px;
+    right: 18px;
+    top: 74px;
+    justify-content: flex-start;
+  }
+  .counter {
+    top: 176px;
+  }
+  .specimen-note {
+    left: 18px;
+    top: 176px;
+    width: calc(100vw - 150px);
+    max-width: 210px;
+  }
+  .specimen-note h1 {
+    font-size: 13px;
+    margin: 5px 0;
+  }
+  .specimen-note p,
+  .specimen-note > div {
+    display: none;
+  }
+  .specimen-note > small {
+    font-size: 8px;
+  }
+  .pulse-caption {
+    font-size: 7px;
+  }
+}
+@media (max-width: 480px) {
+  .index ol {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px 6px;
+  }
+  .index button {
+    white-space: nowrap;
+    gap: 6px;
+    font-size: 11px;
+  }
+}

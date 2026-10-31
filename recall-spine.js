@@ -6,10 +6,12 @@
 import * as THREE from './vendor/three/three.module.min.js';
 import { RoomEnvironment } from './vendor/three/RoomEnvironment.js';
 // 版本号：更新时一起改，避免浏览器把新旧文件混在一起用
-import { PANEL, createSpine, panelPose } from './models/spine.js?v=10';
-import { createBackdrop, createHeart } from './recall-backdrop.js?v=10';
-import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js?v=10';
-import { createDock } from './recall-dock.js?v=10';
+import { PANEL, createSpine, panelPose } from './models/spine.js?v=11';
+import { createBackdrop, createHeart } from './recall-backdrop.js?v=11';
+import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js?v=11';
+import { createDock } from './recall-dock.js?v=11';
+import { SYSTEMS, drawSpecimen } from './recall-specimen.js?v=11';
+import { bindPulseInput } from './recall-pulse-input.js?v=11';
 
 // 示例数据；images 留空。以后在 IMAGES 里登记图片路径，屏幕就会以那张图做底，没有图就只显示复习信息。
 const IMAGES = {};
@@ -103,10 +105,19 @@ list.innerHTML = ENTRIES.map(
 ).join('');
 const listButtons = [...list.querySelectorAll('button')];
 listButtons.forEach((b, i) => b.addEventListener('click', () => go(i)));
+let describedEntry = -1;
 function markList(i) {
   listButtons.forEach((b, k) => b.toggleAttribute('aria-current', k === i));
   document.getElementById('count').textContent = code(i);
   document.getElementById('rail-mark').style.top = `${(i / (N - 1)) * (180 - 26)}px`;
+  if (describedEntry !== i) {
+    const organ = SYSTEMS[ENTRIES[i].id];
+    document.getElementById('specimen-code').textContent = `ZH-01 / ${code(i)} · ${organ.en}`;
+    document.getElementById('specimen-name').textContent = `${organ.name} · ${organ.tissue}`;
+    document.getElementById('specimen-description').textContent = organ.description;
+    document.getElementById('specimen-state').textContent = organ.state;
+    describedEntry = i;
+  }
 }
 const clock = () =>
   (document.getElementById('clock').textContent = new Intl.DateTimeFormat('en-GB', {
@@ -163,6 +174,11 @@ function drawPanel(ctx, e, i, img, anim) {
   ctx.textAlign = 'right';
   ctx.fillText(`MEMORY / ${code(i)}—07`, CW - L, 112);
   ctx.textAlign = 'left';
+  const organ = SYSTEMS[e.id];
+  ctx.font = `500 25px ${sans}`;
+  ctx.fillStyle = 'rgba(193,218,209,0.72)';
+  ctx.fillText(`${organ.name} / ${organ.tissue}`, L, 188);
+  drawSpecimen(ctx, e.id, 953, 238, 0.87);
   ctx.fillStyle = ink;
   const hv = anim?.hover || 0;
   ctx.font = `700 ${Math.round(104 * (1 + 0.16 * hv))}px ${sans}`;
@@ -300,12 +316,9 @@ function createScene() {
     bpmEl = document.getElementById('bpm'),
     pulseEl = bpmEl.parentElement,
     dotEl = document.getElementById('pulse-dot');
-  // 页面上任何地方的点击都算进心率
-  // 只有总览里的点击计入心率；内容区、进入后的任何点击都不算
-  stageEl.addEventListener('pointerdown', (e) => {
-    // 胶囊导航、关于页、按钮和链接上的点击也不算
-    if (motion() && !entered && !e.target.closest('.content, .dock, .about, button, a'))
-      heart.click(time);
+  bindPulseInput(stageEl, {
+    enabled: () => motion() && !entered && document.getElementById('about').hidden,
+    onPulse: () => heart.click(performance.now() / 1000),
   });
   const OV = {
     overload: ['ERR 0x7F · NODE 7', 'MEMORY OVERLOAD', '记忆过载 · 连接数超出阈值'],
@@ -502,7 +515,8 @@ function createScene() {
     s = target,
     enterK = 0,
     size = [1, 1],
-    time = 0;
+    time = 0,
+    lastPulseTime = performance.now() / 1000;
   const look = new THREE.Vector3(),
     camPos = new THREE.Vector3();
   function frameCamera() {
@@ -642,7 +656,11 @@ function createScene() {
         entered && live && time - enterAt > tr.push && time - enterAt < tr.push + 0.6,
       );
     time += dt;
-    const phaseDelta = live ? heart.step(dt, time) : 0;
+    heart.locked = entered;
+    const pulseNow = performance.now() / 1000,
+      pulseDt = live && dt > 0 ? Math.min(0.25, Math.max(0, pulseNow - lastPulseTime)) : 0;
+    lastPulseTime = pulseNow;
+    const phaseDelta = live ? heart.step(pulseDt, pulseNow) : 0;
     if (!live) {
       heart.beat = 0;
       heart.burst = 0;
@@ -650,7 +668,7 @@ function createScene() {
     spine.update(live ? time : 0, heart.beat, heart.burst);
     frameCamera();
     shadePanels(dt);
-    backdrop.frame(dt, phaseDelta, time, s * PANEL.drop, live);
+    backdrop.frame(pulseDt, phaseDelta, time, s * PANEL.drop, live);
     // 当前屏幕的画面一直是活的（约 20 帧每秒重画一次）
     panelClock += dt;
     if (live && panelClock > 0.05) {
@@ -672,6 +690,14 @@ function createScene() {
     }
     // 心率读数和过载状态
     bpmEl.textContent = String(Math.round(heart.bpm)).padStart(3, '0');
+    document.getElementById('pulse-mode').textContent = !live
+      ? '静止 / STILL'
+      : {
+          rest: '静息 / REST',
+          impulse: '脉冲 / INPUT',
+          coupled: '跟随 / SYNC',
+          recover: '恢复 / RECOVERY',
+        }[heart.mode];
     pulseEl.classList.toggle('high', heart.bpm > 120);
     dotEl.style.transform = `scale(${1 + 0.8 * heart.beat})`;
     if (heart.stage !== lastStage) {
@@ -694,7 +720,6 @@ function createScene() {
     stageEl.classList.toggle('flatline', heart.flat);
     if (!render) return;
     renderer.render(three, camera);
-    heart.locked = entered;
     if (entered || enterK > 0) placeContent();
     if (!entered && enterK === 0) contentEl.hidden = true;
     markList(Math.round(s));
@@ -949,6 +974,8 @@ function setMeta(e) {
 function fillContent(i) {
   const e = ENTRIES[i];
   document.getElementById('c-code').textContent = `${code(i)} · ${e.en}`;
+  const organ = SYSTEMS[e.id];
+  document.getElementById('c-system').textContent = `${organ.name} / ${organ.tissue} · ${organ.en}`;
   document.getElementById('c-title').textContent = e.id === 'today' ? '今日复习 · 单词' : e.title;
   setMeta(e);
   const body = document.getElementById('c-body');

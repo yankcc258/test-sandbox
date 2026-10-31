@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>知序 · 复习脊柱</title>
-    <link rel="stylesheet" href="recall-spine.css?v=10" />
+    <link rel="stylesheet" href="recall-spine.css?v=11" />
   </head>
   <body>
     <section id="spine" class="stage" aria-label="复习区">
@@ -16,6 +16,16 @@
         <small>MEMORY CONSOLIDATION · 记忆巩固</small>
         <em>RECALL <b>OS</b></em>
       </header>
+      <section class="specimen-note" aria-label="当前生命系统">
+        <small id="specimen-code">ZH-01 / 01 · HEART</small>
+        <h1 id="specimen-name">心脏 · 循环维持</h1>
+        <p id="specimen-description">
+          让今日的记忆重新进入循环。每一次回想，都为这具生命体补充一次供给。
+        </p>
+        <div>
+          <i></i><span id="specimen-state">维持中</span><span>生命体构建 / IN ASSEMBLY</span>
+        </div>
+      </section>
       <nav class="top" aria-label="区域">
         <span class="gateway"><small>前往区域</small> <b>复习区</b> <i>⌄</i></span>
         <button type="button" id="motion" aria-pressed="true">动效 · 开</button>
@@ -44,7 +54,7 @@
       </nav>
 
       <nav class="index" aria-label="复习入口">
-        <p>WHAT DO YOU RECALL TODAY?</p>
+        <p>SYSTEM INDEX / 生命系统</p>
         <ol id="list"></ol>
       </nav>
 
@@ -52,11 +62,12 @@
         <i id="rail-mark"></i>
       </div>
       <div class="counter" aria-hidden="true">
+        <div class="pulse-caption">模拟脉搏 · <span id="pulse-mode">静息 / REST</span></div>
         <div class="pulse"><i id="pulse-dot"></i><b id="bpm">064</b> BPM</div>
         <small>PANEL / SELECT</small>
         <div><strong id="count">01</strong><span>/ 07</span></div>
       </div>
-      <p class="hint" id="hint">滚动或拖动切换 · 悬停预览 · 点击屏幕进入 · 连续点击会让心率升高</p>
+      <p class="hint" id="hint">滚动切换 · 点击屏幕进入 · 轻点空白处，为生命体定拍</p>
       <div class="flash" id="flash" aria-hidden="true"></div>
       <div class="warp-light" aria-hidden="true"></div>
       <div class="overload" id="overload" aria-live="polite" hidden>
@@ -69,6 +80,7 @@
         <header>
           <small id="c-code">01 · RECALL</small>
           <h2 id="c-title">今日复习</h2>
+          <p id="c-system" class="c-system"></p>
           <p id="c-meta"></p>
         </header>
         <div class="c-body" id="c-body"></div>
@@ -123,7 +135,7 @@
       </section>
 
       <footer class="foot">
-        <span><i></i> SESSION · YANK · 复习脊柱 · 沙盒原型（示例数据）</span>
+        <span><i></i> SPECIMEN ZH-01 · 记忆生命体 · 沙盒原型（示例数据）</span>
         <span>滚轮 / 拖动 / ↑ ↓ 切换 &nbsp;·&nbsp; ENTER 进入 &nbsp;·&nbsp; ESC 返回</span>
         <span><b id="clock">--:--:--</b> JST</span>
       </footer>
@@ -151,6 +163,6 @@
         }
       });
     </script>
-    <script type="module" src="recall-spine.js?v=10"></script>
+    <script type="module" src="recall-spine.js?v=11"></script>
   </body>
 </html>

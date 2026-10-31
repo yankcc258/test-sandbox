@@ -1,5 +1,5 @@
 // 复习脊柱的「心跳」和背景层（露娜）。
-//   心跳：基础 64 BPM；三秒内点击越多，目标心率越高，停下来慢慢回落。超过阈值触发「记忆过载」彩蛋。
+//   模拟脉搏：基础 64 BPM；有效点击直接定拍，连续点击的间隔决定目标节律，停下后慢慢回落。
 //   心电图：医院监护仪式的扫描写入——一根光标从左往右写波形，前方留一小段空隙擦掉旧波形。
 //   背景：极淡的网格、四角取景框、右侧随深度滚动的标尺、几块小型数据读数，全部画在一张 2D 画布上，
 //         垫在 WebGL 画布后面。保持冷清、极简：线条细、透明度低。
@@ -27,6 +27,11 @@ export function createHeart() {
     phase: 0,
     beat: 0, // 心跳包络 0～1，用来让屏幕、光点、扫描环跟着跳
     clicks: [],
+    intervals: [],
+    lastClick: -Infinity,
+    tempo: null,
+    mode: 'rest',
+    kick: 0,
     overloadAt: -1, // 过载开始的时间（秒），-1 表示没有过载
     stage: '',
     burst: 0,
@@ -37,16 +42,49 @@ export function createHeart() {
   // locked：进入内容后为 true。答题时的点击不计入心率，也不会触发过载，心率慢慢回落
   h.locked = false;
   h.click = (now) => {
-    if (h.overloadAt >= 0 || h.locked) return;
+    if (h.overloadAt >= 0 || h.locked || !Number.isFinite(now)) return false;
+    const interval = now - h.lastClick;
+    if (interval < 0.12) return false; // Ignore duplicate events and implausibly short intervals.
+    if (interval > 2.2) h.intervals = [];
+    else h.intervals.push(interval);
+    h.intervals = h.intervals.slice(-5);
+    const sorted = [...h.intervals].sort((a, b) => a - b),
+      n = sorted.length;
+    const median = n % 2 ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+    h.tempo = n ? Math.max(48, Math.min(180, 60 / median)) : null;
+    h.lastClick = now;
     h.clicks.push(now);
+    // Start just before QRS: each accepted click visibly writes a pulse, without a screen flash.
+    h.phase = Math.ceil(h.phase - 0.21) + 0.21;
+    h.kick = 1;
+    return true;
   };
   h.step = (dt, now) => {
-    h.clicks = h.locked ? [] : h.clicks.filter((t) => now - t < 3);
-    h.target = Math.min(196, BASE_BPM + h.clicks.length * 12);
+    dt = Math.max(0, dt);
+    if (h.locked) {
+      h.clicks = [];
+      h.intervals = [];
+      h.lastClick = -Infinity;
+      h.tempo = null;
+      h.kick = 0;
+    }
+    h.clicks = h.clicks.filter((t) => now - t < 3);
+    const age = now - h.lastClick,
+      coupling = Math.max(0, Math.min(1, 1 - (age - 2.2) / 4));
+    h.target = BASE_BPM + ((h.tempo ?? BASE_BPM) - BASE_BPM) * coupling;
+    h.mode =
+      age < 2.2
+        ? h.tempo
+          ? 'coupled'
+          : 'impulse'
+        : Math.abs(h.bpm - BASE_BPM) > 1
+          ? 'recover'
+          : 'rest';
     // 心率上升快、回落慢
     const rate = h.target > h.bpm ? 46 : 9;
     h.bpm += Math.sign(h.target - h.bpm) * Math.min(Math.abs(h.target - h.bpm), rate * dt);
-    if (h.overloadAt < 0 && !h.locked && h.bpm >= OVERLOAD_BPM) h.overloadAt = now;
+    if (h.overloadAt < 0 && !h.locked && h.bpm >= OVERLOAD_BPM && h.clicks.length >= 9)
+      h.overloadAt = now;
     // 过载的时间线
     h.glitch = h.flat = h.wild = false;
     h.stage = '';
@@ -65,6 +103,9 @@ export function createHeart() {
         h.burst = (1 - (t - 2.8) / 1.4) ** 2;
         if (h.bpm > BASE_BPM + 1) {
           h.clicks = [];
+          h.intervals = [];
+          h.lastClick = -Infinity;
+          h.tempo = null;
           h.bpm = BASE_BPM;
         }
       } else {
@@ -75,16 +116,20 @@ export function createHeart() {
     const before = h.phase;
     if (!h.flat) h.phase += (dt * h.bpm) / 60;
     const u = h.phase % 1;
+    h.kick *= Math.exp(-dt * 12);
     // 包络：R 波处陡升，随后衰减；第二个小峰对应 T 波
     h.beat = h.flat
       ? 0
-      : Math.exp(-(((u - 0.26 + 1) % 1) * 7)) * 0.9 + Math.exp(-(((u - 0.5) / 0.08) ** 2)) * 0.15;
+      : Math.max(
+          h.kick,
+          Math.exp(-(((u - 0.26 + 1) % 1) * 7)) * 0.9 + Math.exp(-(((u - 0.5) / 0.08) ** 2)) * 0.15,
+        );
     return h.phase - before;
   };
-  h.sample = () => {
+  h.sample = (phase = h.phase) => {
     if (h.flat) return 0;
-    if (h.wild) return ecg(h.phase % 1) * (0.8 + Math.random() * 0.9) + (Math.random() - 0.5) * 0.5;
-    return ecg(h.phase % 1);
+    if (h.wild) return ecg(phase % 1) * (0.8 + Math.random() * 0.9) + (Math.random() - 0.5) * 0.5;
+    return ecg(((phase % 1) + 1) % 1);
   };
   return h;
 }
@@ -95,7 +140,8 @@ export function createBackdrop(canvas, heart) {
     H = 1,
     dpr = 1,
     trace = new Float32Array(1),
-    head = 0;
+    head = 0,
+    pixelRemainder = 0;
   const SPEED = 190; // 心电图光标每秒前进的像素
   function resize() {
     const r = canvas.getBoundingClientRect();
@@ -111,21 +157,19 @@ export function createBackdrop(canvas, heart) {
   }
   // 每帧写入新的心电图采样（按前进的像素数插值）
   function write(dt, phaseDelta) {
-    const n = Math.max(1, Math.round(SPEED * dt)),
+    pixelRemainder += SPEED * dt;
+    const n = Math.floor(pixelRemainder),
       p0 = heart.phase - phaseDelta;
+    pixelRemainder -= n;
     for (let k = 1; k <= n; k++) {
       head = (head + 1) % trace.length;
       if (heart.flat) trace[head] = 0;
       else {
-        const saved = heart.phase;
-        heart.phase = p0 + (phaseDelta * k) / n;
-        trace[head] = heart.sample();
-        heart.phase = saved;
+        trace[head] = heart.sample(p0 + (phaseDelta * k) / n);
       }
     }
   }
   const mono = '"SFMono-Regular",Consolas,"Liberation Mono",monospace';
-  const hex = (n) => Math.floor(n).toString(16).toUpperCase().padStart(4, '0');
   function draw(t, depth, live) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
@@ -220,23 +264,12 @@ export function createBackdrop(canvas, heart) {
     ctx.arc(head, hy, 2.6, 0, Math.PI * 2);
     ctx.fill();
     ctx.lineWidth = 1;
-    // 数据读数：左上品牌下方、右下计数上方
-    ctx.textAlign = 'left';
+    // Specimen information replaces unrelated geographic/debug readouts.
     ctx.font = `500 9.5px ${mono}`;
-    ctx.fillStyle = ink(0.32);
-    const lines = [
-      `SYS · RECALL OS / NODE 7`,
-      `PULSE  ${String(Math.round(heart.bpm)).padStart(3, '0')} BPM`,
-      `CYCLE  ${String(Math.floor(heart.phase)).padStart(5, '0')}`,
-      `DEPTH  −${depth.toFixed(2)} U`,
-      `TRACE  ${hex(t * 37)} ${hex(t * 11 + 4096)} ${hex(heart.phase * 977)}`,
-    ];
-    // 窄屏不画读数，避免压在脊柱上
-    if (W >= 760) lines.forEach((s, k) => ctx.fillText(s, 54, 196 + k * 15));
     ctx.textAlign = 'right';
     ctx.fillStyle = ink(0.22);
     if (W >= 760) {
-      ctx.fillText(`LAT 35.6812 N · LON 139.7671 E`, W - 128, H - 150);
+      ctx.fillText('SPECIMEN ZH-01 · IN ASSEMBLY', W - 128, H - 150);
       ctx.fillText(live ? 'SIGNAL · LIVE' : 'SIGNAL · STILL', W - 128, H - 135);
     }
   }
@@ -251,10 +284,9 @@ export function createBackdrop(canvas, heart) {
     prefill() {
       const save = heart.phase;
       for (let k = 0; k < trace.length; k++) {
-        heart.phase = save - ((trace.length - k) / SPEED) * (heart.bpm / 60);
-        trace[k] = heart.sample();
+        trace[k] = heart.sample(save - ((trace.length - k) / SPEED) * (heart.bpm / 60));
       }
-      heart.phase = save;
+      pixelRemainder = 0;
       head = trace.length - 1 - 80;
     },
     traceTail: (count) => {
