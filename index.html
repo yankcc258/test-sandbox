@@ -4,8 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>知序 · 复习脊柱</title>
-    <link rel="stylesheet" href="recall-spine.css?v=14" />
-    <link rel="stylesheet" href="recall-experience.css?v=14" />
+    <link rel="stylesheet" href="recall-spine.css?v=15" />
+    <link rel="stylesheet" href="recall-experience.css?v=15" />
+    <link rel="stylesheet" href="recall-gateway.css?v=15" />
   </head>
   <body>
     <section id="spine" class="stage" aria-label="复习区">
@@ -39,7 +40,7 @@
       </div>
       <div class="completion-notice" id="completion-notice" role="status" hidden></div>
       <nav class="top" aria-label="区域">
-        <span class="gateway"><small>前往区域</small> <b>复习区</b> <i>⌄</i></span>
+        <details class="gateway" data-gateway></details>
         <button type="button" id="motion" aria-pressed="true">动效 · 开</button>
         <div class="dock" id="dock">
           <div class="pill">
@@ -155,6 +156,30 @@
       <p class="model-status" id="model-status" role="status">正在载入脊柱…</p>
       <p class="fallback" id="fallback" hidden>立体预览暂时无法显示，可以用左侧列表进入复习。</p>
     </section>
+    <!-- 实验室（沙盒占位）：正式站 v2.43.2 的截图，只用来演示实验室 ⇄ 复习区的竖井过渡 -->
+    <section id="lab" class="lab-gate" hidden aria-label="实验室（沙盒占位）">
+      <div class="lab-shaft" aria-hidden="true">
+        <div class="shaft-walls"></div>
+        <div class="shaft-scale left"></div>
+        <div class="shaft-scale right"></div>
+        <div class="shaft-cord"></div>
+        <div class="shaft-arrive">
+          <small>B1 · RECALL / 复习区</small>
+          <b>记忆巩固层</b>
+          <span id="shaft-state"
+            ><span class="go">脊髓信号接入中</span><span class="hold">正在载入脊柱…</span></span
+          >
+        </div>
+        <div class="shaft-read">
+          <span>SHAFT · LAB-01 ⇣ RECALL</span>
+          <strong>−<span id="shaft-depth">000</span><em>M</em></strong>
+        </div>
+      </div>
+      <div class="lab-blinds" id="lab-blinds" aria-hidden="true"></div>
+      <i class="lab-seam" aria-hidden="true"></i>
+      <details class="gateway" data-gateway></details>
+      <p class="lab-note">沙盒占位 · 实验室截图（正式站 v2.43.2）</p>
+    </section>
     <p class="boot-error" id="boot-error" hidden></p>
     <script>
       // 出错时在页面底部显示一行，方便反馈（不影响按钮）
@@ -176,6 +201,6 @@
         }
       });
     </script>
-    <script type="module" src="recall-spine.js?v=14"></script>
+    <script type="module" src="recall-spine.js?v=15"></script>
   </body>
 </html>

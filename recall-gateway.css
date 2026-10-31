@@ -1,0 +1,394 @@
+/* 实验室 ⇄ 复习区：竖井下沉（露娜）。数值都由 recall-gateway.js 按时间线写进 CSS 变量。 */
+.lab-gate {
+  --lab: url('assets/lab/lab-desktop.jpg');
+  --fall: 0;
+  --seam: 0;
+  --shaft: 0;
+  --cord: 0;
+  --arrive: 0;
+  --depth-px: 0px;
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  overflow: hidden;
+  background: transparent;
+  color: var(--ink);
+}
+.lab-gate[hidden] {
+  display: none;
+}
+@media (max-width: 760px) {
+  .lab-gate {
+    --lab: url('assets/lab/lab-mobile.jpg');
+  }
+}
+
+/* 竖井：在薄片后面。深色井壁、两侧向上掠过的深度刻度、中间一根渐亮的脊髓 */
+.lab-shaft {
+  position: absolute;
+  inset: 0;
+  opacity: var(--shaft);
+  background:
+    radial-gradient(ellipse 34% 60% at 50% 50%, #1d2427 0%, transparent 70%),
+    linear-gradient(90deg, #0b0e0f 0%, #121618 30%, #121618 70%, #0b0e0f 100%);
+}
+.lab-gate:not(.moving) .lab-shaft {
+  visibility: hidden;
+}
+.shaft-scale {
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  width: 54px;
+  /* 小刻度每 24px，长刻度每 120px；位置跟着深度往上走 */
+  background:
+    repeating-linear-gradient(#e8ebe466 0 1px, transparent 1px 120px) 0 var(--depth-px) / 100% 120px,
+    repeating-linear-gradient(#e8ebe426 0 1px, transparent 1px 24px) 0 var(--depth-px) / 40% 24px
+      no-repeat repeat;
+  background-repeat: repeat-y;
+  mask: linear-gradient(transparent, #000 22%, #000 78%, transparent);
+}
+.shaft-scale.left {
+  left: 22%;
+}
+.shaft-scale.right {
+  right: 22%;
+  transform: scaleX(-1);
+}
+/* 井壁的透视线：四条往中心收的细线，给出往下看的纵深 */
+.shaft-walls {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      to bottom right,
+      transparent calc(50% - 0.5px),
+      #e8ebe414 50%,
+      transparent calc(50% + 0.5px)
+    ),
+    linear-gradient(
+      to bottom left,
+      transparent calc(50% - 0.5px),
+      #e8ebe414 50%,
+      transparent calc(50% + 0.5px)
+    );
+  mask: radial-gradient(circle at 50% 50%, transparent 8%, #000 60%);
+}
+.shaft-cord {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  opacity: var(--cord);
+  transform: scaleY(var(--cord));
+  transform-origin: 50% 0;
+  background: linear-gradient(transparent, #9cc2b9 30%, #c9e755 52%, #9cc2b9 74%, transparent);
+  box-shadow:
+    0 0 12px #9cc2b9aa,
+    0 0 36px #c9e75544;
+}
+.shaft-read {
+  position: absolute;
+  left: 52px;
+  bottom: 48px;
+  display: grid;
+  gap: 6px;
+  font: 600 10px/1.4 var(--mono);
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+.shaft-read strong {
+  font: 300 44px/1 var(--sans);
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+.shaft-read strong em {
+  font: 600 11px var(--mono);
+  font-style: normal;
+  margin-left: 8px;
+  color: var(--muted);
+}
+.shaft-arrive {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  opacity: var(--arrive);
+  text-align: center;
+  pointer-events: none;
+}
+.shaft-arrive small {
+  font: 600 10px var(--mono);
+  letter-spacing: 0.2em;
+  color: #c2d8ce;
+}
+.shaft-arrive b {
+  font: 300 34px/1.1 var(--sans);
+  letter-spacing: 0.12em;
+}
+.shaft-arrive span {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+#shaft-state {
+  min-height: 1.4em;
+}
+.lab-gate:not(.holding) #shaft-state .hold {
+  display: none;
+}
+.lab-gate.holding #shaft-state .go {
+  display: none;
+}
+
+/* 实验室截图切成横向薄片；--o 0 = 平铺成完整画面，1 = 翻成侧面 */
+.lab-blinds {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 56%;
+  transform: translateY(calc(var(--fall) * -34%)) scale(calc(1 + var(--fall) * 0.24));
+  perspective: 1400px;
+  perspective-origin: 50% 56%;
+  --h: calc(100vh / var(--n));
+}
+@supports (height: 100dvh) {
+  .lab-blinds {
+    --h: calc(100dvh / var(--n));
+  }
+}
+.lab-strip {
+  --o: 0;
+  --glint: 0;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--j) * var(--h));
+  /* 多 1px，避免相邻薄片之间露出细缝 */
+  height: calc(var(--h) + 1px);
+  overflow: hidden;
+  transform: rotateX(calc(var(--o) * var(--dir) * 88deg));
+  opacity: calc(1 - var(--o) * var(--o));
+}
+.lab-strip > i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--j) * var(--h) * -1);
+  height: calc(var(--h) * var(--n));
+  background: var(--lab) center / cover no-repeat;
+  /* 翻开时变暗，像卡片转离光源 */
+  filter: brightness(calc(1 - var(--o) * 0.55));
+}
+/* 翻到一半时薄片边缘反一下光 */
+.lab-strip::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #c9e755 30%,
+    #e8ebe4 50%,
+    #c9e755 70%,
+    transparent
+  );
+  opacity: calc(var(--glint) * 0.7);
+}
+.lab-seam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 56%;
+  height: 2px;
+  margin-top: -1px;
+  opacity: var(--seam);
+  transform: scaleX(var(--seam));
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #c9e755 25%,
+    #f2f6e8 50%,
+    #c9e755 75%,
+    transparent
+  );
+  box-shadow:
+    0 0 18px #c9e755aa,
+    0 0 60px #c9e75555;
+  pointer-events: none;
+}
+
+/* 占位说明和区域菜单：只在停在实验室时出现 */
+.lab-note {
+  position: absolute;
+  left: 50%;
+  top: 18px;
+  translate: -50% 0;
+  margin: 0;
+  padding: 5px 12px;
+  border: 1px solid #e8ebe42a;
+  border-radius: 999px;
+  background: #0e1213cc;
+  font: 600 10px/1.4 var(--mono);
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.lab-gate > .gateway {
+  position: absolute;
+  right: 36px;
+  top: 24px;
+}
+.lab-gate.moving :is(.lab-note, .gateway) {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+/* 区域菜单（两处共用），样式贴近正式站右上角的「前往区域」 */
+details.gateway {
+  position: relative;
+  padding: 0;
+  border: 0;
+}
+details.gateway > summary {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 8px 4px 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: #11161799;
+  list-style: none;
+  cursor: pointer;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+details.gateway > summary::-webkit-details-marker {
+  display: none;
+}
+details.gateway > summary b {
+  color: var(--accent);
+  margin: 0 8px 0 12px;
+}
+details.gateway > summary i {
+  font-style: normal;
+  padding: 0 6px;
+  transition: rotate 0.2s;
+}
+details.gateway[open] > summary i {
+  rotate: 180deg;
+}
+details.gateway > nav {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 12;
+  width: 248px;
+  display: grid;
+  padding: 6px;
+  border: 1px solid var(--line);
+  background: #0f1314f2;
+  backdrop-filter: blur(10px);
+}
+details.gateway > nav button {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 10px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  text-align: left;
+}
+details.gateway > nav button:hover:not(:disabled),
+details.gateway > nav button:focus-visible {
+  background: #e8ebe410;
+}
+details.gateway > nav button[aria-current='true'] {
+  box-shadow: inset 2px 0 var(--accent);
+}
+details.gateway > nav button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+details.gateway > nav small {
+  font: 10px var(--mono);
+  color: var(--muted);
+}
+details.gateway > nav span {
+  display: grid;
+  gap: 2px;
+}
+details.gateway > nav b {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+details.gateway > nav em {
+  font: 9.5px var(--mono);
+  font-style: normal;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+details.gateway > nav i {
+  font-style: normal;
+  color: var(--muted);
+}
+
+/* 过渡期间复习区的界面整体跟着 --hud 收起 / 亮起 */
+.stage.gating > :is(.brand, .top, .specimen-note, .life-readout, .index, .rail, .counter, .foot) {
+  opacity: var(--hud, 1) !important;
+  transition: none !important;
+}
+/* 提示行自己会在第一次输入后淡出（行内 opacity），这里用滤镜叠乘，不覆盖它 */
+.stage.gating > .hint {
+  filter: opacity(var(--hud, 1));
+}
+
+@media (max-width: 760px) {
+  .lab-gate > .gateway {
+    display: block; /* recall-spine.css 在手机上隐藏了旧的静态标签 */
+    right: 16px;
+    top: 16px;
+  }
+  .stage .top details.gateway {
+    /* 手机：和品牌字同一行、靠右；胶囊导航在它下面 */
+    display: block;
+    position: fixed;
+    right: 16px;
+    top: 16px;
+    z-index: 20;
+  }
+  .shaft-read {
+    left: 18px;
+    bottom: 28px;
+  }
+  .shaft-read strong {
+    font-size: 34px;
+  }
+  .shaft-scale.left {
+    left: 8%;
+  }
+  .shaft-scale.right {
+    right: 8%;
+  }
+  .shaft-arrive b {
+    font-size: 26px;
+  }
+  .lab-note {
+    top: 62px;
+    left: auto;
+    right: 16px;
+    translate: none;
+    font-size: 9px;
+  }
+}

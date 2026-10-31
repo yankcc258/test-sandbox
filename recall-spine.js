@@ -6,13 +6,14 @@
 import * as THREE from './vendor/three/three.module.min.js';
 import { RoomEnvironment } from './vendor/three/RoomEnvironment.js';
 // 版本号：更新时一起改，避免浏览器把新旧文件混在一起用
-import { PANEL, createSpine, panelPose } from './models/spine.js?v=14';
-import { createBackdrop, createHeart } from './recall-backdrop.js?v=14';
-import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js?v=14';
-import { createDock } from './recall-dock.js?v=14';
-import { SYSTEMS, drawSpecimen } from './recall-specimen.js?v=14';
-import { bindPulseInput } from './recall-pulse-input.js?v=14';
-import { createLifeState, createSignal } from './recall-life.js?v=14';
+import { PANEL, SPINE, createSpine, panelPose } from './models/spine.js?v=15';
+import { createBackdrop, createHeart } from './recall-backdrop.js?v=15';
+import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js?v=15';
+import { createDock } from './recall-dock.js?v=15';
+import { SYSTEMS, drawSpecimen } from './recall-specimen.js?v=15';
+import { bindPulseInput } from './recall-pulse-input.js?v=15';
+import { createLifeState, createSignal } from './recall-life.js?v=15';
+import { createGateway } from './recall-gateway.js?v=15';
 
 // 示例数据；images 留空。以后在 IMAGES 里登记图片路径，屏幕就会以那张图做底，没有图就只显示复习信息。
 const IMAGES = {};
@@ -368,6 +369,11 @@ function createScene() {
   let travel = null,
     linkTarget = Math.round(target),
     feedbackIndex = -1;
+  // 实验室 ⇄ 复习区的竖井过渡（recall-gateway.js 驱动）：shaft 1 = 镜头在脊柱正上方，0 = 螺旋总览；
+  // shaftSig 是过渡期间沿脊髓走的信号；asleep：停在实验室时不画复习区
+  let shaft = 0,
+    shaftSig = null,
+    asleep = false;
   const heart = createHeart(),
     bgCanvas = document.getElementById('bg'),
     backdrop = createBackdrop(bgCanvas, heart),
@@ -377,7 +383,8 @@ function createScene() {
     pulseEl = bpmEl.parentElement,
     dotEl = document.getElementById('pulse-dot');
   bindPulseInput(stageEl, {
-    enabled: () => motion() && !entered && !travel && document.getElementById('about').hidden,
+    enabled: () =>
+      motion() && !entered && !travel && !shaft && document.getElementById('about').hidden,
     onPulse: () => heart.click(performance.now() / 1000),
   });
   const OV = {
@@ -602,9 +609,25 @@ function createScene() {
       .copy(dir)
       .multiplyScalar((PANEL.radius - 1.4 * (1 - enterK)) * (1 - 0.6 * f))
       .setY(y + 0.05 * (1 - enterK));
+    // 竖井：镜头先升高、再收到脊柱正上方（略偏向当前屏幕一侧，避免和竖直方向重合），低头看脊髓。
+    // 升高在前、收拢在后，路径始终在屏幕和椎骨外侧。
+    let fov = narrow ? 46 : 32;
+    if (shaft > 0) {
+      const k = shaft,
+        ky = ease(k),
+        kr = ease(Math.max(0, Math.min(1, (k - 0.45) / 0.55))),
+        r = camPos.clone().setY(0).length(),
+        topY = SPINE.top + 6;
+      camPos
+        .copy(dir)
+        .multiplyScalar(r + (0.9 - r) * kr)
+        .setY(camPos.y + (topY - camPos.y) * ky);
+      look.lerp(new THREE.Vector3(0, y - 2, 0), ease(Math.min(1, k * 1.4)));
+      fov += (narrow ? 12 : 22) * ky;
+    }
     camera.position.copy(camPos);
     camera.lookAt(look);
-    camera.fov = narrow ? 46 : 32;
+    camera.fov = fov;
     camera.setViewOffset(w, h, narrow ? 0 : -w * 0.05 * (1 - enterK), 0, w, h);
     camera.updateProjectionMatrix();
     // DNA 只以不到一半的速度跟着镜头转：大体还在两侧，但会和脊柱、屏幕错开、互相遮挡，产生视差
@@ -746,8 +769,14 @@ function createScene() {
     travel = signal.step(dt, live);
     handoff.classList.toggle('on', !!travel && travel.kind === 'switch' && !entered);
     if (travel) handoff.style.setProperty('--link-progress', travel.p);
-    spine.signal(travel?.y ?? 0, travel?.strength ?? 0);
-    heart.locked = entered || !!travel;
+    if (shaftSig) {
+      // 竖井过渡：脊柱顶端 ⇄ 当前屏幕那一节
+      const top = SPINE.top + 0.5,
+        here = -s * PANEL.drop + 1.25,
+        [a, b] = shaftSig.from === 'top' ? [top, here] : [here, top];
+      spine.signal(a + (b - a) * shaftSig.p, live ? shaftSig.strength : 0);
+    } else spine.signal(travel?.y ?? 0, travel?.strength ?? 0);
+    heart.locked = entered || !!travel || shaft > 0;
     const pulseNow = performance.now() / 1000,
       pulseDt = live && dt > 0 ? Math.min(0.25, Math.max(0, pulseNow - lastPulseTime)) : 0;
     lastPulseTime = pulseNow;
@@ -819,14 +848,17 @@ function createScene() {
     last = 0;
   function tick(now) {
     frame = 0;
-    if (!motion() || testLive) return;
+    if (!motion() || testLive || asleep) return;
     const dt = Math.min(0.12, last ? (now - last) / 1000 : 0.016);
     last = now;
     draw(dt);
     frame = requestAnimationFrame(tick);
   }
   function sync() {
-    if (motion()) {
+    if (asleep) {
+      cancelAnimationFrame(frame);
+      frame = 0;
+    } else if (motion()) {
       if (!frame) {
         last = 0;
         frame = requestAnimationFrame(tick);
@@ -863,7 +895,7 @@ function createScene() {
     'wheel',
     (e) => {
       e.preventDefault();
-      if (entered) return;
+      if (entered || shaft > 0) return;
       const px = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
       nudge(target + px / 520);
     },
@@ -882,7 +914,7 @@ function createScene() {
     return hit ? hit.object.userData.i : -1;
   }
   canvas.addEventListener('pointerdown', (e) => {
-    if (entered) return;
+    if (entered || shaft > 0) return;
     drag = {
       y: e.clientY,
       t0: target,
@@ -987,6 +1019,27 @@ function createScene() {
       if (!motion()) draw(0);
     },
     redraw: () => draw(0),
+    setShaft(k, sig) {
+      shaft = k;
+      shaftSig = sig;
+      if (!motion() && !asleep) draw(0);
+    },
+    // 停在实验室时整个复习区不画；回来时恢复循环
+    sleep(v) {
+      if (asleep === v) return;
+      asleep = v;
+      sync();
+    },
+    // 测试用：停在竖井过渡的某一刻
+    shaftTest(k, sig) {
+      testLive = true;
+      cancelAnimationFrame(frame);
+      frame = 0;
+      shaft = k;
+      shaftSig = sig;
+      panelClock = 1;
+      draw(0.001);
+    },
     // 复习数据变了（例如完成一组单词）：重画所有屏幕上的排版
     refreshPanels() {
       panels.forEach((p) => {
@@ -1158,6 +1211,7 @@ document.getElementById('back').onclick = leave;
 document.getElementById('open-entry').onclick = enter;
 addEventListener('keydown', (e) => {
   if (dock?.open) return; // 关于页打开时，螺旋不响应按键
+  if (gate?.blocking) return; // 在实验室或竖井过渡中
   // 进入后：空格 / 回车 / 1 2 3 交给单词卡
   // （焦点在按钮上时，空格和回车留给按钮本身；数字键始终交给单词卡）
   const onButton = e.target.closest?.('button') && (e.key === ' ' || e.key === 'Enter');
@@ -1221,7 +1275,19 @@ document.getElementById('reset-round').onclick = () => {
   go(1);
   updateLife();
 };
+// 实验室 ⇄ 复习区：右上角「前往区域」。?region=lab 直接停在实验室（沙盒里是截图），方便试下沉
+const gate = createGateway({
+  motion,
+  scene,
+  stage: document.getElementById('spine'),
+  onLeaveReview: () => {
+    dock.setOpen(false);
+    leave();
+  },
+  onArriveReview: () => document.getElementById('open-entry').focus({ preventScroll: true }),
+});
+if (params.get('region') === 'lab') gate.settle('lab');
 reduced.addEventListener('change', syncMotion);
 markList(Math.round(target));
 updateLife();
-window.zhixuSpine = { ready: !!scene, go, enter, leave, scene, dock };
+window.zhixuSpine = { ready: !!scene, go, enter, leave, scene, dock, gate };
