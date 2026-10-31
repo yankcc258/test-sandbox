@@ -28,7 +28,7 @@ export function createHeart() {
     beat: 0, // 心跳包络 0～1，用来让屏幕、光点、扫描环跟着跳
     clicks: [],
     overloadAt: -1, // 过载开始的时间（秒），-1 表示没有过载
-    stage: "",
+    stage: '',
     burst: 0,
     glitch: false,
     flat: false,
@@ -45,26 +45,23 @@ export function createHeart() {
     h.target = Math.min(196, BASE_BPM + h.clicks.length * 12);
     // 心率上升快、回落慢
     const rate = h.target > h.bpm ? 46 : 9;
-    h.bpm +=
-      Math.sign(h.target - h.bpm) *
-      Math.min(Math.abs(h.target - h.bpm), rate * dt);
-    if (h.overloadAt < 0 && !h.locked && h.bpm >= OVERLOAD_BPM)
-      h.overloadAt = now;
+    h.bpm += Math.sign(h.target - h.bpm) * Math.min(Math.abs(h.target - h.bpm), rate * dt);
+    if (h.overloadAt < 0 && !h.locked && h.bpm >= OVERLOAD_BPM) h.overloadAt = now;
     // 过载的时间线
     h.glitch = h.flat = h.wild = false;
-    h.stage = "";
+    h.stage = '';
     if (h.overloadAt >= 0) {
       const t = now - h.overloadAt;
       if (t < 1.8) {
-        h.stage = "overload";
+        h.stage = 'overload';
         h.burst = 1 - (1 - t / 1.8) ** 3;
         h.glitch = h.wild = true;
       } else if (t < 2.8) {
-        h.stage = "lost";
+        h.stage = 'lost';
         h.burst = 1;
         h.flat = true;
       } else if (t < 4.2) {
-        h.stage = "recal";
+        h.stage = 'recal';
         h.burst = (1 - (t - 2.8) / 1.4) ** 2;
         if (h.bpm > BASE_BPM + 1) {
           h.clicks = [];
@@ -81,24 +78,19 @@ export function createHeart() {
     // 包络：R 波处陡升，随后衰减；第二个小峰对应 T 波
     h.beat = h.flat
       ? 0
-      : Math.exp(-(((u - 0.26 + 1) % 1) * 7)) * 0.9 +
-        Math.exp(-(((u - 0.5) / 0.08) ** 2)) * 0.15;
+      : Math.exp(-(((u - 0.26 + 1) % 1) * 7)) * 0.9 + Math.exp(-(((u - 0.5) / 0.08) ** 2)) * 0.15;
     return h.phase - before;
   };
   h.sample = () => {
     if (h.flat) return 0;
-    if (h.wild)
-      return (
-        ecg(h.phase % 1) * (0.8 + Math.random() * 0.9) +
-        (Math.random() - 0.5) * 0.5
-      );
+    if (h.wild) return ecg(h.phase % 1) * (0.8 + Math.random() * 0.9) + (Math.random() - 0.5) * 0.5;
     return ecg(h.phase % 1);
   };
   return h;
 }
 
 export function createBackdrop(canvas, heart) {
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext('2d');
   let W = 1,
     H = 1,
     dpr = 1,
@@ -133,7 +125,7 @@ export function createBackdrop(canvas, heart) {
     }
   }
   const mono = '"SFMono-Regular",Consolas,"Liberation Mono",monospace';
-  const hex = (n) => Math.floor(n).toString(16).toUpperCase().padStart(4, "0");
+  const hex = (n) => Math.floor(n).toString(16).toUpperCase().padStart(4, '0');
   function draw(t, depth, live) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
@@ -180,7 +172,7 @@ export function createBackdrop(canvas, heart) {
       pxPerUnit = 46,
       off = (depth * pxPerUnit) % (pxPerUnit / 2);
     ctx.font = `500 9px ${mono}`;
-    ctx.textAlign = "right";
+    ctx.textAlign = 'right';
     for (let y = -off; y < H; y += pxPerUnit / 2) {
       const k = Math.round((y + depth * pxPerUnit) / (pxPerUnit / 2)),
         major = k % 4 === 0;
@@ -191,11 +183,7 @@ export function createBackdrop(canvas, heart) {
       ctx.stroke();
       if (major && y > 110 && y < H - 120) {
         ctx.fillStyle = ink(0.28);
-        ctx.fillText(
-          `−${(k / 2 - H / pxPerUnit).toFixed(2).replace("-", "")}`,
-          rx - 6,
-          y + 3,
-        );
+        ctx.fillText(`−${(k / 2 - H / pxPerUnit).toFixed(2).replace('-', '')}`, rx - 6, y + 3);
       }
     }
     // 心电图带
@@ -209,7 +197,7 @@ export function createBackdrop(canvas, heart) {
     const gap = 36,
       n = trace.length;
     ctx.lineWidth = 1.4;
-    ctx.lineJoin = "round";
+    ctx.lineJoin = 'round';
     // 从光标往回画，越旧越淡；光标前方 gap 像素留空（擦除区）
     const segs = 6;
     for (let sgi = 0; sgi < segs; sgi++) {
@@ -227,30 +215,27 @@ export function createBackdrop(canvas, heart) {
     }
     // 光标头
     const hy = cy - trace[head] * amp;
-    ctx.fillStyle =
-      heart.overloadAt >= 0
-        ? "rgba(255,214,150,0.95)"
-        : "rgba(220,255,240,0.95)";
+    ctx.fillStyle = heart.overloadAt >= 0 ? 'rgba(255,214,150,0.95)' : 'rgba(220,255,240,0.95)';
     ctx.beginPath();
     ctx.arc(head, hy, 2.6, 0, Math.PI * 2);
     ctx.fill();
     ctx.lineWidth = 1;
     // 数据读数：左上品牌下方、右下计数上方
-    ctx.textAlign = "left";
+    ctx.textAlign = 'left';
     ctx.font = `500 9.5px ${mono}`;
     ctx.fillStyle = ink(0.32);
     const lines = [
       `SYS · RECALL OS / NODE 7`,
-      `PULSE  ${String(Math.round(heart.bpm)).padStart(3, "0")} BPM`,
-      `CYCLE  ${String(Math.floor(heart.phase)).padStart(5, "0")}`,
+      `PULSE  ${String(Math.round(heart.bpm)).padStart(3, '0')} BPM`,
+      `CYCLE  ${String(Math.floor(heart.phase)).padStart(5, '0')}`,
       `DEPTH  −${depth.toFixed(2)} U`,
       `TRACE  ${hex(t * 37)} ${hex(t * 11 + 4096)} ${hex(heart.phase * 977)}`,
     ];
     lines.forEach((s, k) => ctx.fillText(s, 54, 196 + k * 15));
-    ctx.textAlign = "right";
+    ctx.textAlign = 'right';
     ctx.fillStyle = ink(0.22);
     ctx.fillText(`LAT 35.6812 N · LON 139.7671 E`, W - 128, H - 150);
-    ctx.fillText(live ? "SIGNAL · LIVE" : "SIGNAL · STILL", W - 128, H - 135);
+    ctx.fillText(live ? 'SIGNAL · LIVE' : 'SIGNAL · STILL', W - 128, H - 135);
   }
   resize();
   return {
