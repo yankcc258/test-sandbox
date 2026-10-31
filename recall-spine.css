@@ -418,7 +418,7 @@ body.still * {
   .counter {
     right: 18px;
     bottom: auto;
-    top: 76px;
+    top: 122px; /* 在胶囊和曲目框下面，不和它们重叠 */
   }
   .counter strong {
     font-size: 34px;
@@ -441,6 +441,7 @@ body.still * {
     border: 0;
     border-radius: 0;
     background: #101416f2;
+    z-index: 9; /* 手机全屏内容盖在胶囊导航上面，避免误触和遮挡标题 */
   }
   .content footer {
     position: sticky;

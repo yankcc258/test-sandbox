@@ -32,7 +32,11 @@ export async function loadSculptedSpine() {
     });
   });
   const instances = new Map(),
-    group = new THREE.Group();
+    group = new THREE.Group(),
+    units = new Set(data.extras?.units || []),
+    // 椎孔中心在每节椎骨局部坐标里的位置（由模型几何量出：椎体后缘与骨弓之间）
+    canalLocal = new THREE.Vector3(0, 0, -0.19),
+    canal = [];
   function visit(i, parent) {
     const n = data.nodes[i],
       local = new THREE.Matrix4().compose(
@@ -41,6 +45,7 @@ export async function loadSculptedSpine() {
         new THREE.Vector3().fromArray(n.scale || [1, 1, 1]),
       ),
       world = parent.clone().multiply(local);
+    if (units.has(i)) canal.push(canalLocal.clone().applyMatrix4(world));
     if (n.mesh !== undefined) {
       if (!instances.has(n.mesh)) instances.set(n.mesh, []);
       instances.get(n.mesh).push(world);
@@ -68,6 +73,8 @@ export async function loadSculptedSpine() {
   group.name = 'Organic spine / titanium hardware / revision 03';
   return {
     group,
+    // 每节椎孔中心的世界坐标，从上到下；脊髓沿着它穿过去
+    canal,
     stats: { vertebrae: data.extras.vertebrae, triangles, drawObjects: group.children.length },
   };
 }

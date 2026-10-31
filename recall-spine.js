@@ -6,10 +6,10 @@
 import * as THREE from './vendor/three/three.module.min.js';
 import { RoomEnvironment } from './vendor/three/RoomEnvironment.js';
 // 版本号：更新时一起改，避免浏览器把新旧文件混在一起用
-import { PANEL, createSpine, panelPose } from './models/spine.js?v=9';
-import { createBackdrop, createHeart } from './recall-backdrop.js?v=9';
-import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js?v=9';
-import { createDock } from './recall-dock.js?v=9';
+import { PANEL, createSpine, panelPose } from './models/spine.js?v=10';
+import { createBackdrop, createHeart } from './recall-backdrop.js?v=10';
+import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js?v=10';
+import { createDock } from './recall-dock.js?v=10';
 
 // 示例数据；images 留空。以后在 IMAGES 里登记图片路径，屏幕就会以那张图做底，没有图就只显示复习信息。
 const IMAGES = {};
@@ -471,7 +471,7 @@ function createScene() {
           .addScaledVector(dir, d)
           .setY(y + dy);
       const curve = new THREE.CatmullRomCurve3([
-        at(0.42, 0.15, 1.25),
+        at(0.62, 0.05, 1.25),
         at(1.45, 0.9, 1.5),
         at(1.85, 2.3, 1.2),
         at(PANEL.w / 2 - 0.18, PANEL.radius - 0.03, PANEL.h / 2 - 0.03),
@@ -480,7 +480,7 @@ function createScene() {
     });
     // 那节椎骨上的一圈光环
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(0.56, 0.012, 8, 64),
+      new THREE.TorusGeometry(1.08, 0.012, 8, 96),
       new THREE.MeshBasicMaterial({
         color: 0xc9eee3,
         transparent: true,

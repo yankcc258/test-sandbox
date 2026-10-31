@@ -7,7 +7,7 @@
 //   整条缓慢自转。左右各一条，相位错开半圈；跟着镜头转，始终在画面两侧，沿世界的 y 轴一直向下延续。
 // 纯几何工厂，不读 DOM。
 import * as THREE from '../vendor/three/three.module.min.js';
-import { loadSculptedSpine } from './sculpted-spine.js?v=9';
+import { loadSculptedSpine } from './sculpted-spine.js?v=10';
 
 export const SPINE = {
   pitch: 0.78, // 近似平均节距；实际按各节高度与关节形态拟合
@@ -30,6 +30,16 @@ export function createSpine() {
   const ready = loadSculptedSpine().then((model) => {
     group.add(model.group);
     Object.assign(stats, model.stats);
+    // 脊柱是 S 形排列的，脊髓改成沿每节椎孔中心穿过去的曲线，不再是一根直圆柱（否则会从骨弓前面穿出来）
+    if (model.canal.length > 3) {
+      const pts = model.canal.slice().sort((a, b) => b.y - a.y),
+        top = pts[0].clone().setY(pts[0].y + 1.5),
+        bottom = pts[pts.length - 1].clone().setY(pts[pts.length - 1].y - 1.5);
+      const curve = new THREE.CatmullRomCurve3([top, ...pts, bottom], false, 'centripetal');
+      cord.geometry.dispose();
+      cord.geometry = new THREE.TubeGeometry(curve, pts.length * 6, 0.035, 10, false);
+      cord.position.set(0, 0, 0);
+    }
   });
   // 脊髓：穿过椎孔的一根发光细线
   const cord = new THREE.Mesh(
