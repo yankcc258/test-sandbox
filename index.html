@@ -4,35 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>知序 · 复习脊柱</title>
-    <link rel="stylesheet" href="recall-spine.css?v=13" />
-    <link rel="stylesheet" href="recall-experience.css?v=13" />
+    <link rel="stylesheet" href="recall-spine.css?v=14" />
+    <link rel="stylesheet" href="recall-experience.css?v=14" />
   </head>
-  <body class="opening">
-    <section
-      id="opening"
-      class="opening-screen"
-      role="dialog"
-      aria-modal="true"
-      aria-label="知序开场"
-      data-phase="identity"
-    >
-      <div class="opening-mark" aria-hidden="true">
-        <svg viewBox="-130 -130 260 260">
-          <g>
-            <ellipse rx="110" ry="40" />
-            <ellipse rx="110" ry="40" transform="rotate(60)" />
-            <ellipse rx="110" ry="40" transform="rotate(120)" />
-          </g>
-          <circle r="5" />
-        </svg>
-        <span>知序 <b>ZHIXU</b></span
-        ><small>MEMORY / LIFE IN ASSEMBLY</small>
-      </div>
-      <p id="opening-label" role="status">知序 · 让记忆继续生长</p>
-      <span class="opening-coordinate" aria-hidden="true">ZH—01 / RECALL SYSTEM</span>
-      <button id="opening-skip" type="button">跳过开场 <kbd>ESC</kbd></button>
-    </section>
-    <section id="spine" class="stage" aria-label="复习区" inert>
+  <body>
+    <section id="spine" class="stage" aria-label="复习区">
       <canvas id="bg" aria-hidden="true"></canvas>
       <canvas id="canvas" aria-hidden="true"></canvas>
 
@@ -164,7 +140,6 @@
               >SOURCES &amp; LICENSES</a
             >
           </li>
-          <li><button type="button" id="replay-opening">重播开场</button></li>
           <li><button type="button" id="reset-round">重置本轮示例</button></li>
           <li><a href="preview/">ROUND PREVIEWS</a></li>
           <li><a href="preview/organic-spine/">SPINE MODEL / 3D</a></li>
@@ -187,9 +162,6 @@
         'error',
         (e) => {
           const el = document.getElementById('boot-error');
-          document.getElementById('opening').hidden = true;
-          document.getElementById('spine').inert = false;
-          document.body.classList.remove('opening');
           if (!el) return;
           el.hidden = false;
           el.textContent = '页面脚本出错：' + (e.message || e.target?.src || '资源加载失败');
@@ -197,9 +169,6 @@
         true,
       );
       addEventListener('unhandledrejection', (e) => {
-        document.getElementById('opening').hidden = true;
-        document.getElementById('spine').inert = false;
-        document.body.classList.remove('opening');
         const el = document.getElementById('boot-error');
         if (el) {
           el.hidden = false;
@@ -207,6 +176,6 @@
         }
       });
     </script>
-    <script type="module" src="recall-spine.js?v=13"></script>
+    <script type="module" src="recall-spine.js?v=14"></script>
   </body>
 </html>

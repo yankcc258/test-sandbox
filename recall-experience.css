@@ -1,111 +1,6 @@
-/* 同一套材料和光色；开场、切换和完成都通过一条连接交接。 */
-.opening-screen {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  background: #15191b;
-  transition: background 1.25s;
-}
-.opening-screen[hidden] {
-  display: none;
-}
-.opening-mark {
-  display: grid;
-  justify-items: center;
-  transition:
-    opacity 1s,
-    transform 1.3s;
-}
-.opening-mark svg {
-  width: min(29vw, 220px);
-  height: 220px;
-  overflow: visible;
-  fill: none;
-  stroke: #b3c6c0;
-  stroke-width: 0.65;
-}
-.opening-mark svg g {
-  transform-origin: center;
-  animation: assemble-orbits 1.7s ease-out both;
-}
-.opening-mark circle {
-  fill: #c9e755;
-  stroke: none;
-}
-.opening-mark > span {
-  font-size: clamp(32px, 5vw, 54px);
-  font-weight: 750;
-  letter-spacing: 0.07em;
-  margin-top: 20px;
-}
-.opening-mark small {
-  font: 9px var(--mono);
-  color: var(--muted);
-  letter-spacing: 0.22em;
-  margin-top: 18px;
-}
-.opening-screen p {
-  margin-top: 44px;
-  color: #b6c5bf;
-  font-size: 12px;
-  letter-spacing: 0.16em;
-  transition: opacity 0.6s;
-}
-.opening-coordinate {
-  position: absolute;
-  bottom: 38px;
-  left: 44px;
-  color: var(--muted);
-  font: 10px var(--mono);
-  letter-spacing: 0.13em;
-}
-#opening-skip {
-  position: absolute;
-  bottom: 30px;
-  right: 36px;
-  padding: 10px 12px;
-  border: 1px solid #d0e0d52c;
-  background: transparent;
-  font-size: 12px;
-}
-#opening-skip kbd {
-  margin-left: 14px;
-  color: var(--muted);
-}
-.opening-screen[data-phase='connect'] svg g,
-.opening-screen[data-phase='waiting'] svg g {
-  opacity: 0.55;
-}
-.opening-screen[data-phase='wake'] {
-  background: transparent;
-}
-.opening-screen[data-phase='wake'] .opening-mark {
-  opacity: 0;
-  transform: translateY(-26px) scale(0.96);
-}
-.opening-screen[data-phase='wake'] p {
-  opacity: 0;
-}
-.opening
-  .stage
-  > :is(.brand, .top, .index, .specimen-note, .life-readout, .counter, .rail, .foot, .hint) {
-  opacity: 0;
-}
+/* 同一套材料和光色；保留系统切换、复习反馈与生命状态。 */
 .stage > :is(.brand, .top, .specimen-note, .life-readout, .foot) {
   transition: opacity 0.5s;
-}
-@keyframes assemble-orbits {
-  from {
-    transform: rotate(-55deg) scale(0.65);
-    opacity: 0;
-  }
-  to {
-    transform: rotate(0) scale(1);
-    opacity: 1;
-  }
 }
 .specimen-note #open-entry {
   margin-top: 18px;
@@ -285,19 +180,6 @@ body.still * {
   }
 }
 @media (max-width: 760px) {
-  .opening-mark svg {
-    width: 160px;
-    height: 180px;
-  }
-  .opening-coordinate {
-    left: 20px;
-    bottom: 94px;
-    font-size: 8px;
-  }
-  #opening-skip {
-    right: 20px;
-    bottom: 32px;
-  }
   .specimen-note #open-entry {
     margin-top: 8px;
     font-size: 10px;

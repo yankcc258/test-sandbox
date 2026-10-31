@@ -6,14 +6,13 @@
 import * as THREE from './vendor/three/three.module.min.js';
 import { RoomEnvironment } from './vendor/three/RoomEnvironment.js';
 // 版本号：更新时一起改，避免浏览器把新旧文件混在一起用
-import { PANEL, createSpine, panelPose } from './models/spine.js?v=13';
-import { createBackdrop, createHeart } from './recall-backdrop.js?v=13';
-import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js?v=13';
-import { createDock } from './recall-dock.js?v=13';
-import { SYSTEMS, drawSpecimen } from './recall-specimen.js?v=13';
-import { bindPulseInput } from './recall-pulse-input.js?v=13';
-import { createLifeState, createSignal } from './recall-life.js?v=13';
-import { createOpening } from './recall-opening.js?v=13';
+import { PANEL, createSpine, panelPose } from './models/spine.js?v=14';
+import { createBackdrop, createHeart } from './recall-backdrop.js?v=14';
+import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js?v=14';
+import { createDock } from './recall-dock.js?v=14';
+import { SYSTEMS, drawSpecimen } from './recall-specimen.js?v=14';
+import { bindPulseInput } from './recall-pulse-input.js?v=14';
+import { createLifeState, createSignal } from './recall-life.js?v=14';
 
 // 示例数据；images 留空。以后在 IMAGES 里登记图片路径，屏幕就会以那张图做底，没有图就只显示复习信息。
 const IMAGES = {};
@@ -99,8 +98,7 @@ let motionPref = params.get('motion') !== '0',
 let testLive = false;
 const motion = () => testLive || (motionPref && !reduced.matches && !document.hidden);
 const life = createLifeState(SAMPLE_WORDS.length);
-let opening = null,
-  pendingFeedback = false,
+let pendingFeedback = false,
   feedbackTimer = 0;
 
 function systemState(id) {
@@ -367,8 +365,7 @@ function createScene() {
   three.add(spine.group);
   const signal = createSignal(),
     handoff = document.getElementById('scene-handoff');
-  let wake = 1,
-    travel = null,
+  let travel = null,
     linkTarget = Math.round(target),
     feedbackIndex = -1;
   const heart = createHeart(),
@@ -380,12 +377,7 @@ function createScene() {
     pulseEl = bpmEl.parentElement,
     dotEl = document.getElementById('pulse-dot');
   bindPulseInput(stageEl, {
-    enabled: () =>
-      motion() &&
-      !entered &&
-      !opening?.running &&
-      !travel &&
-      document.getElementById('about').hidden,
+    enabled: () => motion() && !entered && !travel && document.getElementById('about').hidden,
     onPulse: () => heart.click(performance.now() / 1000),
   });
   const OV = {
@@ -600,7 +592,7 @@ function createScene() {
       // 总览：离屏幕 6.4；进入：推近到屏幕几乎占满画面
       far = narrow ? 9.6 : 6.8,
       near = narrow ? 7.4 : 3.5,
-      dist = far + (near - far) * ease(enterK) + 1.3 * f + 1.1 * (1 - ease(wake)),
+      dist = far + (near - far) * ease(enterK) + 1.3 * f,
       sway = motion() ? Math.sin(time * 0.25) * 0.05 : 0;
     camPos
       .copy(dir)
@@ -632,10 +624,10 @@ function createScene() {
     rim.target.position.set(0, y, 0);
     // 灯光交接仅轻压中间帧，不黑场、不改变常态配色。
     const bridge = travel?.kind === 'switch' ? travel.strength : 0;
-    key.intensity = 2.6 * (0.22 + 0.78 * ease(wake)) * (1 - 0.12 * bridge);
-    side.intensity = 1.3 * (0.3 + 0.7 * ease(wake));
-    rim.intensity = 3.2 * (0.45 + 0.55 * ease(wake)) + 0.35 * bridge;
-    three.environmentIntensity = 0.4 * (0.35 + 0.65 * ease(wake));
+    key.intensity = 2.6 * (1 - 0.12 * bridge);
+    side.intensity = 1.3;
+    rim.intensity = 3.2 + 0.35 * bridge;
+    three.environmentIntensity = 0.4;
   }
   const ease = (t) => t * t * (3 - 2 * t);
   // 屏幕：不跟心跳；各自极慢地、若有若无地摆动；悬停时立刻摆正、放大一点、扫过一道光；边缘发光缓慢呼吸
@@ -752,16 +744,10 @@ function createScene() {
         `${code(destination)} / ${SYSTEMS[ENTRIES[destination].id].name}`;
     }
     travel = signal.step(dt, live);
-    handoff.classList.toggle(
-      'on',
-      !!travel && travel.kind === 'switch' && !entered && !opening?.running,
-    );
+    handoff.classList.toggle('on', !!travel && travel.kind === 'switch' && !entered);
     if (travel) handoff.style.setProperty('--link-progress', travel.p);
-    spine.signal(
-      wake < 1 ? -s * PANEL.drop + 5 - wake * 10 : (travel?.y ?? 0),
-      wake < 1 ? Math.sin(Math.PI * wake) : (travel?.strength ?? 0),
-    );
-    heart.locked = entered || opening?.running || !!travel;
+    spine.signal(travel?.y ?? 0, travel?.strength ?? 0);
+    heart.locked = entered || !!travel;
     const pulseNow = performance.now() / 1000,
       pulseDt = live && dt > 0 ? Math.min(0.25, Math.max(0, pulseNow - lastPulseTime)) : 0;
     lastPulseTime = pulseNow;
@@ -981,14 +967,12 @@ function createScene() {
       modelStatus.hidden = true;
       canvas.dataset.modelReady = 'true';
       canvas.dataset.modelRevision = '3';
-      opening?.ready();
       draw(0); // Also render when motion is disabled or the tab is currently idle.
     })
     .catch((error) => {
       console.error(error);
       modelStatus.textContent = '骨架加载失败，请刷新重试。复习入口仍可使用。';
       canvas.dataset.modelReady = 'error';
-      opening?.ready(); // 保留可用入口，不让模型失败锁住开场。
     });
   new ResizeObserver(resize).observe(canvas.parentElement);
   resize();
@@ -997,10 +981,6 @@ function createScene() {
   sync();
   return {
     sync,
-    awaken(k) {
-      wake = k;
-      if (!motion()) draw(0);
-    },
     complete(i) {
       feedbackIndex = i;
       signal.start('complete', -i * PANEL.drop + 1.25, 1.25, 2.1);
@@ -1078,7 +1058,7 @@ function createScene() {
 
 // ---------- 切换、进入、返回 ----------
 function go(i) {
-  if (entered || opening?.running) return;
+  if (entered) return;
   // 列表、方向键：准确跳到某个入口（不经过吸附）
   target = Math.max(0, Math.min(N - 1, Math.round(i)));
   document.getElementById('hint').style.opacity = 0;
@@ -1134,7 +1114,7 @@ function fillContent(i) {
 }
 document.getElementById('c-body').addEventListener('vs-back', () => leave());
 function enter() {
-  if (entered || opening?.running) return;
+  if (entered) return;
   const i = Math.round(target);
   target = i;
   fillContent(i);
@@ -1177,7 +1157,6 @@ function leave() {
 document.getElementById('back').onclick = leave;
 document.getElementById('open-entry').onclick = enter;
 addEventListener('keydown', (e) => {
-  if (opening?.running) return;
   if (dock?.open) return; // 关于页打开时，螺旋不响应按键
   // 进入后：空格 / 回车 / 1 2 3 交给单词卡
   // （焦点在按钮上时，空格和回车留给按钮本身；数字键始终交给单词卡）
@@ -1198,7 +1177,6 @@ function syncMotion() {
   motionBtn.setAttribute('aria-pressed', String(motionPref));
   motionBtn.textContent = `动效 · ${motionPref ? '开' : '关'}`;
   document.body.classList.toggle('still', !motion());
-  if (!motionPref || reduced.matches) opening?.finish();
   scene?.sync();
 }
 motionBtn.onclick = () => {
@@ -1206,7 +1184,6 @@ motionBtn.onclick = () => {
   syncMotion();
 };
 // 立体场景出错时，按钮、列表和音乐照常可用，页面底部显示错误信息
-opening = createOpening({ motion, onWake: (k) => scene?.awaken(k) });
 try {
   scene = createScene();
 } catch (err) {
@@ -1217,7 +1194,6 @@ try {
   el.textContent = '立体场景出错：' + err.message;
 }
 if (!scene) {
-  opening.ready();
   document.getElementById('fallback').hidden = false;
   document.getElementById('model-status').hidden = true;
 }
@@ -1234,11 +1210,6 @@ const dock = createDock({
     go(0);
   },
 });
-document.getElementById('replay-opening').onclick = () => {
-  dock.setOpen(false);
-  leave();
-  opening.start(true);
-};
 document.getElementById('reset-round').onclick = () => {
   dock.setOpen(false);
   leave();
@@ -1253,5 +1224,4 @@ document.getElementById('reset-round').onclick = () => {
 reduced.addEventListener('change', syncMotion);
 markList(Math.round(target));
 updateLife();
-opening.start();
 window.zhixuSpine = { ready: !!scene, go, enter, leave, scene, dock };
