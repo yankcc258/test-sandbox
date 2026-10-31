@@ -1,0 +1,571 @@
+/* 复习脊柱原型：深石墨背景、象牙白文字、极少量黄绿强调，延续知序冷清、极简的气质。 */
+@font-face {
+  font-family: 'Inter';
+  src: url('assets/fonts/inter-latin-wght.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+:root {
+  --bg: #15191b;
+  --bg2: #1d2325;
+  --ink: #e8ebe4;
+  --muted: #8d978f;
+  --line: #e8ebe41f;
+  --accent: #c9e755;
+  --sans:
+    'Inter', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', system-ui,
+    sans-serif;
+  --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+}
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.stage {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse 50% 70% at 50% 45%, var(--bg2), transparent 75%), var(--bg);
+}
+#bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+#canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: grab;
+}
+#canvas.dragging {
+  cursor: grabbing;
+}
+#canvas.over {
+  cursor: pointer;
+}
+.brand {
+  position: absolute;
+  left: 52px;
+  top: 44px;
+  pointer-events: none;
+}
+.brand strong {
+  display: block;
+  font: 800 40px/1.05 var(--sans);
+  letter-spacing: 0.02em;
+}
+.brand small {
+  display: block;
+  margin-top: 6px;
+  font: 700 12.5px/1.4 var(--sans);
+  letter-spacing: 0.03em;
+}
+.brand em {
+  display: block;
+  font: 300 30px/1.15 var(--sans);
+  font-style: normal;
+  letter-spacing: 0.08em;
+}
+.brand em b {
+  font-weight: 800;
+  margin-left: 0.25em;
+}
+.top {
+  position: absolute;
+  right: 52px;
+  top: 40px;
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+.gateway {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+.gateway small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.gateway b {
+  margin: 0 4px 0 10px;
+}
+.gateway i {
+  font-style: normal;
+}
+.top button {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: none;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+.top button[aria-pressed='true'] {
+  border-color: #e8ebe455;
+}
+.index {
+  position: absolute;
+  left: 52px;
+  bottom: 120px;
+}
+.index p {
+  margin: 0 0 14px;
+  font: 600 10.5px/1.4 var(--mono);
+  letter-spacing: 0.12em;
+}
+.index ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+.index button {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 3px 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: 500 12px/1.4 var(--sans);
+  letter-spacing: 0.04em;
+  transition: color 0.2s;
+}
+.index button small {
+  font: 500 9.5px var(--mono);
+  letter-spacing: 0.1em;
+}
+.index button em {
+  font-style: normal;
+  font-size: 10px;
+  color: var(--muted);
+}
+.index button:hover,
+.index button[aria-current] {
+  color: var(--ink);
+}
+.index button[aria-current] small {
+  color: var(--accent);
+}
+.index button[aria-current]::before {
+  content: '→';
+  margin-left: -16px;
+  color: var(--accent);
+}
+.rail {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  width: 2px;
+  height: 180px;
+  translate: 0 -50%;
+  background: var(--line);
+}
+.rail i {
+  position: absolute;
+  left: -1px;
+  width: 4px;
+  height: 26px;
+  border-radius: 2px;
+  background: var(--ink);
+  transition: top 0.2s;
+}
+.counter {
+  position: absolute;
+  right: 64px;
+  bottom: 76px;
+  text-align: right;
+}
+.counter small {
+  font: 600 10px/1.4 var(--sans);
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+.counter strong {
+  font: 200 56px/1 var(--sans);
+}
+.counter span {
+  margin-left: 12px;
+  font: 300 18px var(--sans);
+  color: var(--muted);
+}
+.hint {
+  position: absolute;
+  left: 50%;
+  bottom: 62px;
+  translate: -50% 0;
+  margin: 0;
+  font: 500 10.5px/1.4 var(--sans);
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  transition: opacity 0.4s;
+}
+.foot {
+  position: absolute;
+  left: 52px;
+  right: 52px;
+  bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  pointer-events: none;
+  font: 500 9.5px/1.4 var(--sans);
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+.foot i {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 10px;
+  background: var(--ink);
+  vertical-align: 1px;
+}
+.foot b {
+  color: var(--ink);
+  font-weight: 600;
+}
+/* 进入后：屏幕放大到这个位置，和屏幕上的排版完全一致，然后换成可以操作的内容 */
+.content {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  padding: 3.2% 3.6%;
+  border-radius: 18px;
+  background: #e8ebe40d;
+  backdrop-filter: blur(18px) saturate(1.1);
+  border: 1px solid #e8ebe42e;
+  box-shadow: 0 30px 80px #0008;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.content.on {
+  opacity: 1;
+}
+.content[hidden] {
+  display: none;
+}
+.content header small {
+  font: 600 11px/1.4 var(--mono);
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+.content h2 {
+  margin: 10px 0 6px;
+  font: 700 34px/1.2 var(--sans);
+}
+.content header p {
+  margin: 0;
+  font: 500 14px/1.6 var(--sans);
+  color: var(--muted);
+}
+.c-body {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  margin: 18px 0;
+}
+.card {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  text-align: center;
+}
+.card strong {
+  font: 300 54px/1.1 var(--sans);
+  letter-spacing: 0.01em;
+}
+.card span {
+  font: 500 14px/1.6 var(--sans);
+  color: var(--muted);
+}
+.card .reveal {
+  margin-top: 6px;
+  padding: 8px 18px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: none;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+.card .grades {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+.card .grades button {
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: none;
+  font-size: 12px;
+}
+.card .grades button:last-child {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.content footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+.content footer button {
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  font: 600 12px var(--mono);
+  letter-spacing: 0.1em;
+  color: var(--ink);
+}
+.content kbd {
+  margin-left: 6px;
+  padding: 0 5px;
+  border: 1px solid currentColor;
+  font: 9px/1.6 var(--mono);
+  opacity: 0.6;
+}
+.entered .index,
+.entered .hint,
+.entered .counter,
+.entered .rail {
+  opacity: 0;
+  pointer-events: none;
+}
+.index,
+.counter,
+.rail {
+  transition: opacity 0.3s;
+}
+.fallback {
+  position: absolute;
+  left: 52px;
+  top: 45%;
+  color: var(--muted);
+  font-size: 13px;
+}
+body.still * {
+  transition: none !important;
+}
+@media (max-width: 760px) {
+  .brand {
+    left: 18px;
+    top: 18px;
+  }
+  .brand strong {
+    font-size: 24px;
+  }
+  .brand small {
+    font-size: 9px;
+  }
+  .brand em,
+  .gateway,
+  .foot span:nth-child(-n + 2),
+  .rail,
+  .index p {
+    display: none;
+  }
+  .top {
+    right: 16px;
+    top: 20px;
+  }
+  .index {
+    left: 18px;
+    right: 18px;
+    bottom: 64px;
+  }
+  .index ol {
+    grid-template-columns: repeat(4, auto);
+    gap: 4px 14px;
+  }
+  .index button em {
+    display: none;
+  }
+  .counter {
+    right: 18px;
+    bottom: auto;
+    top: 76px;
+  }
+  .counter strong {
+    font-size: 34px;
+  }
+  .hint {
+    bottom: 40px;
+    width: max-content;
+  }
+  .foot {
+    left: 18px;
+    right: 18px;
+    bottom: 12px;
+  }
+  .content {
+    padding: 22px;
+  }
+  .content h2 {
+    font-size: 24px;
+  }
+  .card strong {
+    font-size: 34px;
+  }
+}
+
+/* 心率读数 */
+.pulse {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font: 500 10.5px/1 var(--mono);
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+.pulse b {
+  font: 600 15px/1 var(--mono);
+  color: var(--ink);
+}
+.pulse i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+.pulse.high b {
+  color: #ffd696;
+}
+.pulse.high i {
+  background: #ffd696;
+  box-shadow: 0 0 10px #ffb070;
+}
+/* 过载彩蛋 */
+.flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: #e8f4ef;
+  opacity: 0;
+}
+.flash.on {
+  animation: flash 0.5s ease-out;
+}
+@keyframes flash {
+  0% {
+    opacity: 0.75;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.stage.glitch #canvas {
+  animation: glitch 0.16s steps(2) infinite;
+}
+@keyframes glitch {
+  0% {
+    transform: translate(0, 0);
+    filter: none;
+  }
+  25% {
+    transform: translate(-6px, 2px) skewX(-0.6deg);
+    filter: drop-shadow(4px 0 0 #6fe3d266) drop-shadow(-4px 0 0 #ffd69655);
+  }
+  50% {
+    transform: translate(5px, -3px);
+    filter: contrast(1.3) brightness(1.15);
+  }
+  75% {
+    transform: translate(-2px, 4px) skewX(0.8deg);
+    filter: drop-shadow(-5px 0 0 #6fe3d266);
+  }
+  100% {
+    transform: translate(3px, 0);
+  }
+}
+.stage.flatline #canvas {
+  filter: saturate(0.3) brightness(0.55);
+  transition: filter 0.3s;
+}
+.overload {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  padding: 26px 40px;
+  pointer-events: none;
+  text-align: center;
+  border-top: 1px solid #e8ebe455;
+  border-bottom: 1px solid #e8ebe455;
+  background: #0d1012cc;
+  backdrop-filter: blur(6px);
+}
+.overload[hidden] {
+  display: none;
+}
+.overload small {
+  font: 600 11px/1.4 var(--mono);
+  letter-spacing: 0.24em;
+  color: #ffd696;
+}
+.overload b {
+  font: 300 46px/1.1 var(--sans);
+  letter-spacing: 0.22em;
+}
+.overload span {
+  font: 500 13px/1.4 var(--sans);
+  letter-spacing: 0.16em;
+  color: var(--muted);
+}
+.stage.glitch .overload b {
+  animation: glitch 0.2s steps(2) infinite;
+}
+
+/* 进入过渡：镜头开始推近时，从屏幕中心亮起一圈光 */
+.warp-light {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse 30% 22% at 50% 50%, #dff3ee55, transparent 70%);
+}
+.stage.warp .warp-light {
+  animation: warp 0.6s ease-out;
+}
+@keyframes warp {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
