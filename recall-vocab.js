@@ -80,10 +80,13 @@ const GRADES = [
 
 export function createVocabSession(
   root,
-  { words = SAMPLE_WORDS, onStart, onProgress, onDone } = {},
+  { words = SAMPLE_WORDS, onStart, onProgress, onDone, fourGrades = false } = {},
 ) {
+  const grades = fourGrades
+    ? [...GRADES, { key: '4', id: 'easy', label: '很熟', next: '完成此词' }]
+    : GRADES;
   const queue = words.map((w, k) => ({ ...w, k, seen: 0 }));
-  const tally = { again: 0, hard: 0, good: 0 },
+  const tally = { again: 0, hard: 0, good: 0, ...(fourGrades ? { easy: 0 } : {}) },
     done = new Set(),
     total = words.length;
   let card = null,
@@ -162,15 +165,17 @@ export function createVocabSession(
     root.querySelector('.vs-card').setAttribute?.('aria-label', `${card.w}，释义已展开`);
     root.querySelector('.vs-status').textContent = '释义已展开';
     root.querySelector('.vs-control-note').textContent = '按翻面前的回想情况评价';
-    root.querySelector('.vs-actions').innerHTML = GRADES.map(
-      (g) =>
-        `<button type="button" class="vs-grade ${g.id}" data-g="${g.id}"><b>${g.label}</b><small>${g.id === 'hard' && card.seen ? '完成此词' : g.next}</small><kbd>${g.key}</kbd></button>`,
-    ).join('');
+    root.querySelector('.vs-actions').innerHTML = grades
+      .map(
+        (g) =>
+          `<button type="button" class="vs-grade ${g.id}" data-g="${g.id}"><b>${g.label}</b><small>${g.id === 'hard' && card.seen ? '完成此词' : g.next}</small><kbd>${g.key}</kbd></button>`,
+      )
+      .join('');
     root.querySelectorAll('.vs-grade').forEach((b) => (b.onclick = () => grade(b.dataset.g)));
     focus('.vs-grade');
   }
   function grade(id) {
-    if (!started || finished || !flipped || !GRADES.some((g) => g.id === id)) return;
+    if (!started || finished || !flipped || !grades.some((g) => g.id === id)) return;
     const c = queue.shift();
     c.seen++;
     if (c.seen === 1) tally[id]++;
@@ -195,7 +200,7 @@ export function createVocabSession(
       <div class="vs-sessionline"><span>SESSION 01 / 巩固报告</span><span class="vs-stable"><i></i>连接已稳定</span></div>
       <div class="vs-report-heading"><div><small class="vs-eyebrow">CONSOLIDATION COMPLETE</small><h3>本轮巩固 <b>${total}</b> 个词</h3><p class="vs-duration">${elapsed < 60000 ? '练习用时不足 1 分钟' : `练习用时约 ${Math.round(elapsed / 60000)} 分钟`} · 本页示例记录</p></div><span class="vs-report-seal" aria-hidden="true">${String(total).padStart(2, '0')}<small>CONNECTED</small></span></div>
       <div class="vs-segments" aria-hidden="true">${dots()}</div>
-      <p class="vs-tally-label">首次回想</p><div class="vs-tally"><span><b>${tally.good}</b>记得</span><span><b>${tally.hard}</b>模糊</span><span><b>${tally.again}</b>忘了</span></div>
+      <p class="vs-tally-label">首次回想</p><div class="vs-tally"${fourGrades ? ' style="grid-template-columns:repeat(4,1fr)"' : ''}>${fourGrades ? `<span><b>${tally.easy}</b>很熟</span>` : ''}<span><b>${tally.good}</b>记得</span><span><b>${tally.hard}</b>模糊</span><span><b>${tally.again}</b>忘了</span></div>
       <p class="vs-report-note">${tally.again + tally.hard ? '模糊和遗忘的词，已在本轮重新练习。' : '这组单词，首次回想时都记得。'}<br>返回后，这一次巩固会留在大脑的连接上。</p>
       <div class="vs-actions"><button type="button" class="vs-primary" data-act="back">返回脊柱 · 查看连接 <span>↗</span></button></div>
     </section>`;
@@ -213,7 +218,7 @@ export function createVocabSession(
       flip();
       return true;
     }
-    const g = GRADES.find((x) => x.key === e.key);
+    const g = grades.find((x) => x.key === e.key);
     if (flipped && g) {
       grade(g.id);
       return true;
@@ -229,6 +234,7 @@ export function createVocabSession(
   }
   renderReady();
   return {
+    start,
     key,
     pause,
     resume,

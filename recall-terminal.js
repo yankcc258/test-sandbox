@@ -7,7 +7,12 @@ export const smooth = (x) => {
 };
 export const segment = (p, a, b) => smooth((p - a) / (b - a));
 
-export function terminalRect(w, h) {
+export function terminalRect(w, h, workbench = false) {
+  if (workbench) {
+    const pad = w <= 760 ? 8 : 28;
+    const width = Math.min(1560, w - pad * 2);
+    return { x: (w - width) / 2, y: pad, width, height: h - pad * 2 };
+  }
   const narrow = w <= 760;
   const width = Math.min(1000, w - (narrow ? 24 : 120));
   const height = narrow ? h - 32 : Math.min(670, h - 120);

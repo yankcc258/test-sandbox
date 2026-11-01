@@ -6,18 +6,21 @@
 import * as THREE from './vendor/three/three.module.min.js';
 import { RoomEnvironment } from './vendor/three/RoomEnvironment.js';
 // 版本号：更新时一起改，避免浏览器把新旧文件混在一起用
-import { PANEL, SPINE, createSpine, panelPose } from './models/spine.js?v=16';
-import { createBackdrop, createHeart } from './recall-backdrop.js?v=16';
-import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js?v=16';
-import { createDock } from './recall-dock.js?v=16';
-import { SYSTEMS, drawSpecimen } from './recall-specimen.js?v=16';
-import { bindPulseInput } from './recall-pulse-input.js?v=16';
-import { createLifeState, createSignal } from './recall-life.js?v=16';
-import { createGateway } from './recall-gateway.js?v=16';
-import { terminalFrame, terminalRect, segment, clamp } from './recall-terminal.js?v=16';
+import { PANEL, SPINE, createSpine, panelPose } from './models/spine.js?v=17';
+import { createBackdrop, createHeart } from './recall-backdrop.js?v=17';
+import { createVocabWorkbench } from './recall-workbench.js?v=17';
+import { createReadingWorkbench } from './recall-reading.js?v=17';
+import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js?v=17';
+import { createDock } from './recall-dock.js?v=17';
+import { SYSTEMS, drawSpecimen } from './recall-specimen.js?v=17';
+import { bindPulseInput } from './recall-pulse-input.js?v=17';
+import { createLifeState, createSignal } from './recall-life.js?v=17';
+import { createGateway } from './recall-gateway.js?v=17';
+import { terminalFrame, terminalRect, segment, clamp } from './recall-terminal.js?v=17';
 
 // 示例数据；images 留空。以后在 IMAGES 里登记图片路径，屏幕就会以那张图做底，没有图就只显示复习信息。
 const IMAGES = {};
+const WORKBENCH = new URLSearchParams(location.search).get('workbench') === '1';
 // 进入的过渡动画。以后七个入口可以各自登记一套（例如对应某一节椎骨和它的神经）；没有登记的用 default。
 //   nerve：两条神经从屏幕上方那节椎骨长出、接到屏幕上角，光脉冲沿神经流进屏幕所用的时间（秒）
 //   push：从点下到镜头开始推近的延迟（秒）
@@ -748,7 +751,7 @@ function createScene() {
     const terminal = contentEl.classList.contains('terminal');
     if (terminal) {
       const [w, h] = size,
-        rect = terminalRect(w, h),
+        rect = terminalRect(w, h, WORKBENCH),
         p = panels[Math.round(s)];
       camera.updateMatrixWorld();
       const source = panelCorners.map(([x, y]) => {
@@ -771,6 +774,7 @@ function createScene() {
     const arriving = visible && !contentEl.classList.contains('on');
     contentEl.classList.toggle('on', visible);
     contentEl.inert = !visible;
+    if (arriving && WORKBENCH) restoreWorkbenchScroll();
     if (arriving)
       (
         contentEl.querySelector('[data-act="start"], [data-act="back"], .vs-grade, .vs-flip') ||
@@ -1182,14 +1186,21 @@ function go(i) {
 }
 let session = null,
   vocabSession = null,
-  vocabHost = null;
+  vocabHost = null,
+  readingHost = null;
+const workbenchScroll = new WeakMap();
+function restoreWorkbenchScroll() {
+  const wb = document.querySelector('#c-body .wb');
+  if (wb) wb.querySelector('.wb-main').scrollTop = workbenchScroll.get(wb) || 0;
+}
 function setMeta(e) {
   document.getElementById('c-meta').textContent = `${e.count} ${e.unit} · ${e.line}`;
 }
 function fillContent(i) {
   const e = ENTRIES[i];
   const content = document.getElementById('content');
-  const terminal = e.id === 'vocab' || e.id === 'today';
+  const terminal = WORKBENCH || e.id === 'vocab' || e.id === 'today';
+  content.classList.toggle('workbench', WORKBENCH);
   content.classList.toggle('terminal', terminal);
   content.style.cssText = '';
   if (!terminal) {
@@ -1208,10 +1219,14 @@ function fillContent(i) {
     if (!vocabSession) {
       vocabHost = document.createElement('div');
       vocabHost.className = 'vocab-host';
-      vocabSession = createVocabSession(vocabHost, {
+      vocabSession = (WORKBENCH ? createVocabWorkbench : createVocabSession)(vocabHost, {
         words: SAMPLE_WORDS,
         onStart: () => {
           life.begin();
+          updateLife();
+        },
+        onPause: () => {
+          life.pause();
           updateLife();
         },
         onProgress: ({ completedKeys }) => {
@@ -1230,8 +1245,11 @@ function fillContent(i) {
     body.replaceChildren(vocabHost);
     session = vocabSession;
     session.resume();
-    if (session.started && !session.finished) life.begin();
+    if (session.started && !session.finished && session.active !== false) life.begin();
     updateLife();
+  } else if (WORKBENCH && e.id === 'notes') {
+    if (!readingHost) readingHost = createReadingWorkbench();
+    body.replaceChildren(readingHost);
   } else if (e.id === 'log' && life.snapshot.record) {
     const r = life.snapshot.record;
     body.innerHTML = `<div class="card"><strong>${r.completed}</strong><span>本轮巩固的示例单词</span><span>首次回想：记得 ${r.tally.good} · 模糊 ${r.tally.hard} · 忘了 ${r.tally.again}</span><span class="soon">大脑 / 记忆皮层 · 本轮连接已稳定<br>记录仅保留在当前页面；刷新或重置后清空。</span></div>`;
@@ -1257,6 +1275,7 @@ function enter() {
     document.getElementById('content').classList.add('on');
     document.getElementById('content').inert = false;
     placeFallback();
+    if (WORKBENCH) restoreWorkbenchScroll();
     document
       .getElementById('content')
       .querySelector('[data-act="start"], .vs-flip, #back')
@@ -1266,6 +1285,8 @@ function enter() {
 }
 function leave() {
   if (!entered) return;
+  const wb = document.querySelector('#c-body .wb');
+  if (wb) workbenchScroll.set(wb, wb.querySelector('.wb-main').scrollTop);
   entered = false;
   session?.pause();
   life.pause();
@@ -1294,9 +1315,11 @@ function leave() {
 document.getElementById('back').onclick = leave;
 document.getElementById('open-entry').onclick = enter;
 addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
   if (dock?.open) return; // 关于页打开时，螺旋不响应按键
   if (gate?.blocking) return; // 在实验室或竖井过渡中
-  if (entered && e.repeat && [' ', 'Enter', '1', '2', '3'].includes(e.key)) {
+  if (entered && e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+  if (entered && e.repeat && [' ', 'Enter', '1', '2', '3', '4'].includes(e.key)) {
     e.preventDefault();
     return;
   }
@@ -1319,7 +1342,9 @@ addEventListener('keydown', (e) => {
   }
   if (entered && e.key === 'Tab') {
     const buttons = [
-      ...document.getElementById('content').querySelectorAll('button, summary'),
+      ...document
+        .getElementById('content')
+        .querySelectorAll('button, summary, input, select, textarea, a[href], [tabindex="0"]'),
     ].filter((b) => !b.disabled && b.getClientRects().length);
     const first = buttons[0],
       last = buttons.at(-1);
@@ -1345,7 +1370,7 @@ function placeFallback() {
   if (scene || !entered) return;
   const content = document.getElementById('content');
   if (!content.classList.contains('terminal')) return;
-  const rect = terminalRect(innerWidth, innerHeight);
+  const rect = terminalRect(innerWidth, innerHeight, WORKBENCH);
   content.style.cssText = `--terminal-width:${rect.width}px;--terminal-height:${rect.height}px;--terminal-ink:1;--terminal-body:1;opacity:1;transform:translate(${rect.x}px,${rect.y}px)`;
 }
 addEventListener('resize', placeFallback);

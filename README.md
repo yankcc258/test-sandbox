@@ -4,6 +4,8 @@
 
 当前原型：**复习脊柱**（`index.html`）。
 
+**v17 · 主站容量重设计**：新增可选的[背单词工作台](https://yankcc258.github.io/test-sandbox/?i=1&workbench=1&v=17)与[长笔记阅读样例](https://yankcc258.github.io/test-sandbox/?i=2&workbench=1&v=17)。玻璃展开为宽工作台，浏览、练习与偏好分开；含两组各 100 条词表、四档示例练习和长文／宽表格。只带 `workbench=1` 时启用，不带时保留 v16 紧凑屏。正式业务尚未接入，[内容审查与接入方案](docs/recall-workbench.md)。
+
 **星空版 · 仅内容预览**：已单独放入 [`preview/starfield/`](https://yankcc258.github.io/test-sandbox/preview/starfield/)。沿用旧观星台的银河、NASA 星体材质、第谷体系轨道、东京今日天象与牛顿／开普勒文字，移除学习入口、计数、设置和交互操作。保留星体缓慢运行；手机可以向下阅读天象与札记。正式站未修改，脊柱 v16 原型仍保留。[本轮说明](docs/starfield-preview.md)。
 
 **最新 v16 · 连续单词仪器屏**：从脊柱上的玻璃屏直接展开准备页，练习、翻面、自评、完成报告和返回共用同一外框。保留现有模型与美术；本链路去掉中心白光，阅读时暂停场景绘制，支持暂停续练、关闭动效与手机布局。只有 8 个示例词，不接正式数据。打开 [`?i=1&v=16`](https://yankcc258.github.io/test-sandbox/?i=1&v=16) 体验，[本轮说明](docs/continuous-lexicon.md)。正式站未修改。

@@ -69,6 +69,30 @@ assert.deepEqual(
 );
 
 // Rapid retargeting replaces a signal; disabled motion clears it immediately.
+// The capacity preview adds a fourth rating without changing the v16 three-rating round.
+let fourReport = null;
+const four = createVocabSession(root, {
+  words: SAMPLE_WORDS,
+  fourGrades: true,
+  onDone: (report) => {
+    fourReport = report;
+  },
+});
+four.start();
+assert.equal(four.key({ key: '4' }), false);
+for (let i = 0; i < 8; i++) {
+  four.key({ key: ' ' });
+  four.key({ key: i === 0 ? '1' : '4' });
+}
+assert.equal(four.finished, false);
+four.key({ key: ' ' });
+four.pause();
+four.resume();
+four.key({ key: '4' });
+assert.equal(four.finished, true);
+assert.equal(fourReport.completed, 8);
+assert.deepEqual(fourReport.tally, { again: 1, hard: 0, good: 0, easy: 7 });
+
 const signal = createSignal();
 signal.start('switch', 0, -8);
 assert.ok(signal.step(0.2).y < 0);

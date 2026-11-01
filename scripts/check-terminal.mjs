@@ -54,3 +54,15 @@ for (const [w, h] of [
 console.log(
   'PASS: projected glass corners, perspective handoff, responsive bounds, reversible continuous path.',
 );
+for (const [w, h] of [
+  [1920, 900],
+  [1440, 900],
+  [390, 844],
+  [320, 568],
+  [844, 390],
+]) {
+  const r = terminalRect(w, h, true);
+  assert.ok(r.width > 0 && r.height > 0 && r.x >= 8 && r.y >= 8);
+  assert.ok(r.x + r.width <= w - 8 && r.y + r.height <= h - 8);
+  if (w > 1200) assert.ok(r.width > 1000);
+}
