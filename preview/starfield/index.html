@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0b1018" />
+    <meta name="description" content="知序观星台：星空、行星与今日天象的独立内容预览。" />
+    <title>知序 ZHIXU · 星空内容预览</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./starfield.css" />
+    <script src="./vendor/astronomy/astronomy.browser.min.js" defer></script>
+    <script type="module" src="./starfield.js"></script>
+  </head>
+  <body>
+    <main class="observatory" aria-label="知序观星台">
+      <div class="universe" aria-hidden="true">
+        <canvas id="starfield"></canvas>
+        <div class="planet-labels" id="planet-labels"></div>
+      </div>
+      <header class="brand" data-quiet-zone>
+        <p class="eyebrow">ZHIXU · CELESTIAL ARCHIVE</p>
+        <h1>观星台<span>OBSERVATORY</span></h1>
+        <p class="intro">在轨道之间，留一段安静的时间。</p>
+      </header>
+      <div class="coordinates" data-quiet-zone>
+        <span>TOKYO · 35°41′ N / 139°41′ E</span>
+        <time data-sky="clock">JST · UTC +09:00</time>
+      </div>
+      <div class="reading">
+        <section class="sky-report" aria-labelledby="sky-title" data-quiet-zone>
+          <div class="report-heading">
+            <h2 id="sky-title">今日天象</h2>
+            <span data-sky="day">TOKYO / JST</span>
+          </div>
+          <dl>
+            <div>
+              <dt>日出 · 日落</dt>
+              <dd data-sky="sun">—</dd>
+            </div>
+            <div>
+              <dt>月出 · 月落</dt>
+              <dd data-sky="moon">—</dd>
+            </div>
+            <div>
+              <dt>月相</dt>
+              <dd data-sky="phase">—</dd>
+            </div>
+            <div>
+              <dt>今晚可见</dt>
+              <dd data-sky="tonight">—</dd>
+            </div>
+            <div>
+              <dt>明晨可见</dt>
+              <dd data-sky="dawn">—</dd>
+            </div>
+          </dl>
+          <div class="next-event">
+            <p class="eyebrow">NEXT EVENT · 下一个天象</p>
+            <p class="next-title">
+              <strong data-sky="next">—</strong><span data-sky="countdown"></span>
+            </p>
+            <p class="event-note" data-sky="note"></p>
+          </div>
+          <ol class="upcoming" aria-label="后续天象" data-sky="upcoming"></ol>
+          <p class="report-note">东京当地时间 · 可见行星按日落后与黎明前估算</p>
+        </section>
+        <aside class="words" aria-label="星空札记" data-quiet-zone>
+          <blockquote>
+            <p class="latin" lang="la">
+              Superest ut ex iisdem principiis doceamus constitutionem Systematis Mundani.
+            </p>
+            <p class="translation">余下的，是从同样的原理出发，<br />阐明宇宙体系的构造。</p>
+            <cite>牛顿 ·《自然哲学的数学原理》第三卷</cite>
+          </blockquote>
+          <blockquote>
+            <p class="latin" lang="la">
+              Mensus eram coelos, nunc terrae metior umbras.<br />Mens coelestis erat, corporis
+              umbra iacet.
+            </p>
+            <p class="translation">
+              我曾测量天空，如今测量大地的阴影。<br />心灵属于天上，躯体的影子长眠于此。
+            </p>
+            <cite>开普勒 · 自撰墓志铭</cite>
+          </blockquote>
+        </aside>
+      </div>
+      <footer class="caption" data-quiet-zone>
+        <span>知序 ZHIXU <i></i> 星空内容预览</span>
+        <span>第谷体系示意 · 非等比例 · 轨道加速</span>
+      </footer>
+      <p class="render-note" hidden>当前设备无法呈现立体星图，仍可阅读今日天象。</p>
+      <noscript><p class="render-note">开启 JavaScript 后可显示星体与今日天象。</p></noscript>
+    </main>
+  </body>
+</html>
