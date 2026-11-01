@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" font-family="Inter, 'PingFang SC', 'Noto Sans SC', sans-serif">
+  <title>小屋工作站 · 坐在桌前的视角（布局草图）</title>
+  <rect width="1200" height="720" fill="#15191b"/>
+  <g fill="none" stroke="#e8ebe4" stroke-opacity="0.55" stroke-width="1.5">
+    <!-- 墙角透视线 -->
+    <path d="M150 0 L240 420 M1050 0 L960 420" stroke-opacity="0.25"/>
+    <!-- 窗户 -->
+    <rect x="420" y="70" width="360" height="250" rx="6"/>
+    <path d="M600 70 V320 M420 195 H780" stroke-opacity="0.35"/>
+    <!-- 窗台和纸飞机 -->
+    <path d="M400 320 H800" stroke-width="3"/>
+    <path d="M690 300 L742 286 L700 312 Z M700 312 L712 300" stroke="#c9e755" stroke-opacity="0.9"/>
+    <!-- 左墙：两幅画 + 书架 -->
+    <rect x="175" y="60" width="150" height="200" transform="skewY(8)"/>
+    <rect x="200" y="300" width="110" height="130" transform="skewY(8)" stroke-opacity="0.35"/>
+    <!-- 右墙：一幅画 + 图钉板 -->
+    <rect x="880" y="80" width="140" height="190" transform="skewY(-8)"/>
+    <rect x="890" y="320" width="120" height="100" transform="skewY(-8)" stroke-opacity="0.35"/>
+    <!-- 书桌 -->
+    <path d="M120 470 H1080 L1180 720 H20 Z"/>
+    <path d="M120 470 L60 600 M1080 470 L1140 600" stroke-opacity="0.25"/>
+    <!-- 平板 -->
+    <path d="M470 520 L730 520 L760 640 L440 640 Z" stroke="#c9e755"/>
+    <!-- 台灯 -->
+    <path d="M270 520 V420 L330 380 M300 360 L360 395 L330 410 Z M240 520 H300"/>
+    <!-- 书和本子 -->
+    <path d="M800 540 L930 530 L950 590 L815 600 Z M820 520 L940 512" stroke-opacity="0.6"/>
+    <!-- 希可的小屋 -->
+    <path d="M960 470 V400 L1010 360 L1060 400 V470" stroke="#9cc2b9"/>
+    <rect x="995" y="425" width="30" height="45" stroke="#9cc2b9"/>
+    <!-- 杯子 -->
+    <path d="M370 560 h40 v45 h-40 z M410 570 q18 8 0 22" stroke-opacity="0.6"/>
+  </g>
+  <g font-size="15" fill="#e8ebe4">
+    <text x="600" y="48" text-anchor="middle">窗：天色跟着东京时段（晨光 / 黄昏 / 深夜）</text>
+    <text x="600" y="350" text-anchor="middle" fill="#c9e755">窗台上的纸飞机：纸飞机 → 飞机演变 → 火箭 → 星轨观星台</text>
+    <text x="250" y="45" text-anchor="middle">构成主义画作 ①</text>
+    <text x="255" y="465" text-anchor="middle" fill-opacity="0.6">书架</text>
+    <text x="950" y="65" text-anchor="middle">画作 ②</text>
+    <text x="950" y="318" text-anchor="middle" fill-opacity="0.6">图钉板：今天 / 截止</text>
+    <text x="600" y="590" text-anchor="middle" fill="#c9e755">平板：点一下推近、开机 → 个人工具</text>
+    <text x="300" y="350" text-anchor="middle">台灯</text>
+    <text x="390" y="630" text-anchor="middle" fill-opacity="0.6">杯子（希可的喝水提醒）</text>
+    <text x="875" y="625" text-anchor="middle" fill-opacity="0.6">笔记本 / 论文</text>
+    <text x="1010" y="345" text-anchor="middle" fill="#9cc2b9">希可的小屋（夜里在这里睡）</text>
+  </g>
+  <text x="24" y="700" font-size="13" fill="#8d978f">布局草图 · 不代表画风；画风由特蕾莎画三版比较（docs/cabin-workstation.md）</text>
+</svg>
