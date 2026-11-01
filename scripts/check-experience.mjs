@@ -17,6 +17,7 @@ const root = {
 };
 const session = createVocabSession(root, {
   words: SAMPLE_WORDS,
+  onStart: () => life.begin(),
   onProgress: ({ completedKeys }) => life.progress(completedKeys),
   onDone: ({ tally }) => {
     finishEvents++;
@@ -28,7 +29,12 @@ const grade = (k) => {
   key(' ');
   key(k);
 };
-life.begin();
+assert.equal(session.started, false);
+assert.equal(life.snapshot.phase, 'pending');
+assert.equal(key('3'), false); // Preparation is not a practice attempt.
+key('Enter');
+assert.equal(session.started, true);
+assert.equal(life.snapshot.phase, 'active');
 assert.equal(key('3'), false); // Cannot grade an unrevealed card.
 grade('1'); // forgotten card must return, and must not count as completed.
 assert.equal(life.snapshot.done, 0);
@@ -36,9 +42,12 @@ grade('2'); // uncertain card also returns.
 grade('3');
 assert.equal(life.snapshot.done, 1);
 life.pause();
+session.pause();
 assert.equal(life.snapshot.phase, 'paused');
 assert.equal(life.finish({}), false); // Browsing away cannot complete a round.
 life.begin();
+session.resume();
+assert.equal(session.key({ key: ' ', repeat: true }), false);
 for (let i = 0; i < 12 && !session.finished; i++) grade('3');
 assert.equal(session.finished, true);
 assert.equal(finishEvents, 1);

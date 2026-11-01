@@ -4,9 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>知序 · 复习脊柱</title>
-    <link rel="stylesheet" href="recall-spine.css?v=15" />
-    <link rel="stylesheet" href="recall-experience.css?v=15" />
-    <link rel="stylesheet" href="recall-gateway.css?v=15" />
+    <link rel="stylesheet" href="recall-spine.css?v=16" />
+    <link rel="stylesheet" href="recall-experience.css?v=16" />
+    <link rel="stylesheet" href="recall-gateway.css?v=16" />
+    <link rel="stylesheet" href="recall-terminal.css?v=16" />
   </head>
   <body>
     <section id="spine" class="stage" aria-label="复习区">
@@ -89,7 +90,15 @@
         <span id="ov-sub">记忆过载 · 连接数超出阈值</span>
       </div>
 
-      <article class="content" id="content" hidden aria-live="polite">
+      <article
+        class="content"
+        id="content"
+        hidden
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="c-title"
+        tabindex="-1"
+      >
         <header>
           <small id="c-code">01 · RECALL</small>
           <h2 id="c-title">今日复习</h2>
@@ -98,8 +107,8 @@
         </header>
         <div class="c-body" id="c-body"></div>
         <footer>
-          <button type="button" id="back">← 返回螺旋 <kbd>ESC</kbd></button>
-          <span class="c-note">沙盒示例数据 · 接入主站后换成真实的复习内容</span>
+          <button type="button" id="back">↙ 返回脊柱 <kbd>ESC</kbd></button>
+          <span class="c-note">本页示例 · 刷新后清空</span>
         </footer>
       </article>
 
@@ -201,6 +210,6 @@
         }
       });
     </script>
-    <script type="module" src="recall-spine.js?v=15"></script>
+    <script type="module" src="recall-spine.js?v=16"></script>
   </body>
 </html>

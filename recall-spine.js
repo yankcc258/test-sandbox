@@ -6,14 +6,15 @@
 import * as THREE from './vendor/three/three.module.min.js';
 import { RoomEnvironment } from './vendor/three/RoomEnvironment.js';
 // 版本号：更新时一起改，避免浏览器把新旧文件混在一起用
-import { PANEL, SPINE, createSpine, panelPose } from './models/spine.js?v=15';
-import { createBackdrop, createHeart } from './recall-backdrop.js?v=15';
-import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js?v=15';
-import { createDock } from './recall-dock.js?v=15';
-import { SYSTEMS, drawSpecimen } from './recall-specimen.js?v=15';
-import { bindPulseInput } from './recall-pulse-input.js?v=15';
-import { createLifeState, createSignal } from './recall-life.js?v=15';
-import { createGateway } from './recall-gateway.js?v=15';
+import { PANEL, SPINE, createSpine, panelPose } from './models/spine.js?v=16';
+import { createBackdrop, createHeart } from './recall-backdrop.js?v=16';
+import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js?v=16';
+import { createDock } from './recall-dock.js?v=16';
+import { SYSTEMS, drawSpecimen } from './recall-specimen.js?v=16';
+import { bindPulseInput } from './recall-pulse-input.js?v=16';
+import { createLifeState, createSignal } from './recall-life.js?v=16';
+import { createGateway } from './recall-gateway.js?v=16';
+import { terminalFrame, terminalRect, segment, clamp } from './recall-terminal.js?v=16';
 
 // 示例数据；images 留空。以后在 IMAGES 里登记图片路径，屏幕就会以那张图做底，没有图就只显示复习信息。
 const IMAGES = {};
@@ -21,7 +22,7 @@ const IMAGES = {};
 //   nerve：两条神经从屏幕上方那节椎骨长出、接到屏幕上角，光脉冲沿神经流进屏幕所用的时间（秒）
 //   push：从点下到镜头开始推近的延迟（秒）
 const TRANSITIONS = {
-  default: { nerve: 0.55, push: 0.4 },
+  default: { nerve: 0.55, push: 0.18 },
 };
 const ENTRIES = [
   {
@@ -600,7 +601,7 @@ function createScene() {
       far = narrow ? 9.6 : 6.8,
       near = narrow ? 7.4 : 3.5,
       dist = far + (near - far) * ease(enterK) + 1.3 * f,
-      sway = motion() ? Math.sin(time * 0.25) * 0.05 : 0;
+      sway = motion() ? Math.sin(time * 0.25) * 0.05 * (1 - ease(enterK)) : 0;
     camPos
       .copy(dir)
       .multiplyScalar(PANEL.radius + dist)
@@ -656,6 +657,7 @@ function createScene() {
   // 屏幕：不跟心跳；各自极慢地、若有若无地摆动；悬停时立刻摆正、放大一点、扫过一道光；边缘发光缓慢呼吸
   let hoverIdx = -1,
     enterAt = -9,
+    enterElapsed = 0,
     wasEntered = false;
   function shadePanels(dt) {
     const cur = Math.round(s),
@@ -696,7 +698,17 @@ function createScene() {
         Math.max(0.3, 1 - Math.abs(i - s) * 0.4);
       if (i === 1 && life.snapshot.record) p.rim.uniforms.uGlow.value += 0.15;
       const d = Math.abs(i - s);
-      p.face.material.opacity = Math.max(0.12, 1 - d * 0.7) * (i === cur ? 1 - enterK : 1);
+      p.face.material.opacity =
+        Math.max(0.12, 1 - d * 0.7) *
+        (i === cur
+          ? contentEl.classList.contains('terminal')
+            ? 1 - segment(enterK, 0, 0.23)
+            : 1 - enterK
+          : 1);
+      // HTML 屏已接管后，关掉其背后的透射玻璃与其它屏幕排版。
+      p.g.visible = !contentEl.classList.contains('terminal') || enterK < 0.42 || i !== cur;
+      if (contentEl.classList.contains('terminal') && i !== cur)
+        p.face.material.opacity *= 1 - ease(enterK);
     });
     // 神经：悬停时淡淡地连上；进入时从椎骨长出，光脉冲流进屏幕
     nerves.forEach((n, i) => {
@@ -724,17 +736,48 @@ function createScene() {
       }
     });
   }
-  // 进入后：内容有自己的版面（CSS 里桌面居中、手机全屏），镜头推近到位后淡入
+  // 单词屏直接从场景中四角展开；HTML 始终清晰，外框不随练习阶段重建。
   const contentEl = document.getElementById('content');
+  const panelCorners = [
+    [-1, 1],
+    [1, 1],
+    [1, -1],
+    [-1, -1],
+  ];
   function placeContent() {
-    const visible = entered && enterK > 0.96;
+    const terminal = contentEl.classList.contains('terminal');
+    if (terminal) {
+      const [w, h] = size,
+        rect = terminalRect(w, h),
+        p = panels[Math.round(s)];
+      camera.updateMatrixWorld();
+      const source = panelCorners.map(([x, y]) => {
+        const v = new THREE.Vector3((x * PANEL.w) / 2, (y * PANEL.h) / 2, 0.07)
+          .applyMatrix4(p.g.matrixWorld)
+          .project(camera);
+        return { x: ((v.x + 1) * w) / 2, y: ((1 - v.y) * h) / 2 };
+      });
+      const f = terminalFrame(source, rect, enterK);
+      contentEl.style.setProperty('--terminal-width', `${rect.width}px`);
+      contentEl.style.setProperty('--terminal-height', `${rect.height}px`);
+      contentEl.style.setProperty('--terminal-ink', f.ink);
+      contentEl.style.setProperty('--terminal-body', f.body);
+      contentEl.style.transform = `matrix3d(${f.matrix.join(',')})`;
+      contentEl.style.opacity = f.opacity;
+      stageEl.style.setProperty('--scene-opacity', 1 - f.calm * 0.55);
+      stageEl.classList.toggle('terminal-active', enterK > 0 || entered);
+    }
+    const visible = entered && (terminal ? enterK === 1 : enterK > 0.96);
     const arriving = visible && !contentEl.classList.contains('on');
     contentEl.classList.toggle('on', visible);
     contentEl.inert = !visible;
     if (arriving)
-      contentEl.querySelector('.vs-card, .vs-flip, #back')?.focus({ preventScroll: true });
+      (
+        contentEl.querySelector('[data-act="start"], [data-act="back"], .vs-grade, .vs-flip') ||
+        contentEl.querySelector('#back')
+      )?.focus({ preventScroll: true });
   }
-  function draw(dt, render = true) {
+  function draw(dt, render = true, transitionDt = dt) {
     const live = motion(),
       k = live ? 1 - Math.exp(-dt * 5.5) : 1;
     // 停止输入 0.16 秒后，目标平缓吸附到最近的入口；新的输入会立刻接管
@@ -746,17 +789,27 @@ function createScene() {
     if (!live) s = target;
     else s += (target - s) * (1 - Math.exp(-dt * (drag ? 16 : 7)));
     if (Math.abs(target - s) < 0.0005) s = target;
-    if (entered && !wasEntered) enterAt = time;
+    if (entered && !wasEntered) {
+      enterAt = time;
+      enterElapsed = 0;
+    }
+    if (entered) enterElapsed += transitionDt;
     wasEntered = entered;
     const tr = TRANSITIONS[ENTRIES[Math.round(s)].transition || 'default'],
-      pushGoal = entered && (!live || time - enterAt > tr.push) ? 1 : 0;
-    enterK += (pushGoal - enterK) * (live ? 1 - Math.exp(-dt * 5) : 1);
-    if (Math.abs(pushGoal - enterK) < 0.002) enterK = pushGoal;
+      pushGoal = entered && (!live || enterK > 0 || enterElapsed > tr.push) ? 1 : 0;
+    // 只对物理/背景限制步长；过渡使用实际经过的时间，掉帧不拉长动画。
+    enterK = live
+      ? clamp(enterK + ((pushGoal ? 1 : -1) * transitionDt) / (pushGoal ? 0.82 : 0.68))
+      : pushGoal;
     document
       .getElementById('spine')
       .classList.toggle(
         'warp',
-        entered && live && time - enterAt > tr.push && time - enterAt < tr.push + 0.6,
+        entered &&
+          !contentEl.classList.contains('terminal') &&
+          live &&
+          time - enterAt > tr.push &&
+          time - enterAt < tr.push + 0.6,
       );
     time += dt;
     const destination = Math.max(0, Math.min(N - 1, Math.round(target)));
@@ -841,7 +894,11 @@ function createScene() {
     if (!render) return;
     renderer.render(three, camera);
     if (entered || enterK > 0) placeContent();
-    if (!entered && enterK === 0) contentEl.hidden = true;
+    if (!entered && enterK === 0) {
+      contentEl.hidden = true;
+      stageEl.classList.remove('terminal-active');
+      stageEl.style.removeProperty('--scene-opacity');
+    }
     markList(Math.round(s));
   }
   let frame = 0,
@@ -849,10 +906,14 @@ function createScene() {
   function tick(now) {
     frame = 0;
     if (!motion() || testLive || asleep) return;
-    const dt = Math.min(0.12, last ? (now - last) / 1000 : 0.016);
+    const elapsed = last ? (now - last) / 1000 : 0.016;
+    const dt = Math.min(0.12, elapsed);
     last = now;
-    draw(dt);
-    frame = requestAnimationFrame(tick);
+    draw(dt, true, elapsed);
+    // 阅读时保留已完成的一帧；翻面、评分只更新 DOM，无需重绘 43 万面骨架。
+    const reading = entered && enterK === 1 && contentEl.classList.contains('terminal');
+    canvas.dataset.renderState = reading ? 'resting' : 'running';
+    if (!reading) frame = requestAnimationFrame(tick);
   }
   function sync() {
     if (asleep) {
@@ -1046,7 +1107,7 @@ function createScene() {
         drawPanel(p.ctx, p.e, p.i, p.img, null);
         p.tex.needsUpdate = true;
       });
-      draw(0);
+      if (!(entered && enterK === 1 && contentEl.classList.contains('terminal'))) draw(0);
     },
     // 测试用：跳到某个状态并画一帧
     settle(i, inside) {
@@ -1127,6 +1188,14 @@ function setMeta(e) {
 }
 function fillContent(i) {
   const e = ENTRIES[i];
+  const content = document.getElementById('content');
+  const terminal = e.id === 'vocab' || e.id === 'today';
+  content.classList.toggle('terminal', terminal);
+  content.style.cssText = '';
+  if (!terminal) {
+    document.getElementById('spine').classList.remove('terminal-active');
+    document.getElementById('spine').style.removeProperty('--scene-opacity');
+  }
   document.getElementById('c-code').textContent = `${code(i)} · ${e.en}`;
   const organ = SYSTEMS[e.id];
   document.getElementById('c-system').textContent = `${organ.name} / ${organ.tissue} · ${organ.en}`;
@@ -1136,12 +1205,15 @@ function fillContent(i) {
   session = null;
   if (e.id === 'vocab' || e.id === 'today') {
     // 今日复习和大脑共享同一组卡片，保留 DOM 和队列以支持暂停后继续。
-    life.begin();
     if (!vocabSession) {
       vocabHost = document.createElement('div');
       vocabHost.className = 'vocab-host';
       vocabSession = createVocabSession(vocabHost, {
         words: SAMPLE_WORDS,
+        onStart: () => {
+          life.begin();
+          updateLife();
+        },
         onProgress: ({ completedKeys }) => {
           life.progress(completedKeys);
           updateLife();
@@ -1157,6 +1229,8 @@ function fillContent(i) {
     }
     body.replaceChildren(vocabHost);
     session = vocabSession;
+    session.resume();
+    if (session.started && !session.finished) life.begin();
     updateLife();
   } else if (e.id === 'log' && life.snapshot.record) {
     const r = life.snapshot.record;
@@ -1173,24 +1247,34 @@ function enter() {
   fillContent(i);
   entered = true;
   document.getElementById('content').hidden = false;
+  document.getElementById('content').inert = true;
   document.getElementById('spine').classList.add('entered');
   document.getElementById('list').inert = true;
   document.querySelector('.specimen-note').inert = true;
+  document.querySelector('.top').inert = true;
+  document.getElementById('c-body').scrollTop = 0;
   if (!scene) {
     document.getElementById('content').classList.add('on');
     document.getElementById('content').inert = false;
+    placeFallback();
+    document
+      .getElementById('content')
+      .querySelector('[data-act="start"], .vs-flip, #back')
+      ?.focus({ preventScroll: true });
   }
-  if (!motion()) scene?.redraw();
+  scene?.sync();
 }
 function leave() {
   if (!entered) return;
   entered = false;
+  session?.pause();
   life.pause();
   document.getElementById('content').classList.remove('on');
   document.getElementById('content').inert = true;
   document.getElementById('spine').classList.remove('entered');
   document.getElementById('list').inert = false;
   document.querySelector('.specimen-note').inert = false;
+  document.querySelector('.top').inert = false;
   document.getElementById('open-entry').focus({ preventScroll: true });
   updateLife();
   if (pendingFeedback) {
@@ -1205,20 +1289,50 @@ function leave() {
     }, 4600);
   }
   if (!scene) document.getElementById('content').hidden = true;
-  if (!motion()) scene?.redraw();
+  scene?.sync();
 }
 document.getElementById('back').onclick = leave;
 document.getElementById('open-entry').onclick = enter;
 addEventListener('keydown', (e) => {
   if (dock?.open) return; // 关于页打开时，螺旋不响应按键
   if (gate?.blocking) return; // 在实验室或竖井过渡中
-  // 进入后：空格 / 回车 / 1 2 3 交给单词卡
-  // （焦点在按钮上时，空格和回车留给按钮本身；数字键始终交给单词卡）
-  const onButton = e.target.closest?.('button') && (e.key === ' ' || e.key === 'Enter');
-  if (entered && session && !onButton && session.key(e)) {
+  if (entered && e.repeat && [' ', 'Enter', '1', '2', '3'].includes(e.key)) {
     e.preventDefault();
     return;
   }
+  if (entered && e.key === 'Tab' && document.getElementById('content').inert) {
+    e.preventDefault();
+    return;
+  }
+  // 进入后：空格 / 回车 / 1 2 3 交给单词卡
+  // （焦点在按钮上时，空格和回车留给按钮本身；数字键始终交给单词卡）
+  const onButton = e.target.closest?.('button') && (e.key === ' ' || e.key === 'Enter');
+  if (
+    entered &&
+    !document.getElementById('content').inert &&
+    session &&
+    !onButton &&
+    session.key(e)
+  ) {
+    e.preventDefault();
+    return;
+  }
+  if (entered && e.key === 'Tab') {
+    const buttons = [
+      ...document.getElementById('content').querySelectorAll('button, summary'),
+    ].filter((b) => !b.disabled && b.getClientRects().length);
+    const first = buttons[0],
+      last = buttons.at(-1);
+    if (e.shiftKey && e.target === first) {
+      last?.focus();
+      e.preventDefault();
+    } else if (!e.shiftKey && e.target === last) {
+      first?.focus();
+      e.preventDefault();
+    }
+    return;
+  }
+  if (entered && e.key !== 'Escape') return; // 允许长内容的方向键与 PageDown 滚动。
   if (e.key === 'ArrowDown' || e.key === 'PageDown') go(target + 1);
   else if (e.key === 'ArrowUp' || e.key === 'PageUp') go(target - 1);
   else if (e.key === 'Enter' && !entered && !e.target.closest?.('button')) enter();
@@ -1227,6 +1341,18 @@ addEventListener('keydown', (e) => {
   e.preventDefault();
 });
 const motionBtn = document.getElementById('motion');
+function placeFallback() {
+  if (scene || !entered) return;
+  const content = document.getElementById('content');
+  if (!content.classList.contains('terminal')) return;
+  const rect = terminalRect(innerWidth, innerHeight);
+  content.style.cssText = `--terminal-width:${rect.width}px;--terminal-height:${rect.height}px;--terminal-ink:1;--terminal-body:1;opacity:1;transform:translate(${rect.x}px,${rect.y}px)`;
+}
+addEventListener('resize', placeFallback);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) session?.pause();
+  else if (entered) session?.resume();
+});
 function syncMotion() {
   motionBtn.setAttribute('aria-pressed', String(motionPref));
   motionBtn.textContent = `动效 · ${motionPref ? '开' : '关'}`;
