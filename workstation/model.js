@@ -1,8 +1,10 @@
 import * as T from '../vendor/three/three.module.min.js';
-import { createMaterials, roundedBox, manifoldGeometry } from './surfaces.js?v=19';
+import { createMaterials, roundedBox, manifoldGeometry } from './surfaces.js?v=20';
+import { tabletShell, instrumentCase, taskLamp, ribbonSupport } from './forms.js?v=20';
+import { addWallArt } from './wall-art.js?v=20';
 
 // 原创程序几何。各物件独立成组，后续区域镜头可直接使用 anchors / focus。
-export function buildWorkstation(scene) {
+export function buildWorkstation(scene, { onChange = () => {} } = {}) {
   const root = new T.Group();
   scene.add(root);
   const materials = createMaterials();
@@ -269,49 +271,6 @@ export function buildWorkstation(scene) {
   tablet.position.set(0, 1.66, 0.75);
   tablet.rotation.x = -1.14;
   root.add(tablet);
-  const shape = new T.Shape(),
-    w = 3.18,
-    h = 1.94,
-    r = 0.12;
-  shape.moveTo(-w / 2 + r, -h / 2);
-  shape.lineTo(w / 2 - r, -h / 2);
-  shape.quadraticCurveTo(w / 2, -h / 2, w / 2, -h / 2 + r);
-  shape.lineTo(w / 2, h / 2 - r);
-  shape.quadraticCurveTo(w / 2, h / 2, w / 2 - r, h / 2);
-  shape.lineTo(-w / 2 + r, h / 2);
-  shape.quadraticCurveTo(-w / 2, h / 2, -w / 2, h / 2 - r);
-  shape.lineTo(-w / 2, -h / 2 + r);
-  shape.quadraticCurveTo(-w / 2, -h / 2, -w / 2 + r, -h / 2);
-  const body = new T.Mesh(
-    new T.ExtrudeGeometry(shape, {
-      depth: 0.05,
-      bevelEnabled: true,
-      bevelThickness: 0.018,
-      bevelSize: 0.012,
-      bevelSegments: 5,
-      steps: 1,
-    }),
-    materials.titanium,
-  );
-  tablet.add(body);
-  box(tablet, 'tablet-seal', [3.13, 1.9, 0.025], [0, 0, 0.057], materials.rubber, 0.012);
-  box(tablet, 'tablet-glass-edge', [3.08, 1.85, 0.018], [0, 0, 0.071], materials.satin, 0.008);
-  for (const x of [-1.53, 1.53]) for (const y of [-0.87, 0.87]) fastener(tablet, x, y, 0.07, 0.018);
-  const lens = new T.Mesh(new T.CircleGeometry(0.018, 20), materials.dark);
-  lens.position.set(0, 0.938, 0.085);
-  tablet.add(lens);
-  const led = new T.Mesh(new T.CircleGeometry(0.008, 12), materials.accent);
-  led.position.set(0.12, 0.938, 0.086);
-  tablet.add(led);
-  box(tablet, 'tablet-button', [0.18, 0.055, 0.027], [1.61, 0.49, 0.012], materials.satin, 0.01);
-  for (let i = 0; i < 8; i++)
-    box(
-      tablet,
-      'speaker-slot',
-      [0.018, 0.04, 0.014],
-      [-1.28 + i * 0.055, -0.982, 0.018],
-      materials.dark,
-    );
   const screenTex = texture(
     (c, w, h) => {
       c.fillStyle = '#172023';
@@ -365,31 +324,33 @@ export function buildWorkstation(scene) {
     1100,
     650,
   );
-  const screen = new T.Mesh(
-    new T.PlaneGeometry(3.02, 1.79),
-    new T.MeshBasicMaterial({ map: screenTex }),
+  tabletShell(tablet, screenTex, materials);
+  hit('tablet', tablet, [3.25, 2.0, 0.18], [0, 0, 0.03]);
+  const stand = new T.Mesh(
+    ribbonSupport(
+      [
+        [0, 1.245, -0.43],
+        [0, 1.26, -0.1],
+        [0, 1.48, 0.25],
+        [0, 1.84, 0.2],
+      ],
+      0.65,
+      0.055,
+    ),
+    materials.satin,
   );
-  screen.position.z = 0.084;
-  tablet.add(screen);
-  const coating = new T.Mesh(new T.PlaneGeometry(3.02, 1.79), materials.screenGlass);
-  coating.position.z = 0.087;
-  tablet.add(coating);
-  hit('tablet', tablet, [3.25, 2.0, 0.18], [0, 0, 0.08]);
-  for (const x of [-0.78, 0.78]) {
-    rod(root, [x, 1.25, -0.05], [x, 1.73, 0.05], 0.045, materials.satin);
-    box(root, 'tablet-foot', [0.22, 0.06, 0.45], [x, 1.25, -0.06], materials.rubber);
-  }
-  rod(root, [-0.78, 1.3, -0.23], [0.78, 1.3, -0.23], 0.04, materials.satin);
+  stand.castShadow = stand.receiveShadow = true;
+  root.add(stand);
   curve(
     root,
     [
-      [1.54, 1.54, 1.1],
-      [1.83, 1.3, 0.95],
-      [2, 1.23, 0.3],
-      [1.94, 1.23, -1.3],
+      [1.57, 1.63, 0.74],
+      [1.8, 1.38, 0.65],
+      [1.86, 1.23, 0.2],
+      [1.85, 1.23, -1.3],
       [1.7, 1.6, -1.9],
     ],
-    0.018,
+    0.014,
     materials.rubber,
   );
 
@@ -397,22 +358,7 @@ export function buildWorkstation(scene) {
   const specimen = new T.Group();
   specimen.position.set(-3.65, 1.21, -0.92);
   root.add(specimen);
-  box(specimen, 'specimen-foot', [1.6, 0.09, 1.28], [0, 0.045, 0], materials.rubber);
-  box(specimen, 'specimen-base', [1.7, 0.18, 1.35], [0, 0.16, 0], materials.ivory, 0.065);
-  box(specimen, 'specimen-base-inlay', [1.56, 0.018, 1.21], [0, 0.258, 0], materials.satin);
-  box(specimen, 'specimen-cap', [1.7, 0.09, 1.35], [0, 1.94, 0], materials.satin);
-  box(specimen, 'specimen-cap-inlay', [1.54, 0.022, 1.17], [0, 1.992, 0], materials.ivory);
-  for (const x of [-0.79, 0.79])
-    for (const z of [-0.61, 0.61]) {
-      rod(specimen, [x, 0.25, z], [x, 1.93, z], 0.022, materials.titanium);
-      box(specimen, 'specimen-corner', [0.065, 0.13, 0.065], [x, 0.3, z], materials.satin);
-      box(specimen, 'specimen-corner', [0.065, 0.1, 0.065], [x, 1.86, z], materials.satin);
-    }
-  for (const z of [-0.62, 0.62])
-    box(specimen, 'specimen-glass', [1.55, 1.59, 0.012], [0, 1.08, z], materials.glass);
-  for (const x of [-0.77, 0.77])
-    box(specimen, 'specimen-glass', [0.012, 1.59, 1.24], [x, 1.08, 0], materials.glass);
-  box(specimen, 'specimen-door-handle', [0.035, 0.24, 0.05], [0.65, 1, 0.65], materials.titanium);
+  instrumentCase(specimen, materials, { curve, label, fastener });
   const band = new T.Mesh(manifoldGeometry(), materials.ivory);
   band.position.set(0, 1.03, 0);
   band.rotation.y = -0.67;
@@ -438,58 +384,15 @@ export function buildWorkstation(scene) {
     box(specimen, 'sample-clamp', [0.12, 0.16, 0.1], [x, y, z], materials.satin);
     fastener(specimen, x, y, z + 0.059, 0.025);
   }
-  box(specimen, 'specimen-label-plate', [1.1, 0.09, 0.02], [0, 0.16, 0.68], materials.dark);
-  label(specimen, 'M–01 / MANIFOLD', -0.5, 0.15, 0.697, 0.95, '#afbcaf');
-  for (const x of [-0.7, 0.7]) fastener(specimen, x, 0.16, 0.682, 0.026);
-  label(specimen, 'STRUCTURE / 01', -0.62, 1.72, 0.635, 0.82, '#78958d');
-  box(specimen, 'specimen-status', [0.035, 0.025, 0.015], [0.63, 0.16, 0.695], materials.accent);
   hit('specimen', specimen, [1.8, 2.1, 1.5], [0, 1, 0]);
 
   // 中性台灯，与主站的冷色主光保持相容。
   const lamp = new T.Group();
   lamp.position.set(-2.65, 1.22, 0.12);
   root.add(lamp);
-  box(lamp, 'lamp-rubber-foot', [0.71, 0.028, 0.51], [0, 0.014, 0], materials.rubber);
-  box(lamp, 'lamp-base', [0.75, 0.09, 0.55], [0, 0.06, 0], materials.satin, 0.042);
-  box(lamp, 'lamp-base-inlay', [0.64, 0.018, 0.44], [0, 0.11, 0], materials.graphite);
-  for (const z of [-0.028, 0.028]) {
-    rod(lamp, [0, 0.13, z], [0.07, 1.24, -0.23 + z], 0.022, materials.titanium);
-    rod(lamp, [0.07, 1.24, -0.23 + z], [0.75, 1.85, -0.5 + z], 0.022, materials.titanium);
-  }
-  for (const [x, y, z] of [
-    [0, 0.16, 0],
-    [0.07, 1.24, -0.23],
-    [0.75, 1.85, -0.5],
-  ]) {
-    const hinge = new T.Mesh(new T.CylinderGeometry(0.075, 0.075, 0.095, 32), materials.satin);
-    hinge.rotation.x = Math.PI / 2;
-    hinge.position.set(x, y, z);
-    lamp.add(hinge);
-    fastener(lamp, x, y, z + 0.055, 0.035);
-  }
-  curve(
-    lamp,
-    [
-      [0, 0.11, -0.07],
-      [-0.04, 0.46, -0.16],
-      [0.02, 1.15, -0.3],
-      [0.15, 1.28, -0.33],
-      [0.73, 1.78, -0.57],
-    ],
-    0.009,
-    materials.rubber,
-  );
-  const head = box(lamp, 'lamp-bar', [1.6, 0.085, 0.23], [0.6, 1.85, -0.5], materials.satin);
-  box(lamp, 'lamp-head-inlay', [1.46, 0.018, 0.19], [0.6, 1.9, -0.5], materials.ivory);
-  const glow = box(lamp, 'lamp-diffuser', [1.4, 0.02, 0.17], [0.6, 1.795, -0.5], materials.light);
-  for (let i = 0; i < 13; i++)
-    box(lamp, 'lamp-vent', [0.025, 0.01, 0.09], [-0.02 + i * 0.09, 1.912, -0.5], materials.dark);
-  const switchDot = new T.Mesh(new T.CircleGeometry(0.027, 20), materials.satin);
-  switchDot.rotation.x = -Math.PI / 2;
-  switchDot.position.set(0.21, 0.121, 0.12);
-  lamp.add(switchDot);
+  const glow = taskLamp(lamp, materials, { curve, fastener });
   const taskLight = new T.SpotLight('#e5ecd8', 16, 7, Math.PI * 0.35, 1, 2);
-  taskLight.position.set(-2.05, 2.93, -0.38);
+  taskLight.position.set(-2.05, 2.79, -0.38);
   taskLight.target.position.set(-1.5, 1.2, 0.6);
   root.add(taskLight, taskLight.target);
   hit('lamp', lamp, [1.65, 1.95, 0.65], [0.35, 0.92, -0.3]);
@@ -737,6 +640,7 @@ export function buildWorkstation(scene) {
       box(book, 'folio-band', [width * 0.8, 0.008, 0.004], [0, y, 0.248], materials.satin);
   }
   label(root, 'FIELD NOTES / 01—07', 3.87, 3.8, -2.7, 1.55, '#8c9e91');
+  addWallArt(root, materials, { hit, label, onChange });
   // 稀疏的可复用结构刻度。
   for (let i = 0; i < 25; i++)
     box(

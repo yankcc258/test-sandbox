@@ -24,7 +24,9 @@ while (queue.length) {
       ? [...text.matchAll(/(?:src|href)="([^"#]+)"/g)].map((m) => m[1])
       : extname(file) === '.css'
         ? [...text.matchAll(/url\(['"]?([^'"\)]+)['"]?\)/g)].map((m) => m[1])
-        : [...text.matchAll(/(?:\bfrom\s+|\bimport\s*\()['"]([^'"]+)['"]/g)].map((m) => m[1]);
+        : [...text.matchAll(/(?:\bfrom\s+|\bimport\s*\(|\bnew\s+URL\s*\()['"]([^'"]+)['"]/g)].map(
+            (m) => m[1],
+          );
   for (const ref of refs) {
     if (/^(https?:|data:|mailto:|#)/.test(ref)) continue;
     const clean = ref.replaceAll('&amp;', '&').split(/[?#]/)[0];

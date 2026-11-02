@@ -2,7 +2,7 @@
 
 [沙盒目录](https://yankcc258.github.io/test-sandbox/) · [工作台](https://yankcc258.github.io/test-sandbox/workstation/) · [历史原型](https://yankcc258.github.io/test-sandbox/preview/)
 
-独立的视觉与交互试验场，不连接正式站接口或学习数据。**当前重点：v19 工作台材质、光影与物件精修**。部分脊柱成果已接入正式站，本仓库仍只提供示例体验，不能当作正式站的当前副本。
+独立的视觉与交互试验场，不连接正式站接口或学习数据。**当前重点：v20 工作台器物轮廓与原创墙画**。部分脊柱成果已接入正式站，本仓库仍只提供示例体验，不能当作正式站的当前副本。
 
 ## 当前预览
 
@@ -25,7 +25,7 @@
 - 主站原电子环绕开场保留。沙盒新开场已移除，不重新接入。
 - 未经单独安排，不把整个沙盒搬进正式站。
 
-接手先读 [工作台范本与 v19 精修说明](docs/workstation-prototype.md)，资料目录见 [docs/](docs/)。
+接手先读 [工作台范本与 v20 精修说明](docs/workstation-prototype.md)，资料目录见 [docs/](docs/)。v20 保持桌前布局，重做平板薄壳、试样柜曲面玻璃与台灯开槽灯臂，补上可点开查看的两幅原创墙画。
 
 ## 本地运行与检查
 
@@ -38,7 +38,7 @@ npm run check
 
 访问 http://127.0.0.1:8080/ 。不能直接双击 HTML，场景使用 ES 模块。
 
-- `check:workstation`：东京时段边界、计时暂停续计、旧链接路由、材料试样闭合性与表面法线。
+- `check:workstation`：东京时段边界、计时暂停续计、旧链接路由、材料试样与薄壳闭合性、表面法线和屏幕 UV。
 - `check:links`：当前页面、样式与模块的本地资源链路。
 - `check:pulse`、`check:experience`、`check:terminal`：已有脊柱交互与几何检查。
 - `scripts/smoke/` 是早期调试脚本，部分断言过时，不作为当前验收结论。
@@ -63,7 +63,7 @@ npm run check
 
 - 原创代码与模型采用 MIT（见 LICENSE）。three.js r170 的 MIT 许可在 `vendor/three/LICENSE`，Inter 的 OFL 许可在 `assets/fonts/Inter-LICENSE.txt`。
 - 初始脊柱版式参考 [rhine-lab-art](https://github.com/reverieach/rhine-lab-art) 的构思，未使用其未授权代码、模型、图像或标志。
-- 工作台为原创程序几何、纹理与内容，莱茵生命仅作为美术气质参照。
+- 工作台为原创程序几何、纹理与内容，莱茵生命仅作为美术气质参照。两幅墙画使用内置 imagegen 原创生成，[资产与完整提示词](workstation/art/README.md) 已归档。
 - 星空贴图来源见 [NASA-imagery.md](preview/starfield/NASA-imagery.md)。
 
 历史详情见 [v17 之前的完整记录](docs/history/review-sandbox-v17.md)。历史版本状态和接入意见，以用户最新决定为准。

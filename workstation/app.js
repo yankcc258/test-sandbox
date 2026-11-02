@@ -38,6 +38,7 @@ const sections = {
   specimen: ['02 / MATERIAL STUDY', '流形试样'],
   report: ['03 / FIELD NOTES', '研究手记'],
   sky: ['04 / BEYOND', '窗外与天空'],
+  art: ['WALL STUDIES / 01—02', '墙面画作'],
   about: ['ZHIXU / WORKSTATION STUDY', '关于这处工作台'],
 };
 function diagram(type = 'material') {
@@ -101,6 +102,9 @@ function content(id) {
     body.innerHTML =
       common +
       '<small class="eyebrow">ZHIXU / 03 · WORKSTATION</small><h3>研究，也是一种生活。</h3><p>这是一处与实验室、脊柱区共用石墨、象牙白和钛金属的个人研究空间。窗外随东京时段轻微变化，平板、手记与材料试样承载桌前的日常。</p><h4>这一版可以体验</h4><p>拖动观察空间，打开平板和研究手记，查看材料试样，切换台灯，预览晨光、黄昏与深夜。平板中的专注计时与便笺可以实际使用，但不写入正式数据。</p><h4>仍在设计中</h4><p>工作台与实验室、脊柱区的连续镜头，纸飞机到星空的过渡，以及个人工具的正式数据接入。</p><a class="action-link" href="../">返回沙盒目录 ↗</a></article>';
+  if (id === 'art')
+    body.innerHTML =
+      '<article class="art-gallery"><p class="lede">把研究对象留在桌上，把尚未回答的问题挂在墙上。</p><div class="art-pair"><figure><img src="art/continuum.png" alt="连续体：象牙色曲面与细密分枝交织的原创抽象画" width="1086" height="1448" /><figcaption><small>01 / CONTINUUM</small><h3>连续体</h3><p>形态折转，连接延伸。生命与材料之间，一条尚未闭合的思路。</p></figcaption></figure><figure><img src="art/distant-field.png" alt="远场：深青灰色空间中的轨迹、薄膜与远方天体" width="1086" height="1448" /><figcaption><small>02 / DISTANT FIELD</small><h3>远场</h3><p>从一段轨迹望向远处。计算、生命与天空，共用同一个未完成的问题。</p></figcaption></figure></div><p class="subtle">ZHIXU · 2026 · 原创生成作品</p></article>';
 }
 function animatePanel(opening, id) {
   panelAnimation?.cancel();
@@ -126,6 +130,7 @@ function select(id, trigger) {
   lastFocus =
     trigger ||
     document.querySelector('.object-dock [data-object="' + id + '"]') ||
+    (id === 'art' ? $('#art-button') : null) ||
     $('#about-button');
   active = id;
   document.querySelectorAll('details[open]').forEach((d) => (d.open = false));
@@ -211,6 +216,7 @@ document
   .querySelectorAll('[data-object]')
   .forEach((b) => b.addEventListener('click', () => select(b.dataset.object, b)));
 $('#about-button').addEventListener('click', (e) => select('about', e.currentTarget));
+$('#art-button').addEventListener('click', (e) => select('art', e.currentTarget));
 $('#close-detail').addEventListener('click', close);
 $('#back-detail').addEventListener('click', close);
 dialog.addEventListener('cancel', (e) => {
@@ -295,7 +301,7 @@ document.addEventListener('visibilitychange', () => {
 try {
   await document.fonts.ready;
   if (params.get('view') === 'fallback') throw new Error('Fallback preview');
-  const { createScene } = await import('./scene.js?v=19');
+  const { createScene } = await import('./scene.js?v=20');
   scene = createScene($('#scene'), {
     motion,
     onSelect: select,

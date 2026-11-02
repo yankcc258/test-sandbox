@@ -1,6 +1,6 @@
 import * as T from '../vendor/three/three.module.min.js';
-import { buildWorkstation } from './model.js?v=19';
-import { createStudioEnvironment } from './surfaces.js?v=19';
+import { buildWorkstation } from './model.js?v=20';
+import { createStudioEnvironment } from './surfaces.js?v=20';
 
 export function createScene(canvas, { onSelect, onProject, motion = true }) {
   const renderer = new T.WebGLRenderer({
@@ -52,7 +52,7 @@ export function createScene(canvas, { onSelect, onProject, motion = true }) {
   const rim = new T.DirectionalLight('#9fb8bd', 1.8);
   rim.position.set(2, 5.5, -3);
   scene.add(rim);
-  const model = buildWorkstation(scene);
+  const model = buildWorkstation(scene, { onChange: requestRender });
   // Geometry and lights are stationary; camera moves reuse the shadow map.
   renderer.shadowMap.needsUpdate = true;
   const ray = new T.Raycaster(),

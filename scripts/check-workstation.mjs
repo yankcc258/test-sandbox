@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { atmosphere, PALETTES, createFocusTimer } from '../workstation/atmosphere.js';
 import { legacyDestination } from '../sandbox/routing.js';
 import { manifoldGeometry, roundedBox } from '../workstation/surfaces.js';
+import { profiledShell, roundedFace, ribbonSupport } from '../workstation/forms.js';
 import { Vector3 } from '../vendor/three/three.module.min.js';
 
 // 东京时段交界、平滑交接与午夜；不依赖执行测试机器的系统时区。
@@ -76,7 +77,47 @@ assert.ok(
   'Material sample must have no open/non-manifold edges',
 );
 assert.ok(volume > 0.02 && volume < 0.1, 'Material sample must have positive solid volume');
-for (const geometry of [sample, roundedBox(1, 0.1, 0.7, 0.04)]) {
+const shell = profiledShell([
+  [-0.06, 2.8, 1.6, 0.16],
+  [-0.02, 3, 1.8, 0.18],
+  [0.02, 2.98, 1.78, 0.17],
+]);
+const shellEdges = new Map();
+let shellVolume = 0;
+for (let i = 0; i < shell.index.count; i += 3) {
+  const ids = [0, 1, 2].map((j) => shell.index.getX(i + j));
+  for (let j = 0; j < 3; j++) {
+    const edge = [ids[j], ids[(j + 1) % 3]].sort((x, y) => x - y).join(':');
+    shellEdges.set(edge, (shellEdges.get(edge) || 0) + 1);
+  }
+  a.fromBufferAttribute(shell.attributes.position, ids[0]);
+  b.fromBufferAttribute(shell.attributes.position, ids[1]);
+  c.fromBufferAttribute(shell.attributes.position, ids[2]);
+  shellVolume += a.dot(cross.crossVectors(b, c)) / 6;
+}
+assert.ok(
+  [...shellEdges.values()].every((n) => n === 2),
+  'Profiled shell sides and caps meet without open edges',
+);
+assert.ok(
+  shellVolume > 0 && shellVolume < 3 * 1.8 * 0.08,
+  'Correct outward winding and bounded shell volume',
+);
+const face = roundedFace(3, 1.8, 0.17);
+assert.ok(
+  [...face.attributes.uv.array].every((v) => v >= 0 && v <= 1),
+  'Display texture stays within the rounded glass',
+);
+const support = ribbonSupport(
+  [
+    [0, 0, 0],
+    [0, 0.2, 0.1],
+    [0, 0.5, 0.15],
+  ],
+  0.4,
+  0.04,
+);
+for (const geometry of [sample, roundedBox(1, 0.1, 0.7, 0.04), shell, face, support]) {
   for (const attribute of Object.values(geometry.attributes))
     assert.ok([...attribute.array].every(Number.isFinite), 'No invalid geometry coordinates');
   const normals = geometry.attributes.normal;
@@ -88,5 +129,5 @@ for (const geometry of [sample, roundedBox(1, 0.1, 0.7, 0.04)]) {
   geometry.dispose();
 }
 console.log(
-  'PASS: Tokyo atmosphere, timer, legacy routes, closed material geometry and surface normals.',
+  'PASS: Tokyo atmosphere, timer, legacy routes, closed specimens and device shells, display UVs and surface normals.',
 );
