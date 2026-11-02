@@ -1,8 +1,9 @@
+import { addWindowSun } from './lighting.js?v=24';
 import * as T from '../vendor/three/three.module.min.js';
-import { buildWorkstation } from './model.js?v=22';
-import { createStudioEnvironment } from './surfaces.js?v=22';
+import { buildWorkstation } from './model.js?v=24';
+import { createStudioEnvironment } from './surfaces.js?v=24';
 
-export function createScene(canvas, { onSelect, onProject, motion = true }) {
+export function createScene(canvas, { onSelect, onProject, onHover = () => {}, motion = true }) {
   const renderer = new T.WebGLRenderer({
     canvas,
     antialias: true,
@@ -52,6 +53,7 @@ export function createScene(canvas, { onSelect, onProject, motion = true }) {
   const rim = new T.DirectionalLight('#9fb8bd', 1.15);
   rim.position.set(2, 5.5, -3);
   scene.add(rim);
+  const sun = addWindowSun(scene, innerWidth < 700);
   const model = buildWorkstation(scene, { onChange: requestRender });
   // Geometry and lights are stationary; camera moves reuse the shadow map.
   renderer.shadowMap.needsUpdate = true;
@@ -72,8 +74,8 @@ export function createScene(canvas, { onSelect, onProject, motion = true }) {
   function home() {
     const mobile = innerWidth < 700;
     return {
-      position: mobile ? [0, 4.5, 12.4] : [0, 4.0, 8.7],
-      target: mobile ? [0, 2.6, -0.35] : [0, 2.65, -0.7],
+      position: mobile ? [0.15, 8.3, 6.4] : [0, 4.0, 8.7],
+      target: mobile ? [0.15, 1.15, 0.6] : [0, 2.65, -0.7],
     };
   }
   function setTargets() {
@@ -96,8 +98,8 @@ export function createScene(canvas, { onSelect, onProject, motion = true }) {
     for (const [name, anchor] of Object.entries(model.anchors)) {
       const v = anchor.getWorldPosition(new T.Vector3()).project(camera);
       result[name] = {
-        x: ((v.x + 1) * rect.width) / 2,
-        y: ((1 - v.y) * rect.height) / 2,
+        x: rect.left + ((v.x + 1) * rect.width) / 2,
+        y: rect.top + ((1 - v.y) * rect.height) / 2,
         visible: Math.abs(v.x) < 1 && Math.abs(v.y) < 0.84 && v.z < 1,
       };
     }
@@ -131,7 +133,7 @@ export function createScene(canvas, { onSelect, onProject, motion = true }) {
       h = canvas.clientHeight;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
-    camera.fov = innerWidth < 700 ? 49 : 45;
+    camera.fov = innerWidth < 700 ? 43 : 45;
     camera.updateProjectionMatrix();
     setTargets();
     requestRender();
@@ -145,8 +147,15 @@ export function createScene(canvas, { onSelect, onProject, motion = true }) {
     ray.setFromCamera(pointer, camera);
     return ray.intersectObjects(model.hitTargets, false)[0]?.object.userData.action || null;
   }
+  function clearHover() {
+    hover = null;
+    canvas.style.cursor = 'grab';
+    onHover(null);
+  }
+  canvas.addEventListener('pointerleave', clearHover);
   canvas.addEventListener('pointerdown', (e) => {
     if (e.button !== 0 || focused) return;
+    clearHover();
     gesture = { x: e.clientX, y: e.clientY, moved: false };
     canvas.setPointerCapture(e.pointerId);
   });
@@ -161,10 +170,11 @@ export function createScene(canvas, { onSelect, onProject, motion = true }) {
         setTargets();
         requestRender();
       }
-    } else {
+    } else if (!focused && e.pointerType !== 'touch') {
       const next = actionAt(e);
       if (next !== hover) {
         hover = next;
+        onHover(next);
         canvas.style.cursor = next ? 'pointer' : 'grab';
       }
     }
@@ -212,6 +222,7 @@ export function createScene(canvas, { onSelect, onProject, motion = true }) {
   resize();
   return {
     focus(id) {
+      clearHover();
       focused = model.focus[id] ? id : null;
       dragX = 0;
       dragY = 0;
@@ -237,7 +248,13 @@ export function createScene(canvas, { onSelect, onProject, motion = true }) {
       scene.background = new T.Color(a.bg);
       scene.fog = new T.Fog(a.bg, 17, 42);
       key.color.set(a.key);
+      key.intensity = a.keyStrength;
       fill.color.set(a.fill);
+      fill.intensity = a.fillStrength;
+      rim.intensity = a.rimStrength;
+      scene.environmentIntensity = a.environment;
+      sun.intensity = a.sunlight;
+      model.setAtmosphere(a);
       renderer.toneMappingExposure = 1.18 * a.gain;
       model.drawSky(a);
       requestRender();

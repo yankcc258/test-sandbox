@@ -8,7 +8,13 @@ export const PALETTES = {
     fill: '#bfd0d6',
     sky: '#263b49',
     horizon: '#596f74',
-    gain: 1.08,
+    gain: 1.1,
+    keyStrength: 3.2,
+    fillStrength: 1.05,
+    rimStrength: 0.85,
+    environment: 0.92,
+    sunlight: 450,
+    nightlight: 0.16,
   },
   dusk: {
     bg: '#211d1c',
@@ -19,6 +25,12 @@ export const PALETTES = {
     sky: '#303d4c',
     horizon: '#977969',
     gain: 1.02,
+    keyStrength: 2.5,
+    fillStrength: 0.66,
+    rimStrength: 0.8,
+    environment: 0.76,
+    sunlight: 80,
+    nightlight: 0.44,
   },
   night: {
     bg: '#15191b',
@@ -29,6 +41,12 @@ export const PALETTES = {
     sky: '#101f2e',
     horizon: '#354853',
     gain: 1,
+    keyStrength: 2.15,
+    fillStrength: 0.45,
+    rimStrength: 0.7,
+    environment: 0.66,
+    sunlight: 0,
+    nightlight: 0.62,
   },
 };
 const clock = new Intl.DateTimeFormat('en-GB', {
@@ -52,7 +70,9 @@ export function atmosphere(date = new Date(), override = 'auto') {
   const blend = t * t * (3 - 2 * t);
   const from = PALETTES[previous],
     to = PALETTES[phase];
-  const mixed = { phase, gain: from.gain + (to.gain - from.gain) * blend };
+  const mixed = { phase };
+  for (const key of Object.keys(to))
+    if (typeof to[key] === 'number') mixed[key] = from[key] + (to[key] - from[key]) * blend;
   for (const key of ['bg', 'surface', 'glow', 'key', 'fill', 'sky', 'horizon']) {
     mixed[key] =
       '#' +

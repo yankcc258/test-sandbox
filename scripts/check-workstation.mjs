@@ -21,6 +21,31 @@ assert.deepEqual(at('2026-11-02T15:00:00Z'), at('2026-11-02T14:59:00Z'));
 assert.equal(at('2026-11-01T21:15:00Z').bg, '#171c1f');
 assert.equal(atmosphere(new Date('2026-11-01T21:15:00Z'), 'night').bg, PALETTES.night.bg);
 assert.ok(/^#[0-9a-f]{6}$/.test(atmosphere(new Date(), 'unknown').bg));
+// Direct daylight and indoor fill cross-fade with Tokyo time, including both ends of dawn/dusk.
+assert.equal(at('2026-11-01T21:00:00Z').sunlight, 0);
+assert.equal(at('2026-11-01T21:15:00Z').sunlight, PALETTES.day.sunlight / 2);
+assert.equal(at('2026-11-01T21:30:00Z').sunlight, PALETTES.day.sunlight);
+assert.equal(at('2026-11-02T10:00:00Z').sunlight, PALETTES.dusk.sunlight);
+assert.equal(at('2026-11-02T10:30:00Z').sunlight, 0);
+for (let minute = 0; minute < 1440; minute += 5) {
+  const a = atmosphere(new Date(Date.UTC(2026, 10, 2, 0, minute)));
+  for (const key of [
+    'keyStrength',
+    'fillStrength',
+    'rimStrength',
+    'environment',
+    'sunlight',
+    'nightlight',
+  ]) {
+    const values = Object.values(PALETTES).map((p) => p[key]);
+    assert.ok(
+      Number.isFinite(a[key]) &&
+        a[key] >= Math.min(...values) - 1e-8 &&
+        a[key] <= Math.max(...values) + 1e-8,
+      'Bounded indoor illumination throughout the day',
+    );
+  }
+}
 
 // 模拟后台经过时间、暂停续计、完成以及重置。
 let now = 0;

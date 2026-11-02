@@ -1,5 +1,5 @@
-import { toolPreviews, toolOverview, toolScreenshot } from './tools.js?v=22';
-import { atmosphere, createFocusTimer } from './atmosphere.js';
+import { toolPreviews, toolOverview, toolScreenshot } from './tools.js?v=24';
+import { atmosphere, createFocusTimer } from './atmosphere.js?v=24';
 
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
@@ -106,7 +106,7 @@ function content(id) {
   if (id === 'about')
     body.innerHTML =
       common +
-      '<small class="eyebrow">ZHIXU / 03 · WORKSTATION</small><h3>研究，也是一种生活。</h3><p>这是一处与实验室、脊柱区共用石墨、象牙白和钛金属的个人研究空间。窗外随东京时段轻微变化，平板、手记与材料试样承载桌前的日常。</p><h4>这一版可以体验</h4><p>拖动观察空间，打开平板和研究手记，查看材料试样，切换台灯，预览晨光、黄昏与深夜。平板的“个人工具”可以查看课表、番茄钟、餐盘、日历、论文、希可和特蕾莎陪学的界面截图。另有专注试用与便笺可以实际使用，但不写入正式数据。</p><h4>仍在设计中</h4><p>工作台与实验室、脊柱区的连续镜头，纸飞机到星空的过渡，以及个人工具的正式数据接入。</p><a class="action-link" href="../">返回沙盒目录 ↗</a></article>';
+      '<small class="eyebrow">ZHIXU / 03 · WORKSTATION</small><h3>研究，也是一种生活。</h3><p>这是一处与实验室、脊柱区共用石墨、象牙白和钛金属的个人研究空间。窗景和室内光随东京时段变化。白天的光落在桌面上，画灯照着墙上的研究；平板、手记与材料试样承载桌前的日常。</p><h4>这一版可以体验</h4><p>拖动观察空间，打开平板和研究手记，查看材料试样，切换台灯，预览晨光、黄昏与深夜。平板的“个人工具”可以查看课表、番茄钟、餐盘、日历、论文、希可和特蕾莎陪学的界面截图。另有专注试用与便笺可以实际使用，但不写入正式数据。</p><h4>仍在设计中</h4><p>工作台与实验室、脊柱区的连续镜头，纸飞机到星空的过渡，以及个人工具的正式数据接入。</p><a class="action-link" href="../">返回沙盒目录 ↗</a></article>';
   if (id === 'art')
     body.innerHTML =
       '<article class="art-gallery"><p class="lede">把研究对象留在桌上，把尚未回答的问题挂在墙上。</p><div class="art-pair"><figure><img src="art/continuum.png" alt="连续体：象牙色曲面与细密分枝交织的原创抽象画" width="1086" height="1448" /><figcaption><small>01 / CONTINUUM</small><h3>连续体</h3><p>形态折转，连接延伸。生命与材料之间，一条尚未闭合的思路。</p></figcaption></figure><figure><img src="art/distant-field.png" alt="远场：深青灰色空间中的轨迹、薄膜与远方天体" width="1086" height="1448" /><figcaption><small>02 / DISTANT FIELD</small><h3>远场</h3><p>从一段轨迹望向远处。计算、生命与天空，共用同一个未完成的问题。</p></figcaption></figure></div><p class="subtle">ZHIXU · 2026 · 原创生成作品</p></article>';
@@ -194,7 +194,7 @@ function refreshAtmosphere() {
   const a = atmosphere(new Date(), mood);
   $('#period').textContent =
     mood === 'auto' ? '东京 · ' + names[a.phase] : names[a.phase] + ' · 预览';
-  const key = a.bg + a.sky + a.horizon;
+  const key = JSON.stringify(a);
   if (key === themeKey) return;
   themeKey = key;
   for (const k of ['bg', 'surface']) document.documentElement.style.setProperty('--' + k, a[k]);
@@ -332,10 +332,15 @@ document.addEventListener('visibilitychange', () => {
 try {
   await document.fonts.ready;
   if (params.get('view') === 'fallback') throw new Error('Fallback preview');
-  const { createScene } = await import('./scene.js?v=23');
+  const { createScene } = await import('./scene.js?v=24');
   scene = createScene($('#scene'), {
     motion,
     onSelect: select,
+    onHover(id) {
+      document.querySelectorAll('.hotspots [data-object]').forEach((b) => {
+        b.classList.toggle('is-hovered', b.dataset.object === id);
+      });
+    },
     onProject(points) {
       projected = points;
       for (const b of document.querySelectorAll('.hotspots [data-object]')) {
@@ -344,7 +349,7 @@ try {
         b.style.left = p.x + 'px';
         b.style.top = p.y + 'px';
         b.classList.toggle('visible', p.visible);
-        b.tabIndex = p.visible ? 0 : -1;
+        b.tabIndex = -1;
         b.style.visibility = p.visible ? 'visible' : 'hidden';
       }
     },

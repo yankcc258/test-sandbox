@@ -1,9 +1,10 @@
 import * as T from '../vendor/three/three.module.min.js';
-import { createMaterials, roundedBox, manifoldGeometry } from './surfaces.js?v=22';
-import { tabletShell, instrumentCase, taskLamp, ribbonSupport } from './forms.js?v=22';
-import { addWallArt } from './wall-art.js?v=22';
-import { contactShadow } from './contact.js?v=22';
-import { createWindowSky } from './sky.js?v=22';
+import { createMaterials, roundedBox, manifoldGeometry } from './surfaces.js?v=24';
+import { tabletShell, instrumentCase, taskLamp, ribbonSupport } from './forms.js?v=24';
+import { addWallArt } from './wall-art.js?v=24';
+import { contactShadow } from './contact.js?v=24';
+import { furnishRestNook } from './rest-nook.js?v=24';
+import { createWindowSky } from './sky.js?v=24';
 
 // 原创程序几何。各物件独立成组，后续区域镜头可直接使用 anchors / focus。
 export function buildWorkstation(scene, { onChange = () => {} } = {}) {
@@ -94,8 +95,11 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
   }
   // 暗部建筑与细线分缝，避免成为独立的照片背景。
   box(root, 'back-wall', [17, 9, 0.2], [0, 3, -3.6], materials.graphite);
-  box(root, 'left-wall', [0.22, 9, 10], [-7, 3, 0], materials.dark);
-  box(root, 'right-wall', [0.22, 9, 10], [7, 3, 0], materials.dark);
+  const wallMaterial = materials.graphite.clone();
+  wallMaterial.color.set('#303a3b');
+  wallMaterial.roughness = 0.88;
+  box(root, 'left-wall', [0.22, 9, 10], [-7, 3, 0], wallMaterial);
+  box(root, 'right-wall', [0.22, 9, 10], [7, 3, 0], wallMaterial);
   box(root, 'floor', [17, 0.1, 14], [0, -1, 0], materials.dark);
   for (const x of [-6.2, -4.2, 4.8, 6.3])
     box(root, 'wall-joint', [0.035, 9, 0.018], [x, 3, -3.48], materials.dark);
@@ -181,8 +185,8 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
     opacity: 0.78,
   });
   contactShadow(root, {
-    x: -3.65,
-    z: -0.92,
+    x: -4.1,
+    z: -0.85,
     width: 1.55,
     depth: 1.2,
     radius: 0.12,
@@ -190,8 +194,8 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
     opacity: 0.8,
   });
   contactShadow(root, {
-    x: -2.65,
-    z: 0.12,
+    x: -2.35,
+    z: -1.42,
     width: 0.69,
     depth: 0.69,
     radius: 0.345,
@@ -199,8 +203,8 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
     opacity: 0.85,
   });
   contactShadow(root, {
-    x: -1.92,
-    z: 1.4,
+    x: -2.7,
+    z: 1.65,
     width: 0.57,
     depth: 0.57,
     radius: 0.285,
@@ -327,7 +331,7 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
 
   // 少量材料试样，集中表达有机曲面和工业构件的结合。
   const specimen = new T.Group();
-  specimen.position.set(-3.65, 1.21, -0.92);
+  specimen.position.set(-4.1, 1.21, -0.85);
   root.add(specimen);
   instrumentCase(specimen, materials, { curve, label, fastener });
   contactShadow(specimen, {
@@ -369,16 +373,16 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
 
   // 中性台灯，与主站的冷色主光保持相容。
   const lamp = new T.Group();
-  lamp.position.set(-2.65, 1.22, 0.12);
+  lamp.position.set(-2.35, 1.22, -1.42);
   root.add(lamp);
   const glow = taskLamp(lamp, materials, { curve, fastener });
   const taskLight = new T.SpotLight('#e8dfca', 19, 7, Math.PI * 0.35, 1, 2);
-  taskLight.position.set(-2.05, 2.79, -0.38);
-  taskLight.target.position.set(-1.5, 1.2, 0.6);
+  taskLight.position.set(-1.75, 2.79, -1.92);
+  taskLight.target.position.set(-1.0, 1.2, 0.2);
   root.add(taskLight, taskLight.target);
   hit('lamp', lamp, [1.65, 1.95, 0.65], [0.35, 0.92, -0.3]);
   const cup = new T.Group();
-  cup.position.set(-1.92, 1.2, 1.4);
+  cup.position.set(-2.7, 1.2, 1.65);
   root.add(cup);
   const coaster = new T.Mesh(new T.CylinderGeometry(0.285, 0.285, 0.025, 48), materials.rubber);
   coaster.position.y = 0.014;
@@ -589,6 +593,7 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
   for (const x of [-0.78, 0.78]) fastener(home, x, 0.86, 0.657, 0.022);
   label(home, 'SEEKO / REST', -0.47, 0.84, 0.66, 0.85, '#859589');
   hit('seeko', home, [1.9, 1.2, 1.65], [0, 0.5, 0]);
+  const setRestLight = furnishRestNook(home, materials, { curve, label });
   for (let i = 0; i < 7; i++)
     box(home, 'nook-vent', [0.08, 0.012, 0.015], [-0.3 + i * 0.1, 0.71, -0.541], materials.dark);
   const shelf = box(root, 'book-shelf', [1.7, 0.075, 1.0], [4.6, 3.95, -3.0], materials.titanium);
@@ -639,6 +644,7 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
     anchors,
     tablet,
     drawSky,
+    setAtmosphere: setRestLight,
     setLamp(on) {
       taskLight.intensity = on ? 19 : 0;
       glow.visible = on;
@@ -646,7 +652,7 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
     focus: {
       tablet: { position: [0, 3.0, 5.0], target: [0, 1.4, 0.55] },
       report: { position: [2.2, 3.6, 5.2], target: [2.5, 1.2, 0.75] },
-      specimen: { position: [-2.75, 3.45, 4.4], target: [-3.6, 2.2, -0.9] },
+      specimen: { position: [-3.2, 3.45, 4.4], target: [-4.05, 2.2, -0.85] },
       sky: { position: [0.5, 3.8, 4.5], target: [0.7, 4.05, -3.2] },
     },
   };

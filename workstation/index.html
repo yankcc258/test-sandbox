@@ -7,7 +7,7 @@
     <meta name="description" content="知序工作台范本：生命、材料与计算之间的一处个人研究空间。" />
     <title>知序 · 研究员工作台</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="workstation.css?v=22" />
+    <link rel="stylesheet" href="workstation.css?v=24" />
     <link rel="stylesheet" href="../sandbox/passage.css?v=23" />
     <link rel="stylesheet" href="luna.css?v=23" />
     <script>
@@ -18,7 +18,7 @@
           document.documentElement.classList.add('passage-in');
       } catch {}
     </script>
-    <script type="module" src="app.js?v=23"></script>
+    <script type="module" src="app.js?v=24"></script>
     <script type="module" src="luna.js?v=23"></script>
   </head>
   <body>
@@ -62,23 +62,23 @@
           ><button type="button" id="about-button">ABOUT</button>
         </div>
       </nav>
-      <div class="hotspots" id="hotspots" aria-label="桌面物件">
-        <button data-object="tablet">
+      <div class="hotspots" id="hotspots" aria-hidden="true">
+        <button tabindex="-1" data-object="tablet">
           <i></i><span><small>01 / TERMINAL</small>个人终端 ↗</span>
         </button>
-        <button data-object="specimen">
+        <button tabindex="-1" data-object="specimen">
           <i></i><span><small>02 / MATERIAL</small>流形试样 ↗</span>
         </button>
-        <button data-object="report">
+        <button tabindex="-1" data-object="report">
           <i></i><span><small>03 / FIELD NOTES</small>研究手记 ↗</span>
         </button>
-        <button data-object="sky">
+        <button tabindex="-1" data-object="sky">
           <i></i><span><small>04 / BEYOND</small>窗外与天空 ↗</span>
         </button>
-        <button data-object="seeko">
+        <button tabindex="-1" data-object="seeko">
           <i></i><span><small>05 / SEEKO</small>希可 · 桌旁陪伴 ↗</span>
         </button>
-        <button data-object="lamp" aria-pressed="true">
+        <button tabindex="-1" data-object="lamp" aria-pressed="true">
           <i></i><span><small>LIGHT / LOCAL</small>台灯 · 开</span>
         </button>
       </div>

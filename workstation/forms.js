@@ -165,18 +165,8 @@ export function tabletShell(tablet, screenTex, m) {
     'tablet-display',
     [2.92, 1.67],
     0.065,
-    new T.MeshPhysicalMaterial({
-      map: screenTex,
-      emissiveMap: screenTex,
-      emissive: '#ffffff',
-      emissiveIntensity: 0.58,
-      color: '#778782',
-      roughness: 0.18,
-      metalness: 0.08,
-      clearcoat: 1,
-      clearcoatRoughness: 0.1,
-      envMapIntensity: 0.25,
-    }),
+    // Emissive display beneath a separate optical coating: room lights must not bleach the UI.
+    new T.MeshBasicMaterial({ map: screenTex, color: '#d7e0d8', toneMapped: false }),
     0.027,
   );
   const coating = flat(tablet, 'tablet-optical-coating', [3.14, 1.9], 0.155, m.screenGlass, 0.029);
