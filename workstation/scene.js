@@ -1,6 +1,6 @@
 import * as T from '../vendor/three/three.module.min.js';
-import { RoomEnvironment } from '../vendor/three/RoomEnvironment.js';
-import { buildWorkstation } from './model.js';
+import { buildWorkstation } from './model.js?v=19';
+import { createStudioEnvironment } from './surfaces.js?v=19';
 
 export function createScene(canvas, { onSelect, onProject, motion = true }) {
   const renderer = new T.WebGLRenderer({
@@ -14,33 +14,47 @@ export function createScene(canvas, { onSelect, onProject, motion = true }) {
   renderer.toneMapping = T.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.18;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = T.PCFSoftShadowMap;
+  renderer.shadowMap.type = T.PCFShadowMap;
+  renderer.shadowMap.autoUpdate = false;
   const scene = new T.Scene(),
     camera = new T.PerspectiveCamera(45, 1, 0.1, 90);
   const pmrem = new T.PMREMGenerator(renderer),
-    room = new RoomEnvironment();
+    room = createStudioEnvironment();
   const env = pmrem.fromScene(room, 0.04);
   scene.environment = env.texture;
-  scene.environmentIntensity = 0.44;
+  scene.environmentIntensity = 0.85;
+  scene.environmentRotation.y = 0.35;
   pmrem.dispose();
-  room.dispose();
-  const key = new T.DirectionalLight('#e6edf2', 2.2);
-  key.position.set(-4, 8, 6);
+  room.traverse((object) => {
+    if (object.isMesh) {
+      object.geometry.dispose();
+      object.material.dispose();
+    }
+  });
+  const key = new T.DirectionalLight('#e6edf2', 2.4);
+  key.position.set(-3.4, 7.8, 1.6);
+  key.target.position.set(0, 1.3, 0);
   key.castShadow = true;
-  key.shadow.mapSize.set(1024, 1024);
-  key.shadow.camera.left = -8;
-  key.shadow.camera.right = 8;
-  key.shadow.camera.top = 8;
-  key.shadow.camera.bottom = -6;
-  key.shadow.bias = -0.0006;
-  key.shadow.normalBias = 0.025;
-  scene.add(key);
-  const fill = new T.HemisphereLight('#aec4d1', '#15191b', 1.65);
+  const shadowSize = innerWidth < 700 ? 1024 : 2048;
+  key.shadow.mapSize.set(shadowSize, shadowSize);
+  key.shadow.camera.left = -7;
+  key.shadow.camera.right = 7;
+  key.shadow.camera.top = 6;
+  key.shadow.camera.bottom = -5;
+  key.shadow.camera.near = 0.5;
+  key.shadow.camera.far = 24;
+  key.shadow.radius = 3;
+  key.shadow.bias = -0.00025;
+  key.shadow.normalBias = 0.014;
+  scene.add(key, key.target);
+  const fill = new T.HemisphereLight('#aec4d1', '#15191b', 0.68);
   scene.add(fill);
-  const rim = new T.DirectionalLight('#9fb8bd', 1.4);
-  rim.position.set(4, 6, -4);
+  const rim = new T.DirectionalLight('#9fb8bd', 1.8);
+  rim.position.set(2, 5.5, -3);
   scene.add(rim);
   const model = buildWorkstation(scene);
+  // Geometry and lights are stationary; camera moves reuse the shadow map.
+  renderer.shadowMap.needsUpdate = true;
   const ray = new T.Raycaster(),
     pointer = new T.Vector2();
   const look = new T.Vector3(),
@@ -180,6 +194,7 @@ export function createScene(canvas, { onSelect, onProject, motion = true }) {
   });
   canvas.addEventListener('webglcontextrestored', () => {
     lost = false;
+    renderer.shadowMap.needsUpdate = true;
     document.body.classList.remove('no-webgl');
     requestRender();
   });

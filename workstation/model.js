@@ -1,58 +1,23 @@
 import * as T from '../vendor/three/three.module.min.js';
+import { createMaterials, roundedBox, manifoldGeometry } from './surfaces.js?v=19';
 
 // 原创程序几何。各物件独立成组，后续区域镜头可直接使用 anchors / focus。
 export function buildWorkstation(scene) {
   const root = new T.Group();
   scene.add(root);
-  const materials = {
-    graphite: new T.MeshStandardMaterial({ color: '#20282b', roughness: 0.78, metalness: 0.12 }),
-    dark: new T.MeshStandardMaterial({ color: '#101719', roughness: 0.8 }),
-    ivory: new T.MeshStandardMaterial({ color: '#b7c0b4', roughness: 0.6, metalness: 0.08 }),
-    titanium: new T.MeshStandardMaterial({ color: '#7d8989', roughness: 0.33, metalness: 0.75 }),
-    green: new T.MeshStandardMaterial({ color: '#314b45', roughness: 0.52, metalness: 0.22 }),
-    paper: new T.MeshStandardMaterial({ color: '#c8cbbf', roughness: 0.95 }),
-    fabric: new T.MeshStandardMaterial({ color: '#35413f', roughness: 1 }),
-    light: new T.MeshBasicMaterial({ color: '#e4e8d9' }),
-    accent: new T.MeshBasicMaterial({ color: '#c9e755' }),
-    glass: new T.MeshPhysicalMaterial({
-      color: '#7daba3',
-      transparent: true,
-      opacity: 0.1,
-      roughness: 0.16,
-      metalness: 0.2,
-      depthWrite: false,
-      side: T.DoubleSide,
-    }),
-  };
+  const materials = createMaterials();
   const hitTargets = [],
     anchors = {};
-  function box(parent, name, dims, pos, material) {
-    // 设备的极小倒角让边缘接光；墙体和细刻度仍保持简洁几何。
-    let geometry;
-    const bevel = Math.min(0.025, ...dims.map((d) => d * 0.12));
-    if (Math.min(...dims) > 0.06 && !/wall|floor|hit|tick/.test(name)) {
-      const [w, h, d] = dims,
-        shape = new T.Shape();
-      shape.moveTo(-w / 2 + bevel, -h / 2 + bevel);
-      shape.lineTo(w / 2 - bevel, -h / 2 + bevel);
-      shape.lineTo(w / 2 - bevel, h / 2 - bevel);
-      shape.lineTo(-w / 2 + bevel, h / 2 - bevel);
-      shape.closePath();
-      geometry = new T.ExtrudeGeometry(shape, {
-        depth: d - 2 * bevel,
-        bevelEnabled: true,
-        bevelThickness: bevel,
-        bevelSize: bevel,
-        bevelSegments: 2,
-        steps: 1,
-      });
-      geometry.translate(0, 0, -d / 2 + bevel);
-    } else geometry = new T.BoxGeometry(...dims);
+  function box(parent, name, dims, pos, material, radius = 0.035) {
+    const geometry =
+      Math.min(...dims) > 0.03 && !/wall|floor|hit|tick|glass/.test(name)
+        ? roundedBox(...dims, radius)
+        : new T.BoxGeometry(...dims);
     const mesh = new T.Mesh(geometry, material);
     mesh.name = name;
     mesh.position.set(...pos);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
+    mesh.castShadow = !/glass/.test(name);
+    mesh.receiveShadow = !/glass/.test(name);
     parent.add(mesh);
     return mesh;
   }
@@ -60,7 +25,7 @@ export function buildWorkstation(scene) {
     const av = new T.Vector3(...a),
       bv = new T.Vector3(...b),
       dir = bv.clone().sub(av);
-    const m = new T.Mesh(new T.CylinderGeometry(radius, radius, dir.length(), 12), material);
+    const m = new T.Mesh(new T.CylinderGeometry(radius, radius, dir.length(), 20), material);
     m.position.copy(av.add(bv).multiplyScalar(0.5));
     m.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), dir.normalize());
     m.castShadow = true;
@@ -96,6 +61,52 @@ export function buildWorkstation(scene) {
     parent.add(mesh);
     return mesh;
   }
+  function curve(parent, points, radius, material, closed = false) {
+    const path = new T.CatmullRomCurve3(
+      points.map((p) => new T.Vector3(...p)),
+      closed,
+    );
+    const mesh = new T.Mesh(new T.TubeGeometry(path, 48, radius, 8, closed), material);
+    mesh.castShadow = true;
+    parent.add(mesh);
+    return mesh;
+  }
+  function fastener(parent, x, y, z, radius = 0.035) {
+    const screw = new T.Mesh(new T.CylinderGeometry(radius, radius, 0.018, 12), materials.titanium);
+    screw.rotation.x = Math.PI / 2;
+    screw.position.set(x, y, z);
+    parent.add(screw);
+    box(parent, 'screw-slot', [radius * 0.9, 0.009, 0.004], [x, y, z + 0.011], materials.dark);
+  }
+  const contactMap = texture(
+    (c, w, h) => {
+      const gradient = c.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+      gradient.addColorStop(0, 'rgba(0,0,0,.7)');
+      gradient.addColorStop(0.48, 'rgba(0,0,0,.38)');
+      gradient.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = gradient;
+      c.fillRect(0, 0, w, h);
+    },
+    128,
+    128,
+  );
+  function contact(x, z, w, d, opacity = 0.6, y = 1.198) {
+    const shadow = new T.Mesh(
+      new T.PlaneGeometry(w, d),
+      new T.MeshBasicMaterial({
+        map: contactMap,
+        transparent: true,
+        opacity,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -1,
+      }),
+    );
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.set(x, y, z);
+    root.add(shadow);
+    return shadow;
+  }
   function hit(id, parent, dims, pos) {
     const m = box(parent, id + '-hit', dims, pos, new T.MeshBasicMaterial({ visible: false }));
     m.castShadow = false;
@@ -112,7 +123,16 @@ export function buildWorkstation(scene) {
   box(root, 'right-wall', [0.22, 9, 10], [7, 3, 0], materials.dark);
   box(root, 'floor', [17, 0.1, 14], [0, -1, 0], materials.dark);
   for (const x of [-6.2, -4.2, 4.8, 6.3])
-    box(root, 'wall-joint', [0.018, 9, 0.018], [x, 3, -3.48], materials.titanium);
+    box(root, 'wall-joint', [0.035, 9, 0.018], [x, 3, -3.48], materials.dark);
+  // Recessed wall panels, reveal shadows and structural edge caps.
+  for (const x of [-4.65, 5.8]) {
+    box(root, 'service-pier', [0.34, 7.8, 0.3], [x, 3, -3.26], materials.graphite);
+    box(root, 'pier-edge', [0.025, 7.8, 0.045], [x - 0.13, 3, -3.08], materials.satin);
+  }
+  for (const y of [0.7, 6.72]) {
+    box(root, 'wall-reveal', [13.2, 0.065, 0.12], [0, y, -3.39], materials.dark);
+    box(root, 'reveal-edge', [13.2, 0.018, 0.13], [0, y + 0.05, -3.38], materials.satin);
+  }
   const divider = box(
     root,
     'green-divider',
@@ -126,12 +146,25 @@ export function buildWorkstation(scene) {
 
   // 正前方的天空开口，仍然身处地面，远处只有低矮设施与地平线。
   box(root, 'window-surround', [8.0, 4.35, 0.18], [0.5, 4.45, -3.37], materials.dark);
+  for (const x of [-3.45, 4.45]) {
+    box(root, 'window-jamb', [0.11, 4.36, 0.26], [x, 4.45, -3.14], materials.satin);
+    box(
+      root,
+      'window-gasket',
+      [0.028, 4.08, 0.08],
+      [x + (x < 0 ? 0.08 : -0.08), 4.45, -3.02],
+      materials.rubber,
+    );
+  }
+  for (const y of [2.43, 6.47])
+    box(root, 'window-frame', [7.9, 0.09, 0.23], [0.5, y, -3.12], materials.satin);
   let skyTexture;
   const skyMat = new T.MeshBasicMaterial();
   const sky = new T.Mesh(new T.PlaneGeometry(7.65, 4.0), skyMat);
   sky.position.set(0.5, 4.45, -3.23);
   root.add(sky);
-  box(root, 'sill', [8.1, 0.13, 0.62], [0.5, 2.35, -3.07], materials.titanium);
+  box(root, 'sill', [8.1, 0.13, 0.62], [0.5, 2.35, -3.07], materials.graphite);
+  box(root, 'sill-edge', [8.05, 0.023, 0.032], [0.5, 2.39, -2.75], materials.titanium);
   box(root, 'window-mullion', [0.065, 4.0, 0.06], [-1.92, 4.45, -3.13], materials.titanium);
   box(root, 'window-crossbar', [7.7, 0.055, 0.06], [0.5, 3.2, -3.13], materials.graphite);
   label(root, '35.68 N / 139.76 E', 2.5, 2.12, -3.27, 1.6, '#85978f');
@@ -157,27 +190,49 @@ export function buildWorkstation(scene) {
           c.arc(rnd() * w, rnd() * h * 0.8, 0.5 + rnd(), 0, Math.PI * 2);
           c.fill();
         }
-        for (let i = 0; i < 7; i++) {
-          c.strokeStyle = 'rgba(190,205,210,0.045)';
-          c.lineWidth = 1 + rnd() * 5;
-          c.beginPath();
-          c.moveTo(0, 350 + i * 15);
-          c.bezierCurveTo(280, 360 + i * 16, 700, 300 + i * 20, w, 340 + i * 13);
-          c.stroke();
-        }
-        c.fillStyle = '#172023';
-        c.beginPath();
-        c.moveTo(0, h);
-        for (let x = 0; x <= w; x += 40) c.lineTo(x, h * 0.88 + rnd() * 14);
-        c.lineTo(w, h);
-        c.fill();
-        for (let i = 0; i < 12; i++) {
+        // Soft cloud strata and distant research buildings, no hard scan lines.
+        for (let i = 0; i < 8; i++) {
           const x = rnd() * w,
-            y = h * 0.96 - rnd() * 12;
-          c.fillStyle = '#1b2528';
-          c.fillRect(x, y, 20 + rnd() * 65, h - y);
-          c.fillStyle = 'rgba(217,225,192,0.18)';
-          c.fillRect(x + 4, y + 5, 2, 2);
+            y = h * (0.35 + rnd() * 0.35),
+            rw = 220 + rnd() * 450;
+          c.save();
+          c.translate(x, y);
+          c.scale(rw, 16 + rnd() * 18);
+          const cloud = c.createRadialGradient(0, 0, 0, 0, 0, 1);
+          cloud.addColorStop(0, 'rgba(188,201,197,.055)');
+          cloud.addColorStop(1, 'rgba(188,201,197,0)');
+          c.fillStyle = cloud;
+          c.fillRect(-1, -1, 2, 2);
+          c.restore();
+        }
+        for (let layer = 0; layer < 3; layer++) {
+          c.fillStyle = ['#304043', '#253437', '#18272c'][layer];
+          c.globalAlpha = 0.35 + layer * 0.16;
+          c.beginPath();
+          c.moveTo(0, h);
+          for (let x = 0; x <= w; x += 60)
+            c.lineTo(x, h * (0.87 + layer * 0.034) + Math.sin(x * 0.008 + layer) * 8 + rnd() * 6);
+          c.lineTo(w, h);
+          c.fill();
+        }
+        c.globalAlpha = 1;
+        for (let i = 0; i < 17; i++) {
+          const x = rnd() * w,
+            bw = 25 + rnd() * 85,
+            bh = 15 + rnd() * 28,
+            y = h * 0.94 - bh;
+          c.fillStyle = '#233338';
+          c.fillRect(x, y, bw, h - y);
+          c.fillStyle = '#536364';
+          c.fillRect(x, y, bw, 1);
+          for (let k = 0; k < 4; k++) {
+            c.fillStyle = 'rgba(200,214,188,.22)';
+            c.fillRect(x + 6 + k * 9, y + 9, 4, 1);
+          }
+          if (i % 4 === 0) {
+            c.fillStyle = '#526360';
+            c.fillRect(x + 9, y - 12, 1, 12);
+          }
         }
       },
       1536,
@@ -188,15 +243,26 @@ export function buildWorkstation(scene) {
   }
 
   // 平整台面；窄幅象牙白薄边呼应实验室的档案卡片。
-  box(root, 'desk', [11.8, 0.18, 4.7], [0, 1.1, 0.35], materials.graphite);
-  box(root, 'desk-front-edge', [11.8, 0.065, 0.08], [0, 1.045, 2.73], materials.ivory);
+  box(root, 'desk', [11.8, 0.18, 4.7], [0, 1.1, 0.35], materials.desk, 0.085);
+  box(root, 'desk-front-edge', [11.7, 0.028, 0.045], [0, 1.07, 2.7], materials.satin);
+  box(root, 'desk-edge-gasket', [11.68, 0.018, 0.045], [0, 1.025, 2.69], materials.dark);
   box(root, 'desk-underframe', [11.0, 0.3, 3.5], [0, 0.88, 0.2], materials.dark);
   for (const x of [-5.1, 5.1])
     box(root, 'desk-support', [0.16, 2, 3.1], [x, 0.05, 0.15], materials.titanium);
-  box(root, 'rear-service-rail', [11.7, 0.24, 0.2], [0, 1.6, -2.03], materials.ivory);
+  box(root, 'rear-service-rail', [11.7, 0.24, 0.2], [0, 1.6, -2.03], materials.satin);
+  box(root, 'service-rail-inlay', [11.55, 0.12, 0.02], [0, 1.61, -1.916], materials.ivory);
   for (const x of [-4.9, -1.5, 2.4, 4.9])
     box(root, 'service-joint', [0.025, 0.24, 0.22], [x, 1.6, -2.02], materials.titanium);
   label(root, 'WS-03 / PERSONAL STATION', -1.45, 1.61, -1.9, 2.5, '#35423e');
+  box(root, 'desk-mat', [4.2, 0.028, 2.73], [0.02, 1.207, 0.9], materials.rubber, 0.012);
+  for (const z of [-0.38, 2.18])
+    box(root, 'mat-seam', [4, 0.006, 0.008], [0.02, 1.224, z], materials.satin);
+  contact(0, 0.75, 4.5, 2.9, 0.55, 1.225);
+  contact(-3.65, -0.92, 2.5, 2.1, 0.82);
+  contact(-2.65, 0.12, 1.2, 0.85, 0.8);
+  contact(-1.92, 1.4, 0.85, 0.8, 0.75);
+  contact(2.82, 1.04, 2.5, 2.8, 0.65);
+  contact(4.55, -1, 2.4, 2.1, 0.8);
 
   // 和复习区共用“薄边深色屏”的形态；贴图仅在创建时绘制。
   const tablet = new T.Group();
@@ -222,12 +288,30 @@ export function buildWorkstation(scene) {
       bevelEnabled: true,
       bevelThickness: 0.018,
       bevelSize: 0.012,
-      bevelSegments: 2,
+      bevelSegments: 5,
       steps: 1,
     }),
     materials.titanium,
   );
   tablet.add(body);
+  box(tablet, 'tablet-seal', [3.13, 1.9, 0.025], [0, 0, 0.057], materials.rubber, 0.012);
+  box(tablet, 'tablet-glass-edge', [3.08, 1.85, 0.018], [0, 0, 0.071], materials.satin, 0.008);
+  for (const x of [-1.53, 1.53]) for (const y of [-0.87, 0.87]) fastener(tablet, x, y, 0.07, 0.018);
+  const lens = new T.Mesh(new T.CircleGeometry(0.018, 20), materials.dark);
+  lens.position.set(0, 0.938, 0.085);
+  tablet.add(lens);
+  const led = new T.Mesh(new T.CircleGeometry(0.008, 12), materials.accent);
+  led.position.set(0.12, 0.938, 0.086);
+  tablet.add(led);
+  box(tablet, 'tablet-button', [0.18, 0.055, 0.027], [1.61, 0.49, 0.012], materials.satin, 0.01);
+  for (let i = 0; i < 8; i++)
+    box(
+      tablet,
+      'speaker-slot',
+      [0.018, 0.04, 0.014],
+      [-1.28 + i * 0.055, -0.982, 0.018],
+      materials.dark,
+    );
   const screenTex = texture(
     (c, w, h) => {
       c.fillStyle = '#172023';
@@ -285,92 +369,176 @@ export function buildWorkstation(scene) {
     new T.PlaneGeometry(3.02, 1.79),
     new T.MeshBasicMaterial({ map: screenTex }),
   );
-  screen.position.z = 0.076;
+  screen.position.z = 0.084;
   tablet.add(screen);
+  const coating = new T.Mesh(new T.PlaneGeometry(3.02, 1.79), materials.screenGlass);
+  coating.position.z = 0.087;
+  tablet.add(coating);
   hit('tablet', tablet, [3.25, 2.0, 0.18], [0, 0, 0.08]);
-  rod(root, [-0.7, 1.2, -0.05], [-0.7, 1.73, 0.05], 0.045, materials.titanium);
-  rod(root, [0.7, 1.2, -0.05], [0.7, 1.73, 0.05], 0.045, materials.titanium);
+  for (const x of [-0.78, 0.78]) {
+    rod(root, [x, 1.25, -0.05], [x, 1.73, 0.05], 0.045, materials.satin);
+    box(root, 'tablet-foot', [0.22, 0.06, 0.45], [x, 1.25, -0.06], materials.rubber);
+  }
+  rod(root, [-0.78, 1.3, -0.23], [0.78, 1.3, -0.23], 0.04, materials.satin);
+  curve(
+    root,
+    [
+      [1.54, 1.54, 1.1],
+      [1.83, 1.3, 0.95],
+      [2, 1.23, 0.3],
+      [1.94, 1.23, -1.3],
+      [1.7, 1.6, -1.9],
+    ],
+    0.018,
+    materials.rubber,
+  );
 
   // 少量材料试样，集中表达有机曲面和工业构件的结合。
   const specimen = new T.Group();
   specimen.position.set(-3.65, 1.21, -0.92);
   root.add(specimen);
-  box(specimen, 'specimen-base', [1.7, 0.14, 1.35], [0, 0.07, 0], materials.ivory);
-  box(specimen, 'specimen-cap', [1.7, 0.09, 1.35], [0, 1.94, 0], materials.ivory);
+  box(specimen, 'specimen-foot', [1.6, 0.09, 1.28], [0, 0.045, 0], materials.rubber);
+  box(specimen, 'specimen-base', [1.7, 0.18, 1.35], [0, 0.16, 0], materials.ivory, 0.065);
+  box(specimen, 'specimen-base-inlay', [1.56, 0.018, 1.21], [0, 0.258, 0], materials.satin);
+  box(specimen, 'specimen-cap', [1.7, 0.09, 1.35], [0, 1.94, 0], materials.satin);
+  box(specimen, 'specimen-cap-inlay', [1.54, 0.022, 1.17], [0, 1.992, 0], materials.ivory);
   for (const x of [-0.79, 0.79])
-    for (const z of [-0.61, 0.61])
-      rod(specimen, [x, 0.1, z], [x, 1.93, z], 0.023, materials.titanium);
-  box(specimen, 'specimen-glass', [1.61, 1.8, 0.015], [0, 1.0, 0.64], materials.glass);
-  const verts = [],
-    indices = [],
-    segments = 100,
-    strips = 16;
-  for (let i = 0; i <= segments; i++)
-    for (let j = 0; j <= strips; j++) {
-      const u = (i / segments) * Math.PI * 2,
-        v = (j / strips - 0.5) * 0.48;
-      verts.push(
-        (0.47 + v * Math.cos(u / 2)) * Math.cos(u),
-        (0.47 + v * Math.cos(u / 2)) * Math.sin(u),
-        v * Math.sin(u / 2),
-      );
-      if (i < segments && j < strips) {
-        const a = i * (strips + 1) + j,
-          b = a + strips + 1;
-        indices.push(a, b, a + 1, b, b + 1, a + 1);
-      }
+    for (const z of [-0.61, 0.61]) {
+      rod(specimen, [x, 0.25, z], [x, 1.93, z], 0.022, materials.titanium);
+      box(specimen, 'specimen-corner', [0.065, 0.13, 0.065], [x, 0.3, z], materials.satin);
+      box(specimen, 'specimen-corner', [0.065, 0.1, 0.065], [x, 1.86, z], materials.satin);
     }
-  const geom = new T.BufferGeometry();
-  geom.setAttribute('position', new T.Float32BufferAttribute(verts, 3));
-  geom.setIndex(indices);
-  geom.computeVertexNormals();
-  const bandMat = materials.ivory.clone();
-  bandMat.side = T.DoubleSide;
-  const band = new T.Mesh(geom, bandMat);
+  for (const z of [-0.62, 0.62])
+    box(specimen, 'specimen-glass', [1.55, 1.59, 0.012], [0, 1.08, z], materials.glass);
+  for (const x of [-0.77, 0.77])
+    box(specimen, 'specimen-glass', [0.012, 1.59, 1.24], [x, 1.08, 0], materials.glass);
+  box(specimen, 'specimen-door-handle', [0.035, 0.24, 0.05], [0.65, 1, 0.65], materials.titanium);
+  const band = new T.Mesh(manifoldGeometry(), materials.ivory);
   band.position.set(0, 1.03, 0);
-  band.rotation.y = -0.45;
+  band.rotation.y = -0.67;
   band.rotation.z = 0.28;
   band.castShadow = true;
+  band.receiveShadow = true;
   specimen.add(band);
-  rod(specimen, [0, 0.15, 0], [0, 0.48, 0], 0.035, materials.titanium);
-  rod(specimen, [0.42, 0.8, -0.16], [0.64, 0.8, -0.16], 0.03, materials.titanium);
-  label(specimen, 'M-01 / MANIFOLD', -0.66, 0.055, 0.69, 1.25, '#394840');
+  curve(
+    specimen,
+    [
+      [-0.38, 0.28, 0],
+      [-0.35, 0.47, -0.08],
+      [0, 0.49, -0.16],
+      [0.38, 0.64, -0.14],
+    ],
+    0.026,
+    materials.titanium,
+  );
+  for (const [x, y, z] of [
+    [-0.35, 0.48, -0.03],
+    [0.37, 0.65, -0.1],
+  ]) {
+    box(specimen, 'sample-clamp', [0.12, 0.16, 0.1], [x, y, z], materials.satin);
+    fastener(specimen, x, y, z + 0.059, 0.025);
+  }
+  box(specimen, 'specimen-label-plate', [1.1, 0.09, 0.02], [0, 0.16, 0.68], materials.dark);
+  label(specimen, 'M–01 / MANIFOLD', -0.5, 0.15, 0.697, 0.95, '#afbcaf');
+  for (const x of [-0.7, 0.7]) fastener(specimen, x, 0.16, 0.682, 0.026);
+  label(specimen, 'STRUCTURE / 01', -0.62, 1.72, 0.635, 0.82, '#78958d');
+  box(specimen, 'specimen-status', [0.035, 0.025, 0.015], [0.63, 0.16, 0.695], materials.accent);
   hit('specimen', specimen, [1.8, 2.1, 1.5], [0, 1, 0]);
 
   // 中性台灯，与主站的冷色主光保持相容。
   const lamp = new T.Group();
   lamp.position.set(-2.65, 1.22, 0.12);
   root.add(lamp);
-  box(lamp, 'lamp-base', [0.75, 0.08, 0.55], [0, 0.04, 0], materials.titanium);
-  rod(lamp, [0, 0.1, 0], [0.07, 1.24, -0.23], 0.035, materials.titanium);
-  rod(lamp, [0.07, 1.24, -0.23], [0.75, 1.85, -0.5], 0.035, materials.titanium);
-  const head = box(lamp, 'lamp-bar', [1.6, 0.075, 0.17], [0.6, 1.85, -0.5], materials.ivory);
-  const glow = box(lamp, 'lamp-diffuser', [1.4, 0.02, 0.12], [0.6, 1.805, -0.5], materials.light);
-  const taskLight = new T.PointLight('#e8ecdb', 5.5, 6, 2);
+  box(lamp, 'lamp-rubber-foot', [0.71, 0.028, 0.51], [0, 0.014, 0], materials.rubber);
+  box(lamp, 'lamp-base', [0.75, 0.09, 0.55], [0, 0.06, 0], materials.satin, 0.042);
+  box(lamp, 'lamp-base-inlay', [0.64, 0.018, 0.44], [0, 0.11, 0], materials.graphite);
+  for (const z of [-0.028, 0.028]) {
+    rod(lamp, [0, 0.13, z], [0.07, 1.24, -0.23 + z], 0.022, materials.titanium);
+    rod(lamp, [0.07, 1.24, -0.23 + z], [0.75, 1.85, -0.5 + z], 0.022, materials.titanium);
+  }
+  for (const [x, y, z] of [
+    [0, 0.16, 0],
+    [0.07, 1.24, -0.23],
+    [0.75, 1.85, -0.5],
+  ]) {
+    const hinge = new T.Mesh(new T.CylinderGeometry(0.075, 0.075, 0.095, 32), materials.satin);
+    hinge.rotation.x = Math.PI / 2;
+    hinge.position.set(x, y, z);
+    lamp.add(hinge);
+    fastener(lamp, x, y, z + 0.055, 0.035);
+  }
+  curve(
+    lamp,
+    [
+      [0, 0.11, -0.07],
+      [-0.04, 0.46, -0.16],
+      [0.02, 1.15, -0.3],
+      [0.15, 1.28, -0.33],
+      [0.73, 1.78, -0.57],
+    ],
+    0.009,
+    materials.rubber,
+  );
+  const head = box(lamp, 'lamp-bar', [1.6, 0.085, 0.23], [0.6, 1.85, -0.5], materials.satin);
+  box(lamp, 'lamp-head-inlay', [1.46, 0.018, 0.19], [0.6, 1.9, -0.5], materials.ivory);
+  const glow = box(lamp, 'lamp-diffuser', [1.4, 0.02, 0.17], [0.6, 1.795, -0.5], materials.light);
+  for (let i = 0; i < 13; i++)
+    box(lamp, 'lamp-vent', [0.025, 0.01, 0.09], [-0.02 + i * 0.09, 1.912, -0.5], materials.dark);
+  const switchDot = new T.Mesh(new T.CircleGeometry(0.027, 20), materials.satin);
+  switchDot.rotation.x = -Math.PI / 2;
+  switchDot.position.set(0.21, 0.121, 0.12);
+  lamp.add(switchDot);
+  const taskLight = new T.SpotLight('#e5ecd8', 16, 7, Math.PI * 0.35, 1, 2);
   taskLight.position.set(-2.05, 2.93, -0.38);
-  root.add(taskLight);
+  taskLight.target.position.set(-1.5, 1.2, 0.6);
+  root.add(taskLight, taskLight.target);
   hit('lamp', lamp, [1.65, 1.95, 0.65], [0.35, 0.92, -0.3]);
   const cup = new T.Group();
   cup.position.set(-1.92, 1.2, 1.4);
   root.add(cup);
-  const cupShape = new T.Mesh(
-    new T.CylinderGeometry(0.21, 0.19, 0.46, 32, 1, true),
+  const coaster = new T.Mesh(new T.CylinderGeometry(0.285, 0.285, 0.025, 48), materials.rubber);
+  coaster.position.y = 0.014;
+  cup.add(coaster);
+  const cupProfile = [
+    [0, 0.025],
+    [0.13, 0.025],
+    [0.17, 0.038],
+    [0.182, 0.07],
+    [0.196, 0.29],
+    [0.213, 0.45],
+    [0.213, 0.472],
+    [0.202, 0.484],
+    [0.191, 0.472],
+    [0.19, 0.44],
+    [0.17, 0.12],
+    [0.14, 0.082],
+    [0, 0.082],
+  ].map(([x, y]) => new T.Vector2(x, y));
+  const cupShape = new T.Mesh(new T.LatheGeometry(cupProfile, 64), materials.ivory);
+  cupShape.position.y = 0.025;
+  cupShape.castShadow = true;
+  cupShape.receiveShadow = true;
+  cup.add(cupShape);
+  const tea = new T.Mesh(
+    new T.CircleGeometry(0.18, 48),
+    new T.MeshPhysicalMaterial({ color: '#152422', roughness: 0.13, metalness: 0.2, clearcoat: 1 }),
+  );
+  tea.rotation.x = -Math.PI / 2;
+  tea.position.y = 0.421;
+  cup.add(tea);
+  curve(
+    cup,
+    [
+      [-0.18, 0.39, 0],
+      [-0.34, 0.38, 0],
+      [-0.36, 0.25, 0],
+      [-0.29, 0.14, 0],
+      [-0.18, 0.15, 0],
+    ],
+    0.027,
     materials.ivory,
   );
-  cupShape.position.y = 0.24;
-  cupShape.castShadow = true;
-  cup.add(cupShape);
-  const tea = new T.Mesh(new T.CircleGeometry(0.182, 32), materials.dark);
-  tea.rotation.x = -Math.PI / 2;
-  tea.position.y = 0.385;
-  cup.add(tea);
-  const rim = new T.Mesh(new T.TorusGeometry(0.202, 0.014, 8, 40), materials.ivory);
-  rim.rotation.x = Math.PI / 2;
-  rim.position.y = 0.47;
-  cup.add(rim);
-  const handle = new T.Mesh(new T.TorusGeometry(0.13, 0.025, 8, 24), materials.ivory);
-  handle.position.set(-0.25, 0.26, 0);
-  cup.add(handle);
+  label(cup, 'ZH / 03', -0.08, 0.27, 0.199, 0.18, '#596b60');
 
   const paperTex = texture(
     (c, w, h) => {
@@ -381,6 +549,13 @@ export function buildWorkstation(scene) {
       c.fillText('ZHIXU / RESEARCH NOTES', 45, 65);
       c.font = '32px sans-serif';
       c.fillText('连接材料，连接记忆', 45, 123);
+      c.lineWidth = 0.7;
+      c.strokeStyle = '#a8b2a5';
+      c.strokeRect(24, 28, w - 48, h - 51);
+      c.font = '11px monospace';
+      c.fillText('FIELD / 001', 366, 65);
+      c.fillStyle = '#758875';
+      c.fillRect(45, 144, 421, 2);
       c.strokeStyle = '#6c7b70';
       for (let j = 0; j < 9; j++) {
         c.beginPath();
@@ -400,6 +575,8 @@ export function buildWorkstation(scene) {
       }
       c.font = '15px monospace';
       c.fillText('MATERIAL / COMPUTATION / LIFE', 45, 600);
+      c.font = '11px monospace';
+      c.fillText('RESEARCH LOG    —    ZH-03', 45, 632);
     },
     512,
     660,
@@ -408,16 +585,76 @@ export function buildWorkstation(scene) {
   report.position.set(2.82, 1.22, 1.04);
   report.rotation.y = -0.14;
   root.add(report);
-  for (let i = 0; i < 4; i++)
-    box(report, 'report-sheet', [1.7, 0.012, 2.05], [i * 0.018, i * 0.014, 0], materials.paper);
-  const p = new T.Mesh(
-    new T.PlaneGeometry(1.7, 2.05),
-    new T.MeshStandardMaterial({ map: paperTex, roughness: 1 }),
+  box(report, 'report-folder', [1.83, 0.025, 2.16], [0, 0.013, 0], materials.green, 0.009);
+  for (let i = 0; i < 5; i++) {
+    const g = new T.PlaneGeometry(1.7, 2.05, 20, 24);
+    g.rotateX(-Math.PI / 2);
+    const pos = g.attributes.position;
+    for (let n = 0; n < pos.count; n++) {
+      const x = pos.getX(n),
+        z = pos.getZ(n);
+      const curl =
+        Math.pow(Math.max(0, (x + 0.85) / 1.7), 8) *
+        (0.025 + i * 0.005) *
+        (0.4 + 0.6 * Math.pow((z + 1.025) / 2.05, 2));
+      pos.setY(n, curl + 0.003 * Math.sin(z * 5 + i));
+    }
+    g.computeVertexNormals();
+    const material =
+      i === 4
+        ? new T.MeshStandardMaterial({
+            map: paperTex,
+            roughness: 0.97,
+            bumpMap: materials.paper.bumpMap,
+            bumpScale: 0.002,
+            side: T.DoubleSide,
+          })
+        : materials.paper;
+    const sheet = new T.Mesh(g, material);
+    sheet.position.set(i * 0.008, 0.035 + i * 0.006, 0);
+    sheet.rotation.y = (i - 2) * 0.008;
+    sheet.castShadow = true;
+    sheet.receiveShadow = true;
+    report.add(sheet);
+  }
+  box(report, 'binder-clip', [0.22, 0.09, 0.16], [-0.63, 0.1, -0.96], materials.dark);
+  curve(
+    report,
+    [
+      [-0.71, 0.14, -0.96],
+      [-0.71, 0.19, -0.79],
+      [-0.56, 0.19, -0.79],
+      [-0.56, 0.14, -0.96],
+    ],
+    0.009,
+    materials.titanium,
   );
-  p.rotation.x = -Math.PI / 2;
-  p.position.y = 0.066;
-  report.add(p);
-  rod(report, [0.6, 0.12, -0.65], [0.67, 0.12, 0.4], 0.023, materials.titanium);
+  const pen = new T.Group();
+  pen.position.set(0.66, 0.13, -0.05);
+  pen.rotation.x = Math.PI / 2;
+  pen.rotation.z = -0.055;
+  report.add(pen);
+  rod(pen, [0, -0.45, 0], [0, 0.44, 0], 0.024, materials.satin);
+  const nib = new T.Mesh(new T.ConeGeometry(0.023, 0.095, 24), materials.titanium);
+  nib.position.y = 0.48;
+  pen.add(nib);
+  for (let i = 0; i < 6; i++) {
+    const ring = new T.Mesh(new T.TorusGeometry(0.025, 0.002, 6, 24), materials.titanium);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 0.24 + i * 0.023;
+    pen.add(ring);
+  }
+  curve(
+    pen,
+    [
+      [0, -0.39, 0.018],
+      [0, -0.4, 0.04],
+      [0, -0.18, 0.045],
+      [0, -0.15, 0.028],
+    ],
+    0.006,
+    materials.titanium,
+  );
   hit('report', report, [1.9, 0.3, 2.2], [0, 0.12, 0]);
 
   // 纸飞机与希可的空置休息位：保留生活尺度，不臆造角色资产。
@@ -448,21 +685,56 @@ export function buildWorkstation(scene) {
   home.position.set(4.55, 1.2, -1.0);
   root.add(home);
   box(home, 'nook-back', [1.55, 0.98, 0.1], [0, 0.49, -0.6], materials.graphite);
-  box(home, 'nook-top', [1.65, 0.08, 1.3], [0, 0.96, 0], materials.graphite);
+  box(home, 'nook-top', [1.65, 0.1, 1.3], [0, 0.96, 0], materials.graphite, 0.048);
   for (const x of [-0.79, 0.79])
-    box(home, 'nook-side', [0.07, 0.98, 1.3], [x, 0.49, 0], materials.graphite);
-  box(home, 'nook-trim', [1.65, 0.025, 0.025], [0, 0.98, 0.64], materials.ivory);
-  box(home, 'nook-cushion', [1.45, 0.16, 1.1], [0, 0.12, 0], materials.fabric);
-  label(home, 'XIKE / REST', -0.57, 0.84, 0.66, 1.1, '#65796a');
+    box(home, 'nook-side', [0.1, 0.98, 1.3], [x, 0.49, 0], materials.graphite, 0.045);
+  box(home, 'nook-trim', [1.56, 0.02, 0.03], [0, 0.98, 0.64], materials.titanium);
+  box(home, 'nook-cushion', [1.4, 0.22, 1.1], [0, 0.15, 0], materials.fabric, 0.105);
+  curve(
+    home,
+    [
+      [-0.6, 0.15, 0.46],
+      [0.6, 0.15, 0.46],
+      [0.64, 0.15, -0.44],
+      [-0.64, 0.15, -0.44],
+    ],
+    0.008,
+    materials.green,
+    true,
+  );
+  for (const x of [-0.78, 0.78]) fastener(home, x, 0.86, 0.657, 0.022);
+  label(home, 'XIKE / REST', -0.47, 0.84, 0.66, 0.85, '#859589');
+  for (let i = 0; i < 7; i++)
+    box(home, 'nook-vent', [0.08, 0.012, 0.015], [-0.3 + i * 0.1, 0.71, -0.541], materials.dark);
   const shelf = box(root, 'book-shelf', [1.7, 0.075, 1.0], [4.6, 3.95, -3.0], materials.titanium);
   for (let i = 0; i < 7; i++) {
-    const book = box(
-      root,
-      'research-folio',
-      [0.12 + (i % 2) * 0.04, 0.65 + (i % 3) * 0.1, 0.45],
-      [4.02 + i * 0.17, 4.31, -3.0],
-      i % 3 === 0 ? materials.green : materials.ivory,
+    const book = new T.Group(),
+      width = 0.12 + (i % 2) * 0.04,
+      height = 0.65 + (i % 3) * 0.1;
+    book.position.set(4.02 + i * 0.17, 3.99 + height / 2, -3);
+    root.add(book);
+    const cover = i % 3 === 0 ? materials.green : i % 3 === 1 ? materials.ivory : materials.satin;
+    box(
+      book,
+      'folio-pages',
+      [width - 0.024, height - 0.04, 0.43],
+      [0, 0, 0],
+      materials.paper,
+      0.005,
     );
+    box(book, 'folio-spine', [width, height, 0.028], [0, 0, 0.23], cover, 0.009);
+    for (const x of [-width / 2, width / 2])
+      box(book, 'folio-cover', [0.014, height, 0.47], [x, 0, 0], cover);
+    box(
+      book,
+      'folio-label',
+      [width * 0.6, 0.12, 0.004],
+      [0, -height * 0.25, 0.247],
+      materials.dark,
+    );
+    label(book, '0' + (i + 1), -width * 0.23, -height * 0.24, 0.252, width * 0.55, '#c2c8b9');
+    for (const y of [-height * 0.37, height * 0.35])
+      box(book, 'folio-band', [width * 0.8, 0.008, 0.004], [0, y, 0.248], materials.satin);
   }
   label(root, 'FIELD NOTES / 01—07', 3.87, 3.8, -2.7, 1.55, '#8c9e91');
   // 稀疏的可复用结构刻度。
@@ -482,7 +754,7 @@ export function buildWorkstation(scene) {
     tablet,
     drawSky,
     setLamp(on) {
-      taskLight.intensity = on ? 5.5 : 0;
+      taskLight.intensity = on ? 16 : 0;
       glow.visible = on;
     },
     focus: {

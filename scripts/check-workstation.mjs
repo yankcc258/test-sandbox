@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { atmosphere, PALETTES, createFocusTimer } from '../workstation/atmosphere.js';
 import { legacyDestination } from '../sandbox/routing.js';
+import { manifoldGeometry, roundedBox } from '../workstation/surfaces.js';
+import { Vector3 } from '../vendor/three/three.module.min.js';
 
 // 东京时段交界、平滑交接与午夜；不依赖执行测试机器的系统时区。
 const at = (iso) => atmosphere(new Date(iso));
@@ -48,4 +50,43 @@ for (const q of ['?i=1&v=13', '?region=lab', '?i=2&workbench=1&v=17', '?motion=0
 for (const q of ['', '?v=18', '?ref=share', '?v=abc']) assert.equal(legacyDestination(q), null);
 for (const q of ['?region=cabin', '?region=workstation&motion=0'])
   assert.equal(legacyDestination(q), 'workstation/');
-console.log('PASS: Tokyo atmosphere boundaries, pause/resume timer, and legacy preview routing.');
+// A thick half-twist must close across its reversed seam with outward winding.
+// Count shared edges and signed volume to catch holes / inside-out lighting.
+const sample = manifoldGeometry(),
+  edges = new Map(),
+  points = sample.attributes.position;
+const a = new Vector3(),
+  b = new Vector3(),
+  c = new Vector3(),
+  cross = new Vector3();
+let volume = 0;
+for (let i = 0; i < sample.index.count; i += 3) {
+  const ids = [0, 1, 2].map((offset) => sample.index.getX(i + offset));
+  for (let j = 0; j < 3; j++) {
+    const pair = [ids[j], ids[(j + 1) % 3]].sort((x, y) => x - y).join(':');
+    edges.set(pair, (edges.get(pair) || 0) + 1);
+  }
+  a.fromBufferAttribute(points, ids[0]);
+  b.fromBufferAttribute(points, ids[1]);
+  c.fromBufferAttribute(points, ids[2]);
+  volume += a.dot(cross.crossVectors(b, c)) / 6;
+}
+assert.ok(
+  [...edges.values()].every((count) => count === 2),
+  'Material sample must have no open/non-manifold edges',
+);
+assert.ok(volume > 0.02 && volume < 0.1, 'Material sample must have positive solid volume');
+for (const geometry of [sample, roundedBox(1, 0.1, 0.7, 0.04)]) {
+  for (const attribute of Object.values(geometry.attributes))
+    assert.ok([...attribute.array].every(Number.isFinite), 'No invalid geometry coordinates');
+  const normals = geometry.attributes.normal;
+  for (let i = 0; i < normals.count; i++)
+    assert.ok(
+      Math.abs(a.fromBufferAttribute(normals, i).length() - 1) < 0.00001,
+      'Unit surface normals',
+    );
+  geometry.dispose();
+}
+console.log(
+  'PASS: Tokyo atmosphere, timer, legacy routes, closed material geometry and surface normals.',
+);

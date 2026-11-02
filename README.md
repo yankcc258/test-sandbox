@@ -2,7 +2,7 @@
 
 [沙盒目录](https://yankcc258.github.io/test-sandbox/) · [工作台](https://yankcc258.github.io/test-sandbox/workstation/) · [历史原型](https://yankcc258.github.io/test-sandbox/preview/)
 
-独立的视觉与交互试验场，不连接正式站接口或学习数据。**当前重点：v18 研究员工作台范本**。部分脊柱成果已接入正式站，本仓库仍只提供示例体验，不能当作正式站的当前副本。
+独立的视觉与交互试验场，不连接正式站接口或学习数据。**当前重点：v19 工作台材质、光影与物件精修**。部分脊柱成果已接入正式站，本仓库仍只提供示例体验，不能当作正式站的当前副本。
 
 ## 当前预览
 
@@ -25,7 +25,7 @@
 - 主站原电子环绕开场保留。沙盒新开场已移除，不重新接入。
 - 未经单独安排，不把整个沙盒搬进正式站。
 
-接手先读 [v18 范本说明](docs/workstation-prototype.md)，资料目录见 [docs/](docs/)。
+接手先读 [工作台范本与 v19 精修说明](docs/workstation-prototype.md)，资料目录见 [docs/](docs/)。
 
 ## 本地运行与检查
 
@@ -38,7 +38,7 @@ npm run check
 
 访问 http://127.0.0.1:8080/ 。不能直接双击 HTML，场景使用 ES 模块。
 
-- `check:workstation`：东京时段边界、计时暂停续计、旧链接路由。
+- `check:workstation`：东京时段边界、计时暂停续计、旧链接路由、材料试样闭合性与表面法线。
 - `check:links`：当前页面、样式与模块的本地资源链路。
 - `check:pulse`、`check:experience`、`check:terminal`：已有脊柱交互与几何检查。
 - `scripts/smoke/` 是早期调试脚本，部分断言过时，不作为当前验收结论。
