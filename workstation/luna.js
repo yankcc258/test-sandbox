@@ -11,6 +11,7 @@ import {
 } from '../sandbox/passage.js';
 import { createFlight } from './flight.js?v=26';
 import { createBoot } from './boot.js?v=26';
+import { createSeeko } from '../sandbox/seeko.js?v=27';
 
 const params = new URLSearchParams(location.search),
   reduced = matchMedia('(prefers-reduced-motion: reduce)');
@@ -85,6 +86,38 @@ wireRegions();
 const came = takePassage('workstation');
 if (came) arrive(came.from);
 else document.documentElement.classList.remove('passage-in');
+// ---------- 希可住在工作台（sandbox/seeko.js） ----------
+// 她能站的位置：跟着 3D 场景里物件在屏幕上的位置走（镜头拖动时跟着动），远的小、近的大
+function seekoSpots() {
+  const anchor = (id) => window.zxStation?.anchor?.(id);
+  const k = () => Math.max(0.55, Math.min(1, innerWidth / 1440));
+  const at = (id, dx, dy, scale) => () => {
+    const p = anchor(id);
+    return p && { x: p.x + dx * k(), y: p.y + dy * k(), scale: scale * k(), visible: p.visible };
+  };
+  return {
+    nest: at('seeko', 0, 34, 0.62), // 自己的小窝
+    desk: at('tablet', 236, 8, 0.72), // 平板右边的桌面
+    notes: at('report', -24, -6, 0.68), // 研究手记上面看书
+    sill: at('sky', -64, 14, 0.42), // 窗台，纸飞机旁边
+  };
+}
+(async () => {
+  // 等场景建好、竖井到站
+  for (let i = 0; i < 600 && (!window.zxStation?.scene || busy); i++)
+    await new Promise((r) => setTimeout(r, 100));
+  createSeeko({
+    region: 'workstation',
+    spots: window.zxStation?.scene ? seekoSpots() : null,
+    motion,
+    hidden: () =>
+      busy ||
+      document.body.classList.contains('detail-open') ||
+      document.body.classList.contains('tablet-viewing') ||
+      document.body.classList.contains('companion-open') ||
+      !!document.querySelector('.flight, .passage'),
+  });
+})();
 // 测试用：停在竖井的某一刻
 window.zxPassageTest = (from, to, stage, t) => {
   let p = document.querySelector('.passage.test');

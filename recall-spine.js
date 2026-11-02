@@ -17,6 +17,7 @@ import { bindPulseInput } from './recall-pulse-input.js?v=17';
 import { createLifeState, createSignal } from './recall-life.js?v=17';
 import { createGateway } from './recall-gateway.js?v=18';
 import { takePassage } from './sandbox/passage.js';
+import { createSeeko } from './sandbox/seeko.js?v=27';
 import { terminalFrame, terminalRect, segment, clamp } from './recall-terminal.js?v=17';
 
 // 示例数据；images 留空。以后在 IMAGES 里登记图片路径，屏幕就会以那张图做底，没有图就只显示复习信息。
@@ -1445,6 +1446,18 @@ if (params.get('region') === 'lab') gate.settle('lab');
   if (came) gate.arriveFromStation(params.get('region') === 'lab' ? 'lab' : 'review');
   else document.documentElement.classList.remove('passage-in');
 }
+// 希可偶尔从工作台跑来「偶遇」（白天、三成概率，sandbox/seeko.js）；过渡中不出现
+setTimeout(
+  () =>
+    createSeeko({
+      region: gate.region === 'lab' ? 'lab' : 'review',
+      motion,
+      hidden: () =>
+        !!document.querySelector('.passage, .lab-gate.moving') ||
+        document.getElementById('spine').classList.contains('entered'),
+    }),
+  3500,
+);
 reduced.addEventListener('change', syncMotion);
 markList(Math.round(target));
 updateLife();

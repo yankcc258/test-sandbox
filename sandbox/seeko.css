@@ -1,0 +1,281 @@
+/* 希可（露娜，v26）：立绘沿用老知序，气泡和记仇本换成沙盒的深石墨玻璃。 */
+.seeko {
+  --x: 50vw;
+  --y: 70vh;
+  --s: 0.6;
+  position: fixed;
+  left: var(--x);
+  top: var(--y);
+  z-index: 60;
+  width: 120px;
+  height: 120px;
+  translate: -50% -100%;
+  scale: var(--s);
+  transform-origin: 50% 100%;
+  pointer-events: none;
+  transition:
+    opacity 0.35s,
+    scale 0.35s;
+  font-family:
+    'Inter', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+}
+.seeko.away {
+  opacity: 0;
+}
+.seeko.away .seeko-body {
+  pointer-events: none;
+}
+.seeko-body {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  touch-action: none; /* 手指按住左右蹭是摸头，不滚动页面 */
+  pointer-events: auto;
+}
+.seeko-body:focus-visible {
+  outline: 1px solid #c9e755;
+  outline-offset: 4px;
+  border-radius: 50%;
+}
+.seeko-body img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 10px #0007);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+/* 落在桌面上的一圈影子 */
+.seeko::after {
+  content: '';
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  bottom: -4px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(#0009, transparent 70%);
+  pointer-events: none;
+}
+.seeko.sleeping .seeko-body img {
+  filter: drop-shadow(0 6px 8px #0007) brightness(0.82);
+}
+.seeko-bubble {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  translate: -50% 0;
+  width: max-content;
+  max-width: 250px;
+  margin: 0;
+  padding: 10px 13px;
+  border: 1px solid #e8ebe42e;
+  border-radius: 12px;
+  background: #121819eb;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px #0008;
+  color: #e8ebe4;
+  font-size: 13px;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+  /* 气泡不跟着她缩放，字始终看得清 */
+  scale: calc(1 / var(--s));
+  transform-origin: 50% 100%;
+  pointer-events: auto;
+}
+.seeko-bubble[hidden] {
+  display: none;
+}
+.seeko-book-title {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.seeko-bubble ul {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+.seeko-bubble li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+}
+.seeko-bubble li span {
+  color: #8d978f;
+  font-size: 11px;
+}
+.seeko-bubble li b {
+  color: #ffd696;
+  font-weight: 500;
+}
+.seeko-bubble li.paid {
+  opacity: 0.5;
+}
+.seeko-bubble li.paid b {
+  color: #c9e755;
+}
+.seeko-bubble small {
+  display: block;
+  margin-top: 6px;
+  color: #8d978f;
+  font-size: 11px;
+}
+/* 戳一下：duang */
+.seeko.duang .seeko-body {
+  animation: seeko-duang 0.45s ease-out;
+}
+@keyframes seeko-duang {
+  30% {
+    transform: scale(1.12, 0.86);
+  }
+  60% {
+    transform: scale(0.94, 1.08);
+  }
+}
+.seeko.angry .seeko-body {
+  animation: seeko-shake 0.18s steps(2) 6;
+}
+@keyframes seeko-shake {
+  50% {
+    transform: translateX(3px) rotate(2deg);
+  }
+}
+/* 睡觉时飘 Z */
+.seeko-z {
+  position: absolute;
+  right: 6%;
+  top: 4%;
+  width: 40px;
+  height: 60px;
+  pointer-events: none;
+}
+.seeko-z[hidden] {
+  display: none;
+}
+.seeko-z::before,
+.seeko-z::after {
+  content: 'z';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  color: #cfe6dd;
+  font:
+    600 18px/1 'Inter',
+    sans-serif;
+  opacity: 0;
+  animation: seeko-z 3.2s ease-out infinite;
+}
+.seeko-z::after {
+  content: 'Z';
+  font-size: 13px;
+  animation-delay: 1.6s;
+}
+@keyframes seeko-z {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  25% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(18px, -46px);
+  }
+}
+/* 工作台没有 3D 场景时：右下角 */
+.seeko.fallback {
+  left: auto;
+  top: auto;
+  right: 24px;
+  bottom: 120px;
+  translate: none;
+  scale: 0.8;
+}
+/* 实验室、复习区的偶遇：从屏幕边探头，然后走进来，最后跑走 */
+.seeko-lab,
+.seeko-review {
+  --s: 0.82;
+  left: auto;
+  top: auto;
+  bottom: 96px;
+  translate: none;
+  transition:
+    transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.4s;
+}
+.seeko-lab[data-side='left'],
+.seeko-review[data-side='left'] {
+  left: 0;
+  transform: translateX(-70%);
+}
+.seeko-lab[data-side='right'],
+.seeko-review[data-side='right'] {
+  right: 0;
+  transform: translateX(70%);
+}
+.seeko-review[data-side='left'] {
+  /* 复习区左下是系统目录，她改站在心电图那条线上，不压文字 */
+  bottom: auto;
+  top: clamp(330px, 47vh, 470px);
+}
+.seeko[data-side='left'].peeking {
+  transform: translateX(-38%) rotate(8deg);
+}
+.seeko[data-side='right'].peeking {
+  transform: translateX(38%) rotate(-8deg);
+}
+.seeko[data-side='left'].in {
+  transform: translateX(40px);
+}
+.seeko[data-side='right'].in {
+  transform: translateX(-40px);
+}
+.seeko[data-side='left'].leaving {
+  transform: translateX(-130%);
+  opacity: 0;
+}
+.seeko[data-side='right'].leaving {
+  transform: translateX(130%);
+  opacity: 0;
+}
+.seeko[data-side='right'] .seeko-bubble {
+  left: auto;
+  right: 10%;
+  translate: 0 0;
+  transform-origin: 100% 100%;
+}
+.seeko[data-side='left'] .seeko-bubble {
+  left: 10%;
+  translate: 0 0;
+  transform-origin: 0 100%;
+}
+@media (max-width: 700px) {
+  .seeko-lab,
+  .seeko-review {
+    bottom: 150px;
+    --s: 0.7;
+  }
+  .seeko-review[data-side='left'] {
+    top: auto;
+    bottom: 150px;
+  }
+  .seeko-bubble {
+    max-width: 200px;
+    font-size: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .seeko,
+  .seeko * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
