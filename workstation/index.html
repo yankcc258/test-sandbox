@@ -7,9 +7,10 @@
     <meta name="description" content="知序工作台范本：生命、材料与计算之间的一处个人研究空间。" />
     <title>知序 · 研究员工作台</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="workstation.css?v=24" />
+    <link rel="stylesheet" href="workstation.css?v=26" />
     <link rel="stylesheet" href="../sandbox/passage.css?v=23" />
-    <link rel="stylesheet" href="luna.css?v=25" />
+    <link rel="stylesheet" href="luna.css?v=26" />
+    <link rel="stylesheet" href="companion.css?v=26" />
     <script>
       // 从实验室、复习区经竖井上来：页面先用井壁色盖住，等竖井挂上再揭开（../sandbox/passage.js）
       try {
@@ -18,8 +19,8 @@
           document.documentElement.classList.add('passage-in');
       } catch {}
     </script>
-    <script type="module" src="app.js?v=25"></script>
-    <script type="module" src="luna.js?v=25"></script>
+    <script type="module" src="app.js?v=26"></script>
+    <script type="module" src="luna.js?v=26"></script>
   </head>
   <body>
     <main class="station" id="station" aria-label="研究员工作台">
@@ -94,6 +95,7 @@
         <button data-object="specimen"><small>02</small><span>流形试样</span><i>↗</i></button>
         <button data-object="report"><small>03</small><span>研究手记</span><i>↗</i></button>
         <button data-object="sky"><small>04</small><span>窗外与天空</span><i>↗</i></button>
+        <button data-object="seeko"><small>05</small><span>希可 · 聊聊</span><i>↗</i></button>
       </nav>
       <footer class="foot">
         <span><i></i> WORKSTATION STUDY · 沙盒范本</span>
@@ -123,6 +125,38 @@
         <button id="back-detail">↙ 返回桌前 <kbd>ESC</kbd></button
         ><span>沙盒范本 · 示例内容 · 未连接正式数据</span>
       </footer>
+    </dialog>
+    <dialog
+      class="companion"
+      id="companion"
+      aria-labelledby="companion-title"
+      aria-describedby="companion-preview"
+    >
+      <header>
+        <img
+          class="companion-avatar"
+          src="previews/assets/seeko-read.webp"
+          width="60"
+          height="70"
+          alt="捧着书的希可"
+          decoding="async"
+        />
+        <div>
+          <small>SEEKO / BY YOUR SIDE</small>
+          <h2 id="companion-title">希可的休息角</h2>
+        </div>
+        <button data-companion-close aria-label="结束聊天，返回桌前">×</button>
+      </header>
+      <div class="companion-voice" aria-live="polite" aria-atomic="true">
+        <small data-companion-choice>坐一会儿吧。</small>
+        <p data-companion-reply>这里给你留了一个位置。想聊两句，还是安静地读一会儿？</p>
+      </div>
+      <div class="companion-choices" aria-label="试试和希可说话">
+        <button data-say="hello" aria-pressed="false">打个招呼</button>
+        <button data-say="study" aria-pressed="false">陪我学一会儿</button>
+        <button data-say="rest" aria-pressed="false">一起歇一会儿</button>
+      </div>
+      <footer id="companion-preview">对话交互预览 · 预设台词，尚未接入 AI</footer>
     </dialog>
     <noscript
       ><div class="noscript">工作台需要 JavaScript。<a href="../">返回沙盒目录</a></div></noscript

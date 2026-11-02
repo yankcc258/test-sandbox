@@ -1,5 +1,6 @@
-import { toolPreviews, toolOverview, toolScreenshot } from './tools.js?v=24';
-import { atmosphere, createFocusTimer } from './atmosphere.js?v=24';
+import { createCompanion } from './companion.js?v=26';
+import { toolPreviews, toolOverview, toolScreenshot } from './tools.js?v=26';
+import { atmosphere, createFocusTimer } from './atmosphere.js?v=26';
 
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
@@ -19,6 +20,18 @@ let notes = '',
   themeKey = '',
   projected = {};
 const timer = createFocusTimer();
+const companion = createCompanion({ scene: () => scene, motion: () => motion });
+let companionOpening = false;
+async function openCompanion(trigger) {
+  if (companionOpening) return;
+  companionOpening = true;
+  try {
+    if (dialog.open) await close();
+    companion.open(trigger);
+  } finally {
+    companionOpening = false;
+  }
+}
 const dialog = $('#detail'),
   body = $('#detail-body');
 const timeFormatter = new Intl.DateTimeFormat('en-GB', {
@@ -70,7 +83,7 @@ function renderTab() {
       dateFormatter.format(now).replace('月', '.').replace('日', '') +
       '</time><div><strong>' +
       weekdays.format(now) +
-      ' · 东京</strong>当前日期 / 个人研究时段</div></div><div class="quick-actions"><button data-tab="focus"><strong>留出一段专注时间 ↗</strong><small>25 分钟 · 可暂停、可继续</small></button><button data-tab="notes"><strong>记下此刻的问题 ↗</strong><small>一张留在本次页面里的便笺</small></button></div><div class="tool-shortcuts"><button data-tab="tools">个人工具 · 七项界面预览 ↗</button></div>';
+      ' · 东京</strong>当前日期 / 个人研究时段</div></div><div class="quick-actions"><button data-tab="focus"><strong>留出一段专注时间 ↗</strong><small>25 分钟 · 可暂停、可继续</small></button><button data-tab="notes"><strong>记下此刻的问题 ↗</strong><small>一张留在本次页面里的便笺</small></button></div><div class="tool-shortcuts"><button data-tab="tools">个人工具与陪伴 · 七项入口 ↗</button></div>';
   } else if (tab === 'focus') {
     page.innerHTML =
       '<small class="eyebrow">FOCUS / 只做眼前这一件事</small><h3>给思考一点完整的时间。</h3><div class="timer" id="timer" role="timer" aria-label="剩余专注时间">25:00</div><div class="actions"><button class="primary" id="timer-toggle">开始专注</button><button id="timer-reset">重新计时</button></div><p class="subtle" id="timer-status" role="status">此计时仅用于范本体验，不会写入学习记录。</p>';
@@ -106,7 +119,7 @@ function content(id) {
   if (id === 'about')
     body.innerHTML =
       common +
-      '<small class="eyebrow">ZHIXU / 03 · WORKSTATION</small><h3>研究，也是一种生活。</h3><p>这是一处与实验室、脊柱区共用石墨、象牙白和钛金属的个人研究空间。窗景和室内光随东京时段变化。白天的光落在桌面上，画灯照着墙上的研究；平板、手记与材料试样承载桌前的日常。</p><h4>这一版可以体验</h4><p>拖动观察空间，打开平板和研究手记，查看材料试样，切换台灯，预览晨光、黄昏与深夜。平板的“个人工具”可以查看课表、番茄钟、餐盘、日历、论文、希可和特蕾莎陪学的界面截图。另有专注试用与便笺可以实际使用，但不写入正式数据。</p><h4>仍在设计中</h4><p>工作台与实验室、脊柱区的连续镜头，纸飞机到星空的过渡，以及个人工具的正式数据接入。</p><a class="action-link" href="../">返回沙盒目录 ↗</a></article>';
+      '<small class="eyebrow">ZHIXU / 03 · WORKSTATION</small><h3>研究，也是一种生活。</h3><p>这是一处与实验室、脊柱区共用石墨、象牙白和钛金属的个人研究空间。窗景和室内光随东京时段变化。白天的光落在桌面上，画灯照着墙上的研究；平板、手记与材料试样承载桌前的日常。</p><h4>这一版可以体验</h4><p>拖动观察空间，打开平板和研究手记，查看材料试样，切换台灯，预览晨光、黄昏与深夜。平板的“个人工具”可以查看课表、番茄钟、餐盘、日历、论文和特蕾莎陪学的界面截图。点击希可的休息角可在桌旁试读预设对话。另有专注试用与便笺可以实际使用，但不写入正式数据。</p><h4>仍在设计中</h4><p>工作台与实验室、脊柱区的连续镜头，纸飞机到星空的过渡，以及个人工具的正式数据接入。</p><a class="action-link" href="../">返回沙盒目录 ↗</a></article>';
   if (id === 'art')
     body.innerHTML =
       '<article class="art-gallery"><p class="lede">把研究对象留在桌上，把尚未回答的问题挂在墙上。</p><div class="art-pair"><figure><img src="art/continuum.png" alt="连续体：象牙色曲面与细密分枝交织的原创抽象画" width="1086" height="1448" /><figcaption><small>01 / CONTINUUM</small><h3>连续体</h3><p>形态折转，连接延伸。生命与材料之间，一条尚未闭合的思路。</p></figcaption></figure><figure><img src="art/distant-field.png" alt="远场：深青灰色空间中的轨迹、薄膜与远方天体" width="1086" height="1448" /><figcaption><small>02 / DISTANT FIELD</small><h3>远场</h3><p>从一段轨迹望向远处。计算、生命与天空，共用同一个未完成的问题。</p></figcaption></figure></div><p class="subtle">ZHIXU · 2026 · 原创生成作品</p></article>';
@@ -128,11 +141,7 @@ function animatePanel(opening, id) {
   return panelAnimation.finished.catch(() => {});
 }
 function select(id, trigger) {
-  if (id === 'seeko') {
-    tab = 'tools';
-    previewTool = 'seeko';
-    id = 'tablet';
-  }
+  if (id === 'seeko') return void openCompanion(trigger);
   if (id === 'lamp') return toggleLamp();
   // 露娜：纸飞机起飞，一路飞进星空（flight.js）
   if (id === 'sky' && window.zxFlight) return void window.zxFlight.start();
@@ -188,7 +197,10 @@ function syncMotion() {
   $('#motion').textContent = '动效 · ' + (motion ? '开' : '关');
   document.body.classList.toggle('motion-off', !motion);
   scene?.motion(motion);
-  if (!motion) panelAnimation?.finish();
+  if (!motion) {
+    panelAnimation?.finish();
+    window.zxBoot?.cancel();
+  }
 }
 function refreshAtmosphere() {
   const a = atmosphere(new Date(), mood);
@@ -281,6 +293,8 @@ document.querySelectorAll('[data-mood]').forEach((b) =>
 body.addEventListener('click', (e) => {
   const target = e.target.closest('button');
   if (!target) return;
+  if (target.dataset.preview === 'seeko')
+    return void openCompanion($('.object-dock [data-object="seeko"]'));
   if (target.dataset.preview && toolPreviews.some((t) => t.id === target.dataset.preview)) {
     previewTool = target.dataset.preview;
     tab = 'tools';
@@ -332,7 +346,7 @@ document.addEventListener('visibilitychange', () => {
 try {
   await document.fonts.ready;
   if (params.get('view') === 'fallback') throw new Error('Fallback preview');
-  const { createScene } = await import('./scene.js?v=25');
+  const { createScene } = await import('./scene.js?v=26');
   scene = createScene($('#scene'), {
     motion,
     onSelect: select,

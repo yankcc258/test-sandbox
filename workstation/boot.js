@@ -10,8 +10,6 @@ const clamp = (v) => Math.max(0, Math.min(1, v)),
   inOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 export const BOOT = { settle: 1.8, on: 1.35, reveal: 0.45, off: 0.6 };
 
-const polygon = (q) =>
-  `polygon(${q.map(([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`).join(',')})`;
 const bounds = (q) => {
   const xs = q.map((p) => p[0]),
     ys = q.map((p) => p[1]);
@@ -29,18 +27,65 @@ const clock = new Intl.DateTimeFormat('en-GB', {
   hourCycle: 'h23',
 });
 
+// A fixed-size plane is projected into the real screen. Only transform/opacity
+// change during playback; no viewport-sized clip, gradient or text re-layout.
+export function screenTransform(q, width = 640, height = 400) {
+  const [[x0, y0], [x1, y1], [x2, y2], [x3, y3]] = q;
+  const dx1 = x1 - x2,
+    dx2 = x3 - x2,
+    dx3 = x0 - x1 + x2 - x3;
+  const dy1 = y1 - y2,
+    dy2 = y3 - y2,
+    dy3 = y0 - y1 + y2 - y3;
+  const determinant = dx1 * dy2 - dx2 * dy1;
+  if (Math.abs(determinant) < 1e-8) return null;
+  const g = (dx3 * dy2 - dx2 * dy3) / determinant;
+  const h = (dx1 * dy3 - dx3 * dy1) / determinant;
+  return [
+    (x1 - x0 + g * x1) / width,
+    (y1 - y0 + g * y1) / width,
+    0,
+    g / width,
+    (x3 - x0 + h * x3) / height,
+    (y3 - y0 + h * y3) / height,
+    0,
+    h / height,
+    0,
+    0,
+    1,
+    0,
+    x0,
+    y0,
+    0,
+    1,
+  ];
+}
+
 export function createBoot({ motion, station }) {
   let el = null,
     job = 0,
+    activeDialog = null,
     viewing = null,
-    clockTimer = 0;
+    clockTimer = 0,
+    refit = 0,
+    portrait = false,
+    screen,
+    glow,
+    lineEl,
+    faceEl,
+    barEl;
   function layer() {
     if (el) return el;
     el = document.createElement('div');
     el.className = 'boot';
     el.setAttribute('aria-hidden', 'true');
     if ('popover' in el) el.popover = 'manual';
-    el.innerHTML = `<div class="boot-screen"><i class="boot-line"></i><div class="boot-face"><small>ZHIXU / PERSONAL RESEARCH</small><b>知序 · 个人终端</b><span class="boot-bar"><i></i></span><em>欢迎回来 · 正在启动</em></div></div>`;
+    el.innerHTML = `<div class="boot-screen"><div class="boot-glow"></div><i class="boot-line"></i><div class="boot-face"><small>ZHIXU / PERSONAL RESEARCH</small><b>知序 · 个人终端</b><span class="boot-bar"><i></i></span><em>欢迎回来 · 正在启动</em></div></div>`;
+    screen = el.querySelector('.boot-screen');
+    glow = el.querySelector('.boot-glow');
+    lineEl = el.querySelector('.boot-line');
+    faceEl = el.querySelector('.boot-face');
+    barEl = el.querySelector('.boot-bar i');
     document.body.append(el);
     return el;
   }
@@ -61,18 +106,44 @@ export function createBoot({ motion, station }) {
     } catch {}
     el.hidden = true;
   }
+  // 屏幕四个角（镜头还在动时每帧都重新取）
   const quad = () => station()?.screenQuad?.() || null;
-  function paint(q, { line = 1, lit = 1, face = 1, bar = 1 } = {}) {
-    const b = bounds(q);
-    el.querySelector('.boot-screen').style.clipPath = polygon(q);
-    el.style.setProperty('--cx', `${(b.left + b.right) / 2}px`);
-    el.style.setProperty('--cy', `${(b.top + b.bottom) / 2}px`);
-    el.style.setProperty('--sw', `${Math.min(b.right - b.left, (b.bottom - b.top) * 1.75)}px`);
-    el.style.setProperty('--line', line.toFixed(3));
-    el.style.setProperty('--lit', lit.toFixed(3));
-    el.style.setProperty('--face', face.toFixed(3));
-    el.style.setProperty('--bar', bar.toFixed(3));
+  function paint(q, { line = 1, lit = 1, face = 1, bar = 1, alpha = 1 } = {}) {
+    const upright = portrait ? [q[3], q[0], q[1], q[2]] : q;
+    const matrix = screenTransform(upright, portrait ? 400 : 640, portrait ? 640 : 400);
+    if (!matrix) return;
+    screen.style.transform = `matrix3d(${matrix.join(',')})`;
+    screen.classList.toggle('is-portrait', portrait);
+    screen.style.opacity = alpha;
+    glow.style.opacity = lit;
+    lineEl.style.opacity = line;
+    lineEl.style.transform = `scaleX(${line})`;
+    faceEl.style.opacity = face;
+    barEl.style.transform = `scaleX(${bar})`;
   }
+  function frames(id, duration, each) {
+    return new Promise((resolve) => {
+      let start;
+      function tick(now) {
+        if (id !== job) return resolve(false);
+        start ??= now;
+        const t = Math.min(duration, (now - start) / 1000);
+        const stop = each(t);
+        if (stop || t >= duration) return resolve(true);
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+  }
+  function cleanup() {
+    hide();
+    if (activeDialog) {
+      activeDialog.style.opacity = '';
+      activeDialog.classList.remove('boot-moving');
+    }
+    activeDialog = null;
+  }
+
   // 平板屏幕上的「硬件」细节：状态栏、底部横条、玻璃反光；挂在终端对话框里，只在平板模式下显示
   function chrome(dialog) {
     if (!dialog.querySelector('.tablet-chrome')) {
@@ -99,111 +170,129 @@ export function createBoot({ motion, station }) {
     dialog.style.setProperty('--th', `${b.bottom - b.top}px`);
     return true;
   }
-  function frames(duration, each) {
-    const id = ++job;
-    return new Promise((resolve) => {
-      let t = 0,
-        last = 0;
-      function tick(now) {
-        if (id !== job) return resolve(false);
-        const dt = last ? Math.min(0.1, (now - last) / 1000) : 0;
-        last = now;
-        t += dt;
-        const stop = each(Math.min(t, duration));
-        if (stop || t >= duration) return resolve(true);
-        requestAnimationFrame(tick);
-      }
-      requestAnimationFrame(tick);
-    });
-  }
-  // 平板模式下窗口大小变了：重新算低头的角度，停稳后把终端贴回屏幕
-  let refit = 0;
-  addEventListener('resize', () => {
-    if (!viewing) return;
+
+  function leaveView() {
+    clearInterval(clockTimer);
     clearTimeout(refit);
-    refit = setTimeout(async () => {
-      const dialog = viewing;
-      station()?.tabletView();
-      await frames(BOOT.settle, () => station()?.settled);
-      if (viewing === dialog) place(dialog);
-    }, 120);
-  });
-  async function open(dialog) {
+    if (viewing) viewing.classList.remove('tablet-view');
+    document.body.classList.remove('tablet-viewing');
+    viewing = null;
+  }
+  function enterView(dialog) {
+    viewing = dialog;
+    portrait = innerWidth < 700;
     dialog.classList.add('tablet-view');
     document.body.classList.add('tablet-viewing');
     chrome(dialog);
-    dialog.style.opacity = '0';
-    viewing = dialog;
-    // 1. 低头看向平板（最多 1.8 秒）
-    station().tabletView();
-    if (!(await frames(BOOT.settle, () => station()?.settled))) return;
-    if (!place(dialog)) return (dialog.style.opacity = '');
-    show();
-    // 2. 开机：横向一道光 → 屏幕点亮 → 标识与进度
-    let ok = await frames(BOOT.on, (t) => {
-      paint(quad(), {
-        line: smooth(seg(t, 0, 0.25)) * (1 - seg(t, 0.45, 0.7)),
-        lit: inOut(seg(t, 0.2, 0.6)),
-        face: smooth(seg(t, 0.45, 0.8)),
-        bar: inOut(seg(t, 0.55, 1.2)),
-      });
-    });
-    if (!ok) return;
-    // 3. 启动画面淡出，终端在同一块屏幕上亮起
-    ok = await frames(BOOT.reveal, (t) => {
-      const k = smooth(t / BOOT.reveal);
-      paint(quad(), { line: 0, lit: 1, face: 1 - k, bar: 1 });
-      dialog.style.opacity = String(k);
-    });
-    if (!ok) return;
-    dialog.style.opacity = '';
-    hide();
-    // 镜头最后几帧还在微微收拢：停稳后再贴一次，边缘对齐屏幕
-    await frames(0.6, () => station()?.settled);
-    if (viewing === dialog) place(dialog);
   }
-  async function close(dialog) {
-    viewing = null;
+  addEventListener('resize', () => {
+    if (!viewing) return;
+    clearTimeout(refit);
+    const id = job;
+    refit = setTimeout(async () => {
+      const dialog = viewing;
+      if (!dialog || id !== job) return;
+      portrait = innerWidth < 700;
+      station()?.tabletView();
+      if (await frames(id, BOOT.settle, () => station()?.settled))
+        if (viewing === dialog) place(dialog);
+    }, 120);
+  });
+  async function open(dialog, id) {
+    enterView(dialog);
+    dialog.style.opacity = '0';
+    station().tabletView();
+    if (!(await frames(id, BOOT.settle, () => station()?.settled))) return;
+    const q0 = quad();
+    if (!q0 || !place(dialog)) {
+      leaveView();
+      return;
+    }
+    show();
+    if (
+      !(await frames(id, BOOT.on, (t) => {
+        paint(quad() || q0, {
+          line: smooth(seg(t, 0, 0.25)) * (1 - seg(t, 0.45, 0.7)),
+          lit: inOut(seg(t, 0.2, 0.6)),
+          face: smooth(seg(t, 0.45, 0.8)),
+          bar: inOut(seg(t, 0.55, 1.2)),
+        });
+      }))
+    )
+      return;
+    // Crossfade both surfaces: leaving the opaque boot above a fading dialog
+    // would conceal the entire reveal and produce a visible cut at the end.
+    if (
+      !(await frames(id, BOOT.reveal, (t) => {
+        const k = smooth(t / BOOT.reveal);
+        paint(quad() || q0, { line: 0, lit: 1, face: 1 - k, bar: 1, alpha: 1 - k });
+        dialog.style.opacity = String(k);
+      }))
+    )
+      return;
+    place(dialog);
+  }
+  async function close(dialog, id) {
     clearInterval(clockTimer);
+    clearTimeout(refit);
     const q = quad();
     dialog.style.opacity = '0';
     if (q) {
-      // 屏幕熄灭；镜头同时抬起回到座位，熄灭的光跟着屏幕走
       show();
-      await frames(BOOT.off, (t) => {
-        paint(quad() || q, { line: 0, lit: 1 - smooth(t / BOOT.off), face: 0, bar: 1 });
-      });
-      hide();
+      if (
+        !(await frames(id, BOOT.off, (t) => {
+          const k = smooth(t / BOOT.off);
+          paint(quad() || q, {
+            line: 0,
+            lit: 1 - k,
+            face: 0,
+            bar: 1,
+            alpha: 1 - smooth(seg(k, 0.65, 1)),
+          });
+        }))
+      )
+        return;
     }
-    dialog.classList.remove('tablet-view');
-    document.body.classList.remove('tablet-viewing');
-    dialog.style.opacity = '';
+    leaveView();
   }
   return {
     // app.js 的 animatePanel 在平板打开 / 关闭时交给这里；返回的 Promise 结束后对话框才关闭
     animate(opening, dialog) {
+      ++job;
+      cleanup();
+      leaveView();
       if (!motion() || !station()) return Promise.resolve();
-      return opening ? open(dialog) : close(dialog);
+      const id = job;
+      activeDialog = dialog;
+      dialog.classList.add('boot-moving');
+      return (opening ? open(dialog, id) : close(dialog, id)).finally(() => {
+        if (id === job) cleanup();
+      });
     },
     cancel() {
       job++;
-      hide();
+      cleanup();
+      leaveView();
     },
-    // 测试用：低头看平板并停在开机的某一刻（phase: on / done）
+    // Preview tools can stop on the lit screen or the completed tablet view.
     async pose(phase, t, dialog) {
-      job++;
+      this.cancel();
+      const id = job;
+      enterView(dialog);
       station().tabletView();
-      await frames(BOOT.settle * 20, () => station()?.settled);
+      if (!(await frames(id, BOOT.settle * 20, () => station()?.settled))) return false;
+      if (!place(dialog)) {
+        leaveView();
+        return false;
+      }
+      if (!dialog.open) dialog.showModal();
       if (phase === 'done') {
-        dialog.classList.add('tablet-view');
-        document.body.classList.add('tablet-viewing');
-        chrome(dialog);
-        place(dialog);
-        if (!dialog.open) dialog.showModal();
         dialog.style.opacity = '';
         hide();
         return true;
       }
+      activeDialog = dialog;
+      dialog.style.opacity = '0';
       show();
       paint(quad(), {
         line: smooth(seg(t, 0, 0.25)) * (1 - seg(t, 0.45, 0.7)),

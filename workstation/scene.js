@@ -1,7 +1,7 @@
-import { addWindowSun } from './lighting.js?v=24';
+import { addWindowSun } from './lighting.js?v=26';
 import * as T from '../vendor/three/three.module.min.js';
-import { buildWorkstation } from './model.js?v=24';
-import { createStudioEnvironment } from './surfaces.js?v=24';
+import { buildWorkstation } from './model.js?v=26';
+import { createStudioEnvironment } from './surfaces.js?v=26';
 
 export function createScene(canvas, { onSelect, onProject, onHover = () => {}, motion = true }) {
   const renderer = new T.WebGLRenderer({
@@ -117,6 +117,10 @@ export function createScene(canvas, { onSelect, onProject, onHover = () => {}, m
     if (innerWidth < 700 && focused && focused !== 'tablet-view') {
       targetPosition.z += 1.7;
       targetPosition.y += 0.45;
+      if (focused === 'seeko') {
+        targetPosition.x = 4.35;
+        targetLook.x = 4.55;
+      }
     }
   }
   function project() {

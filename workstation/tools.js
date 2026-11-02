@@ -1,4 +1,4 @@
-// Static screenshots only. The terminal never mounts the artboard source or connects live tools.
+// Six tool screenshots and a direct companion preview entry; no live services.
 export const toolPreviews = [
   {
     id: 'schedule',
@@ -67,7 +67,7 @@ export const toolPreviews = [
     number: '06',
     title: 'Seeko · 希可',
     english: 'COMPANION',
-    summary: '讲知识、聊两句，也记得休息。',
+    summary: '回到她的休息角，在桌旁聊两句。',
     alt: '希可捧书的形象、展示台词与学习和生活入口。',
     desktop: new URL('./previews/seeko-desktop.jpg', import.meta.url).href,
     mobile: new URL('./previews/seeko-mobile.jpg', import.meta.url).href,
@@ -86,7 +86,7 @@ export const toolPreviews = [
   },
 ];
 export function toolOverview() {
-  return `<div class="tools-heading"><small class="eyebrow">PERSONAL TOOLS / 07</small><h3>学习，也在日常里。</h3><p class="lede">让安排、研究与陪伴，回到这张桌前。</p><span class="preview-label">界面截图 · 示例内容</span></div><div class="tool-grid">${toolPreviews.map((t) => `<button class="tool-card" data-preview="${t.id}"><span class="tool-number">${t.number}<i>↗</i></span><small>${t.english}</small><strong>${t.title}</strong><p>${t.summary}</p><span class="tool-card-foot">查看界面预览</span></button>`).join('')}</div><p class="tools-note">这轮先看入口和界面排布。图内按钮、记录和对话仅作展示。</p>`;
+  return `<div class="tools-heading"><small class="eyebrow">PERSONAL TOOLS / 07</small><h3>学习，也在日常里。</h3><p class="lede">让安排、研究与陪伴，回到这张桌前。</p><span class="preview-label">界面截图 · 示例内容</span></div><div class="tool-grid">${toolPreviews.map((t) => `<button class="tool-card" data-preview="${t.id}"><span class="tool-number">${t.number}<i>↗</i></span><small>${t.english}</small><strong>${t.title}</strong><p>${t.summary}</p><span class="tool-card-foot">${t.id === 'seeko' ? '去休息角聊聊' : '查看界面预览'}</span></button>`).join('')}</div><p class="tools-note">工具以截图展示；希可可在休息角试读预设对话。</p>`;
 }
 export function toolScreenshot(id) {
   const index = toolPreviews.findIndex((t) => t.id === id);

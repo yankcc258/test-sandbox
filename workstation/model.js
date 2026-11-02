@@ -1,10 +1,10 @@
 import * as T from '../vendor/three/three.module.min.js';
-import { createMaterials, roundedBox, manifoldGeometry } from './surfaces.js?v=24';
-import { tabletShell, instrumentCase, taskLamp, ribbonSupport } from './forms.js?v=24';
-import { addWallArt } from './wall-art.js?v=24';
-import { contactShadow } from './contact.js?v=24';
-import { furnishRestNook } from './rest-nook.js?v=24';
-import { createWindowSky } from './sky.js?v=24';
+import { createMaterials, roundedBox, manifoldGeometry } from './surfaces.js?v=26';
+import { tabletShell, instrumentCase, taskLamp, ribbonSupport } from './forms.js?v=26';
+import { addWallArt } from './wall-art.js?v=26';
+import { contactShadow } from './contact.js?v=26';
+import { furnishRestNook } from './rest-nook.js?v=26';
+import { createWindowSky } from './sky.js?v=26';
 
 // 原创程序几何。各物件独立成组，后续区域镜头可直接使用 anchors / focus。
 export function buildWorkstation(scene, { onChange = () => {} } = {}) {
@@ -572,30 +572,8 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
   const home = new T.Group();
   home.position.set(4.55, 1.2, -1.0);
   root.add(home);
-  box(home, 'nook-back', [1.55, 0.98, 0.1], [0, 0.49, -0.6], materials.graphite);
-  box(home, 'nook-top', [1.65, 0.1, 1.3], [0, 0.96, 0], materials.graphite, 0.048);
-  for (const x of [-0.79, 0.79])
-    box(home, 'nook-side', [0.1, 0.98, 1.3], [x, 0.49, 0], materials.graphite, 0.045);
-  box(home, 'nook-trim', [1.56, 0.02, 0.03], [0, 0.98, 0.64], materials.titanium);
-  box(home, 'nook-cushion', [1.4, 0.22, 1.1], [0, 0.15, 0], materials.fabric, 0.105);
-  curve(
-    home,
-    [
-      [-0.6, 0.15, 0.46],
-      [0.6, 0.15, 0.46],
-      [0.64, 0.15, -0.44],
-      [-0.64, 0.15, -0.44],
-    ],
-    0.008,
-    materials.green,
-    true,
-  );
-  for (const x of [-0.78, 0.78]) fastener(home, x, 0.86, 0.657, 0.022);
-  label(home, 'SEEKO / REST', -0.47, 0.84, 0.66, 0.85, '#859589');
-  hit('seeko', home, [1.9, 1.2, 1.65], [0, 0.5, 0]);
-  const setRestLight = furnishRestNook(home, materials, { curve, label });
-  for (let i = 0; i < 7; i++)
-    box(home, 'nook-vent', [0.08, 0.012, 0.015], [-0.3 + i * 0.1, 0.71, -0.541], materials.dark);
+  hit('seeko', home, [2.05, 1.53, 1.4], [0, 0.76, 0]);
+  const setRestLight = furnishRestNook(home, materials, { curve, label, box, fastener });
   const shelf = box(root, 'book-shelf', [1.7, 0.075, 1.0], [4.6, 3.95, -3.0], materials.titanium);
   for (let i = 0; i < 7; i++) {
     const book = new T.Group(),
@@ -650,6 +628,7 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
       glow.visible = on;
     },
     focus: {
+      seeko: { position: [4.0, 3.25, 3.1], target: [4.0, 1.85, -0.75] },
       tablet: { position: [0, 3.0, 5.0], target: [0, 1.4, 0.55] },
       report: { position: [2.2, 3.6, 5.2], target: [2.5, 1.2, 0.75] },
       specimen: { position: [-3.2, 3.45, 4.4], target: [-4.05, 2.2, -0.85] },

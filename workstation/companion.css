@@ -1,0 +1,136 @@
+.companion {
+  position: fixed;
+  inset: auto;
+  left: clamp(30px, 9vw, 170px);
+  top: 28%;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  max-height: 65dvh;
+  margin: 0;
+  padding: 25px;
+  border: 1px solid #b7c8bb40;
+  border-radius: 18px;
+  color: var(--ink);
+  background: linear-gradient(145deg, #293734f5, #172221fa);
+  box-shadow: 0 18px 65px #0004;
+  overflow-y: auto;
+}
+.companion::backdrop {
+  background: transparent;
+}
+.companion > header {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+.companion-avatar {
+  width: 60px;
+  height: 70px;
+  object-fit: contain;
+  object-position: bottom;
+}
+.companion header small {
+  font: 9px var(--mono);
+  color: #b4c3b2;
+  letter-spacing: 0.14em;
+}
+.companion h2 {
+  font-size: 20px;
+  font-weight: 450;
+  margin: 3px 0 0;
+}
+.companion [data-companion-close] {
+  margin-left: auto;
+  align-self: flex-start;
+  font-size: 22px;
+  padding: 0 6px;
+}
+.companion-voice {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid var(--line);
+}
+.companion-voice small {
+  color: #a8b8ab;
+  font-size: 10px;
+}
+.companion-voice p {
+  font-size: 14px;
+  line-height: 1.95;
+  min-height: 82px;
+  margin: 8px 0 15px;
+}
+.companion-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.companion-choices button {
+  border: 1px solid #c5d4bf30;
+  border-radius: 20px;
+  padding: 8px 12px;
+  font-size: 11px;
+}
+.companion-choices button[aria-pressed='true'] {
+  border-color: #c9e75580;
+  color: #d4e69b;
+  background: #bccf6810;
+}
+.companion > footer {
+  font-size: 10px;
+  color: #9aaba1;
+  margin-top: 18px;
+}
+.companion-open .intro,
+.companion-open .hotspots,
+.companion-open .object-dock {
+  opacity: 0;
+  pointer-events: none;
+}
+.object-dock {
+  grid-template-columns: repeat(5, 1fr);
+}
+@media (max-width: 699px) {
+  .companion {
+    left: 16px;
+    right: 16px;
+    top: auto;
+    bottom: 16px;
+    width: auto;
+    max-height: 46dvh;
+    padding: 17px 19px;
+    border-radius: 15px;
+  }
+  .companion-avatar {
+    width: 42px;
+    height: 48px;
+  }
+  .companion h2 {
+    font-size: 18px;
+  }
+  .companion-voice {
+    margin-top: 10px;
+    padding-top: 9px;
+  }
+  .companion-voice p {
+    min-height: 0;
+    font-size: 13px;
+    line-height: 1.8;
+    margin: 5px 0 12px;
+  }
+  .companion > footer {
+    margin-top: 11px;
+    font-size: 9px;
+  }
+  .companion-open .foot {
+    opacity: 0;
+  }
+}
+@media (max-height: 550px) {
+  .companion {
+    top: 12px;
+    bottom: 12px;
+    max-height: none;
+    padding: 16px;
+  }
+}
