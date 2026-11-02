@@ -3,72 +3,77 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>知序 · 沙盒预览</title>
-    <style>
-      body {
-        margin: 0;
-        padding: 48px 24px;
-        background: #15191b;
-        color: #e8ebe4;
-        font:
-          15px/1.7 system-ui,
-          'PingFang SC',
-          'Microsoft YaHei',
-          sans-serif;
-      }
-      main {
-        max-width: 640px;
-        margin: 0 auto;
-      }
-      a {
-        color: #c9e755;
-      }
-      li {
-        margin: 10px 0;
-      }
-      small {
-        color: #8d978f;
-      }
-    </style>
+    <title>知序 · 历史原型</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="../sandbox/catalog.css?v=18" />
   </head>
   <body>
+    <header class="catalog-head">
+      <a class="wordmark" href="../">知序 <span>ZHIXU</span></a
+      ><span>DESIGN ARCHIVE / 设计档案</span><a href="../">返回沙盒目录 ↙</a>
+    </header>
     <main>
-      <h1>知序 · 沙盒预览</h1>
-      <p>独立的视觉预览与各轮原型，均不连接正式站数据。</p>
-      <ul>
-        <li>
-          <a href="../?i=1&amp;workbench=1&amp;v=17">v17 · 主站容量 · 背单词工作台</a><br /><small
-            >扩大阅读空间，分开练习、词库与偏好；200 条可浏览术语。</small
-          >
-        </li>
-        <li>
-          <a href="../?i=2&amp;workbench=1&amp;v=17">v17 · 主站容量 · 长笔记阅读</a><br /><small
-            >六节长文、目录、宽表格、公式与原始记录。</small
-          >
-        </li>
-        <li>
-          <a href="starfield/">星空版 · 仅内容预览</a><br /><small
-            >原观星台的银河、行星、轨道与天文内容；已移除学习功能及操作入口。</small
-          >
-        </li>
-        <li>
-          <a href="round-0/">第 0 轮（调整前）</a><br /><small
-            >逐块切换；DNA 跟随镜头转；原光照。</small
-          >
-        </li>
-        <li>
-          <a href="round-1/">第 1 轮：镜头、遮挡、光照</a><br /><small
-            >连续滚动与平缓吸附；DNA
-            一近一远、与脊柱和屏幕互相遮挡；侧光与轮廓光；边缘高光随角度变化。</small
-          >
-        </li>
-        <li>
-          <a href="organic-spine/">第 3 稿：有机脊柱与金属骨架 · 可旋转模型</a><br /><small
-            >保留楔形椎体、骨弓与关节；新增钛支撑片和紧固件。</small
-          >
-        </li>
-        <li><a href="../">当前脊柱版本 · 连续单词仪器屏</a></li>
-      </ul>
+      <section class="archive-intro">
+        <small>ARCHIVE / 保留过程，不混淆当前方案</small>
+        <h1>历史原型与模型</h1>
+        <p>这里保留各轮可操作版本。当前工作台、复习区与星空入口已集中在沙盒首页。</p>
+      </section>
+      <div class="archive-list">
+        <a class="archive-item" href="organic-spine/"
+          ><small>MODEL<br />STUDY 03</small>
+          <div>
+            <h2>有机脊柱第三稿</h2>
+            <p>已采用的模型方向。查看整体、单节、关节、线框与展开。</p>
+          </div>
+          <span>↗</span></a
+        >
+        <a class="archive-item" href="../recall.html?i=1&amp;workbench=1"
+          ><small>v17</small>
+          <div>
+            <h2>可展开复习工作台</h2>
+            <p>容量方案：两组词库、分区练习、偏好与记录。</p>
+          </div>
+          <span>↗</span></a
+        >
+        <a class="archive-item" href="../recall.html?i=2&amp;workbench=1"
+          ><small>v17</small>
+          <div>
+            <h2>长笔记阅读样例</h2>
+            <p>长文目录、公式、宽表格与原始记录。</p>
+          </div>
+          <span>↗</span></a
+        >
+        <a class="archive-item" href="../recall.html?i=1"
+          ><small>v16</small>
+          <div>
+            <h2>紧凑单词仪器屏</h2>
+            <p>单个玻璃屏中的准备、练习、报告与返回；保留作对照。</p>
+          </div>
+          <span>↗</span></a
+        >
+        <a class="archive-item" href="round-1/"
+          ><small>ROUND 01</small>
+          <div>
+            <h2>镜头、遮挡与光照</h2>
+            <p>早期冻结版本：连续滚动、景深层次与共同光照。</p>
+          </div>
+          <span>↗</span></a
+        >
+        <a class="archive-item" href="round-0/"
+          ><small>ROUND 00</small>
+          <div>
+            <h2>第一轮调整前</h2>
+            <p>早期冻结版本：逐块切换、原始 DNA 与光照。</p>
+          </div>
+          <span>↗</span></a
+        >
+      </div>
+      <p class="archive-note legacy-note">
+        冻结版本的文案、数据与交互属于当时的试验，不代表当前方案。旧路径和带参数的分享链接继续保留。
+      </p>
     </main>
+    <footer class="catalog-foot">
+      <a href="../">↙ 沙盒目录</a><a href="../docs/">设计与交接资料 ↗</a>
+    </footer>
   </body>
 </html>

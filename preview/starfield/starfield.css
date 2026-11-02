@@ -14,6 +14,24 @@
 * {
   box-sizing: border-box;
 }
+.preview-return {
+  position: fixed;
+  z-index: 30;
+  right: 22px;
+  bottom: 20px;
+  padding: 8px 14px;
+  border: 1px solid #cfd6dc40;
+  border-radius: 5px;
+  background: #0b1018df;
+  color: #e9e4d8;
+  text-decoration: none;
+  font-size: 11px;
+  backdrop-filter: blur(8px);
+}
+.preview-return:focus-visible {
+  outline: 2px solid #c9e755;
+  outline-offset: 4px;
+}
 body {
   margin: 0;
   background: #0b1018;

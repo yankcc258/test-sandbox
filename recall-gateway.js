@@ -11,7 +11,7 @@ export const GATE = { down: 3.2, up: 2.7, seam: 0.56, strips: 24, hold: 1.5 };
 const REGIONS = [
   ['lab', '实验室', 'LEARNING / 学习'],
   ['review', '复习区', 'RECALL / 复习'],
-  ['cabin', 'Yank 小屋', '观星 · 天象 / 筹备中'],
+  ['cabin', '研究员工作台', 'WORKSTATION / 独立范本'],
 ];
 const clamp = (v) => Math.max(0, Math.min(1, v)),
   seg = (t, a, b) => clamp((t - a) / (b - a)),
@@ -92,7 +92,7 @@ export function createGateway({ motion, scene, stage, onLeaveReview, onArriveRev
   menus.forEach((m) => {
     m.innerHTML = `<summary aria-label="前往不同区域"><small>前往区域</small><b></b><i>⌄</i></summary><nav aria-label="区域">${REGIONS.map(
       ([id, name, note], i) =>
-        `<button type="button" data-region="${id}"${id === 'cabin' ? ' disabled' : ''}><small>0${i + 1}</small><span><b>${name}</b><em>${note}</em></span><i>${id === 'cabin' ? '' : '↗'}</i></button>`,
+        `<button type="button" data-region="${id}"><small>0${i + 1}</small><span><b>${name}</b><em>${note}</em></span><i>↗</i></button>`,
     ).join('')}</nav>`;
     m.addEventListener('click', (e) => {
       const b = e.target.closest('[data-region]');
@@ -210,7 +210,11 @@ export function createGateway({ motion, scene, stage, onLeaveReview, onArriveRev
     raf = requestAnimationFrame(tick);
   }
   function goTo(id) {
-    if (run || id === region || id === 'cabin') return;
+    if (run || id === region) return;
+    if (id === 'cabin') {
+      location.href = 'workstation/' + (!motion() ? '?motion=0' : '');
+      return;
+    }
     if (id === 'lab') onLeaveReview?.();
     if (!motion()) return settle(id);
     start(id === 'review' ? 'down' : 'up');

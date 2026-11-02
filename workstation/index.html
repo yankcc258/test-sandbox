@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#15191b" />
+    <meta name="description" content="知序工作台范本：生命、材料与计算之间的一处个人研究空间。" />
+    <title>知序 · 研究员工作台</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="workstation.css?v=18" />
+    <script type="module" src="app.js?v=18"></script>
+  </head>
+  <body>
+    <main class="station" id="station" aria-label="研究员工作台">
+      <canvas id="scene" aria-label="三维工作台，可拖动观察；也可使用下方按钮打开物件"></canvas>
+      <div class="scene-vignette" aria-hidden="true"></div>
+      <div class="scene-ruler" aria-hidden="true">
+        <span>03</span><i></i><span>PERSONAL STATION</span>
+      </div>
+      <header class="brand">
+        <a href="../" aria-label="返回知序沙盒目录">知序 <span>ZHIXU</span></a>
+        <small>PERSONAL RESEARCH · 个人研究</small>
+        <p>WORKSTATION <b>OS</b></p>
+      </header>
+      <nav class="top" aria-label="工作台设置">
+        <details class="region-menu" id="regions">
+          <summary><span>前往区域</span><b>工作台</b><i>⌄</i></summary>
+          <div class="region-list">
+            <a href="../recall.html?region=lab"
+              ><small>01</small><span>实验室<em>竖井过渡预览 · 截图占位</em></span
+              >↗</a
+            >
+            <a href="../recall.html?workbench=1"
+              ><small>02</small><span>脊柱复习区<em>连续玻璃界面 · 示例练习</em></span
+              >↗</a
+            >
+            <a href="./" aria-current="page"
+              ><small>03</small><span>研究员工作台<em>当前范本</em></span
+              >·</a
+            >
+            <a href="../"
+              ><small>↙</small><span>沙盒目录<em>当前方案与历史预览</em></span></a
+            >
+          </div>
+        </details>
+        <button type="button" id="motion" aria-pressed="true">动效 · 开</button>
+        <div class="pill">
+          <button type="button" id="lamp-control" aria-pressed="true">灯 · 开</button>
+          <button type="button" id="reset-view">归位</button><span aria-hidden="true">────</span
+          ><button type="button" id="about-button">ABOUT</button>
+        </div>
+      </nav>
+      <div class="hotspots" id="hotspots" aria-label="桌面物件">
+        <button data-object="tablet">
+          <i></i><span><small>01 / TERMINAL</small>个人终端 ↗</span>
+        </button>
+        <button data-object="specimen">
+          <i></i><span><small>02 / MATERIAL</small>流形试样 ↗</span>
+        </button>
+        <button data-object="report">
+          <i></i><span><small>03 / FIELD NOTES</small>研究手记 ↗</span>
+        </button>
+        <button data-object="sky">
+          <i></i><span><small>04 / BEYOND</small>窗外与天空 ↗</span>
+        </button>
+        <button data-object="lamp" aria-pressed="true">
+          <i></i><span><small>LIGHT / LOCAL</small>台灯 · 开</span>
+        </button>
+      </div>
+      <section class="intro">
+        <small>ZH-03 / PERSONAL STATION</small>
+        <h1>好奇心，仍在继续。</h1>
+        <p>在生命、材料与计算之间，<br />留一个向天空提问的位置。</p>
+      </section>
+      <p class="scene-status" id="scene-status" role="status">正在准备工作台…</p>
+      <p class="fallback">立体场景暂时无法显示。下方入口仍可打开终端与手记。</p>
+      <nav class="object-dock" aria-label="工作台入口">
+        <button data-object="tablet"><small>01</small><span>个人终端</span><i>↗</i></button>
+        <button data-object="specimen"><small>02</small><span>流形试样</span><i>↗</i></button>
+        <button data-object="report"><small>03</small><span>研究手记</span><i>↗</i></button>
+        <button data-object="sky"><small>04</small><span>窗外与天空</span><i>↗</i></button>
+      </nav>
+      <footer class="foot">
+        <span><i></i> WORKSTATION STUDY · 沙盒范本</span>
+        <span class="gesture-hint">拖动观察 · 点击物件进入 · ESC 返回桌前</span>
+        <details class="mood-menu" id="moods">
+          <summary><time id="clock">--:--:--</time> JST <b id="period">东京 · 自动</b> ⌃</summary>
+          <div>
+            <span>环境光预览</span
+            ><button data-mood="auto" aria-pressed="true">东京时间 · 自动</button
+            ><button data-mood="day" aria-pressed="false">晨光</button
+            ><button data-mood="dusk" aria-pressed="false">黄昏</button
+            ><button data-mood="night" aria-pressed="false">深夜</button>
+          </div>
+        </details>
+      </footer>
+    </main>
+    <dialog class="terminal" id="detail" aria-labelledby="detail-title">
+      <header>
+        <div>
+          <small id="detail-code">01 / PERSONAL TERMINAL</small>
+          <h2 id="detail-title">个人终端</h2>
+        </div>
+        <button id="close-detail" aria-label="返回工作台">关闭 <span>×</span></button>
+      </header>
+      <div class="terminal-body" id="detail-body"></div>
+      <footer>
+        <button id="back-detail">↙ 返回桌前 <kbd>ESC</kbd></button
+        ><span>沙盒范本 · 示例内容 · 未连接正式数据</span>
+      </footer>
+    </dialog>
+    <noscript
+      ><div class="noscript">工作台需要 JavaScript。<a href="../">返回沙盒目录</a></div></noscript
+    >
+  </body>
+</html>

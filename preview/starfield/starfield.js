@@ -3,7 +3,16 @@ import { BODIES, position, orbitOffset } from './orbit-space.js';
 import { makeBody, makeSky } from './orbit-models.js';
 import { skyDay, skyClock, orbitSkyToday, orbitSkyEvents, orbitSkyCountdown } from './orbit-sky.js';
 
-// A self-contained view: no study routes, user data, storage or interaction handlers.
+// A self-contained view: no study routes, user data or storage.
+// 原始内容预览地址不增加操作界面，仅在从目录/工作台进入时给出返回入口。
+const from = new URLSearchParams(location.search).get('from');
+if (from === 'workstation' || from === 'catalog') {
+  const back = document.createElement('a');
+  back.className = 'preview-return';
+  back.href = from === 'workstation' ? '../../workstation/' : '../../';
+  back.textContent = from === 'workstation' ? '↙ 返回工作台' : '↙ 沙盒目录';
+  document.body.append(back);
+}
 const text = (key, value) => {
   document.querySelector(`[data-sky="${key}"]`).textContent = value;
 };
