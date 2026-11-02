@@ -3,6 +3,8 @@ import { atmosphere, PALETTES, createFocusTimer } from '../workstation/atmospher
 import { legacyDestination } from '../sandbox/routing.js';
 import { manifoldGeometry, roundedBox } from '../workstation/surfaces.js';
 import { profiledShell, roundedFace, ribbonSupport } from '../workstation/forms.js';
+import { roundedDistance } from '../workstation/contact.js';
+import { cloudDensity } from '../workstation/sky.js';
 import { Vector3 } from '../vendor/three/three.module.min.js';
 
 // 东京时段交界、平滑交接与午夜；不依赖执行测试机器的系统时区。
@@ -83,11 +85,15 @@ const shell = profiledShell([
   [0.02, 2.98, 1.78, 0.17],
 ]);
 const shellEdges = new Map();
+// Hard shading seams intentionally duplicate cap vertices. Weld by position
+// for topology, while checking cap normals separately below.
+const shellKey = (id) =>
+  [0, 1, 2].map((k) => shell.attributes.position.array[id * 3 + k].toFixed(6)).join(',');
 let shellVolume = 0;
 for (let i = 0; i < shell.index.count; i += 3) {
   const ids = [0, 1, 2].map((j) => shell.index.getX(i + j));
   for (let j = 0; j < 3; j++) {
-    const edge = [ids[j], ids[(j + 1) % 3]].sort((x, y) => x - y).join(':');
+    const edge = [shellKey(ids[j]), shellKey(ids[(j + 1) % 3])].sort().join(':');
     shellEdges.set(edge, (shellEdges.get(edge) || 0) + 1);
   }
   a.fromBufferAttribute(shell.attributes.position, ids[0]);
@@ -103,6 +109,26 @@ assert.ok(
   shellVolume > 0 && shellVolume < 3 * 1.8 * 0.08,
   'Correct outward winding and bounded shell volume',
 );
+for (const group of shell.groups.slice(-2)) {
+  for (let i = group.start; i < group.start + group.count; i++) {
+    const id = shell.index.getX(i);
+    const n = new Vector3().fromBufferAttribute(shell.attributes.normal, id);
+    assert.ok(
+      Math.abs(n.x) < 1e-6 && Math.abs(n.y) < 1e-6 && Math.abs(n.z) > 0.99999,
+      'Machined end faces remain flat under reflection lighting',
+    );
+  }
+}
+// Contact is darkest at the support and decays outside its actual footprint.
+assert.ok(roundedDistance(0, 0, 1.6, 1.2, 0.12) < 0);
+assert.ok(Math.abs(roundedDistance(0.8, 0, 1.6, 1.2, 0.12)) < 1e-8);
+assert.ok(roundedDistance(0.85, 0, 1.6, 1.2, 0.12) < roundedDistance(1, 0, 1.6, 1.2, 0.12));
+assert.ok(Math.abs(roundedDistance(0, 0.345, 0.69, 0.69, 0.345)) < 1e-8);
+for (let y = 0; y <= 20; y++)
+  for (let x = 0; x <= 30; x++) {
+    const d = cloudDensity(x / 30, y / 20);
+    assert.ok(Number.isFinite(d) && d >= 0 && d <= 1, 'Cloud coverage remains finite and bounded');
+  }
 const face = roundedFace(3, 1.8, 0.17);
 assert.ok(
   [...face.attributes.uv.array].every((v) => v >= 0 && v <= 1),
@@ -129,5 +155,5 @@ for (const geometry of [sample, roundedBox(1, 0.1, 0.7, 0.04), shell, face, supp
   geometry.dispose();
 }
 console.log(
-  'PASS: Tokyo atmosphere, timer, legacy routes, closed specimens and device shells, display UVs and surface normals.',
+  'PASS: Tokyo atmosphere, timer, routes, closed shells, flat cap normals, display UVs, contact footprints and cloud coverage.',
 );

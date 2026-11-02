@@ -1,7 +1,9 @@
 import * as T from '../vendor/three/three.module.min.js';
-import { createMaterials, roundedBox, manifoldGeometry } from './surfaces.js?v=20';
-import { tabletShell, instrumentCase, taskLamp, ribbonSupport } from './forms.js?v=20';
-import { addWallArt } from './wall-art.js?v=20';
+import { createMaterials, roundedBox, manifoldGeometry } from './surfaces.js?v=21';
+import { tabletShell, instrumentCase, taskLamp, ribbonSupport } from './forms.js?v=21';
+import { addWallArt } from './wall-art.js?v=21';
+import { contactShadow } from './contact.js?v=21';
+import { createWindowSky } from './sky.js?v=21';
 
 // 原创程序几何。各物件独立成组，后续区域镜头可直接使用 anchors / focus。
 export function buildWorkstation(scene, { onChange = () => {} } = {}) {
@@ -80,35 +82,6 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
     parent.add(screw);
     box(parent, 'screw-slot', [radius * 0.9, 0.009, 0.004], [x, y, z + 0.011], materials.dark);
   }
-  const contactMap = texture(
-    (c, w, h) => {
-      const gradient = c.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
-      gradient.addColorStop(0, 'rgba(0,0,0,.7)');
-      gradient.addColorStop(0.48, 'rgba(0,0,0,.38)');
-      gradient.addColorStop(1, 'rgba(0,0,0,0)');
-      c.fillStyle = gradient;
-      c.fillRect(0, 0, w, h);
-    },
-    128,
-    128,
-  );
-  function contact(x, z, w, d, opacity = 0.6, y = 1.198) {
-    const shadow = new T.Mesh(
-      new T.PlaneGeometry(w, d),
-      new T.MeshBasicMaterial({
-        map: contactMap,
-        transparent: true,
-        opacity,
-        depthWrite: false,
-        polygonOffset: true,
-        polygonOffsetFactor: -1,
-      }),
-    );
-    shadow.rotation.x = -Math.PI / 2;
-    shadow.position.set(x, y, z);
-    root.add(shadow);
-    return shadow;
-  }
   function hit(id, parent, dims, pos) {
     const m = box(parent, id + '-hit', dims, pos, new T.MeshBasicMaterial({ visible: false }));
     m.castShadow = false;
@@ -160,8 +133,8 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
   }
   for (const y of [2.43, 6.47])
     box(root, 'window-frame', [7.9, 0.09, 0.23], [0.5, y, -3.12], materials.satin);
-  let skyTexture;
-  const skyMat = new T.MeshBasicMaterial();
+  const windowSky = createWindowSky();
+  const skyMat = new T.MeshBasicMaterial({ map: windowSky.texture, toneMapped: false });
   const sky = new T.Mesh(new T.PlaneGeometry(7.65, 4.0), skyMat);
   sky.position.set(0.5, 4.45, -3.23);
   root.add(sky);
@@ -170,79 +143,7 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
   box(root, 'window-mullion', [0.065, 4.0, 0.06], [-1.92, 4.45, -3.13], materials.titanium);
   box(root, 'window-crossbar', [7.7, 0.055, 0.06], [0.5, 3.2, -3.13], materials.graphite);
   label(root, '35.68 N / 139.76 E', 2.5, 2.12, -3.27, 1.6, '#85978f');
-  function drawSky(a) {
-    skyTexture?.dispose();
-    skyTexture = texture(
-      (c, w, h) => {
-        const g = c.createLinearGradient(0, 0, 0, h);
-        g.addColorStop(0, a.sky);
-        g.addColorStop(0.82, a.horizon);
-        g.addColorStop(1, a.bg);
-        c.fillStyle = g;
-        c.fillRect(0, 0, w, h);
-        let seed = 29;
-        const rnd = () => {
-          seed = (seed * 16807) % 2147483647;
-          return seed / 2147483647;
-        };
-        const starAlpha = a.phase === 'night' ? 0.55 : a.phase === 'dusk' ? 0.18 : 0.04;
-        for (let i = 0; i < 150; i++) {
-          c.fillStyle = 'rgba(217,231,231,' + rnd() * starAlpha + ')';
-          c.beginPath();
-          c.arc(rnd() * w, rnd() * h * 0.8, 0.5 + rnd(), 0, Math.PI * 2);
-          c.fill();
-        }
-        // Soft cloud strata and distant research buildings, no hard scan lines.
-        for (let i = 0; i < 8; i++) {
-          const x = rnd() * w,
-            y = h * (0.35 + rnd() * 0.35),
-            rw = 220 + rnd() * 450;
-          c.save();
-          c.translate(x, y);
-          c.scale(rw, 16 + rnd() * 18);
-          const cloud = c.createRadialGradient(0, 0, 0, 0, 0, 1);
-          cloud.addColorStop(0, 'rgba(188,201,197,.055)');
-          cloud.addColorStop(1, 'rgba(188,201,197,0)');
-          c.fillStyle = cloud;
-          c.fillRect(-1, -1, 2, 2);
-          c.restore();
-        }
-        for (let layer = 0; layer < 3; layer++) {
-          c.fillStyle = ['#304043', '#253437', '#18272c'][layer];
-          c.globalAlpha = 0.35 + layer * 0.16;
-          c.beginPath();
-          c.moveTo(0, h);
-          for (let x = 0; x <= w; x += 60)
-            c.lineTo(x, h * (0.87 + layer * 0.034) + Math.sin(x * 0.008 + layer) * 8 + rnd() * 6);
-          c.lineTo(w, h);
-          c.fill();
-        }
-        c.globalAlpha = 1;
-        for (let i = 0; i < 17; i++) {
-          const x = rnd() * w,
-            bw = 25 + rnd() * 85,
-            bh = 15 + rnd() * 28,
-            y = h * 0.94 - bh;
-          c.fillStyle = '#233338';
-          c.fillRect(x, y, bw, h - y);
-          c.fillStyle = '#536364';
-          c.fillRect(x, y, bw, 1);
-          for (let k = 0; k < 4; k++) {
-            c.fillStyle = 'rgba(200,214,188,.22)';
-            c.fillRect(x + 6 + k * 9, y + 9, 4, 1);
-          }
-          if (i % 4 === 0) {
-            c.fillStyle = '#526360';
-            c.fillRect(x + 9, y - 12, 1, 12);
-          }
-        }
-      },
-      1536,
-      800,
-    );
-    skyMat.map = skyTexture;
-    skyMat.needsUpdate = true;
-  }
+  const drawSky = (a) => windowSky.draw(a);
 
   // 平整台面；窄幅象牙白薄边呼应实验室的档案卡片。
   box(root, 'desk', [11.8, 0.18, 4.7], [0, 1.1, 0.35], materials.desk, 0.085);
@@ -259,12 +160,71 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
   box(root, 'desk-mat', [4.2, 0.028, 2.73], [0.02, 1.207, 0.9], materials.rubber, 0.012);
   for (const z of [-0.38, 2.18])
     box(root, 'mat-seam', [4, 0.006, 0.008], [0.02, 1.224, z], materials.satin);
-  contact(0, 0.75, 4.5, 2.9, 0.55, 1.225);
-  contact(-3.65, -0.92, 2.5, 2.1, 0.82);
-  contact(-2.65, 0.12, 1.2, 0.85, 0.8);
-  contact(-1.92, 1.4, 0.85, 0.8, 0.75);
-  contact(2.82, 1.04, 2.5, 2.8, 0.65);
-  contact(4.55, -1, 2.4, 2.1, 0.8);
+  contactShadow(root, {
+    x: 0,
+    z: 0.73,
+    y: 1.224,
+    width: 2.95,
+    depth: 1.54,
+    radius: 0.15,
+    blur: 0.17,
+    opacity: 0.44,
+  });
+  contactShadow(root, {
+    x: 0,
+    z: 1.61,
+    y: 1.225,
+    width: 2.74,
+    depth: 0.045,
+    radius: 0.02,
+    blur: 0.045,
+    opacity: 0.78,
+  });
+  contactShadow(root, {
+    x: -3.65,
+    z: -0.92,
+    width: 1.55,
+    depth: 1.2,
+    radius: 0.12,
+    blur: 0.12,
+    opacity: 0.8,
+  });
+  contactShadow(root, {
+    x: -2.65,
+    z: 0.12,
+    width: 0.69,
+    depth: 0.69,
+    radius: 0.345,
+    blur: 0.075,
+    opacity: 0.85,
+  });
+  contactShadow(root, {
+    x: -1.92,
+    z: 1.4,
+    width: 0.57,
+    depth: 0.57,
+    radius: 0.285,
+    blur: 0.06,
+    opacity: 0.72,
+  });
+  contactShadow(root, {
+    x: 2.82,
+    z: 1.04,
+    width: 1.88,
+    depth: 1.9,
+    radius: 0.08,
+    blur: 0.12,
+    opacity: 0.5,
+  });
+  contactShadow(root, {
+    x: 4.55,
+    z: -1,
+    width: 1.97,
+    depth: 1.58,
+    radius: 0.12,
+    blur: 0.12,
+    opacity: 0.75,
+  });
 
   // 和复习区共用“薄边深色屏”的形态；贴图仅在创建时绘制。
   const tablet = new T.Group();
@@ -277,7 +237,7 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
       c.fillRect(0, 0, w, h);
       c.strokeStyle = '#4d5b58';
       c.lineWidth = 1;
-      c.strokeRect(28, 28, w - 56, h - 56);
+      // The cover glass supplies the outside edge; keep the screen face unframed.
       c.fillStyle = '#99aaa1';
       c.font = '19px monospace';
       c.fillText('ZHIXU / PERSONAL RESEARCH', 60, 70);
@@ -341,6 +301,17 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
   );
   stand.castShadow = stand.receiveShadow = true;
   root.add(stand);
+  box(root, 'tablet-stand-sole', [0.59, 0.018, 0.33], [0, 1.231, -0.25], materials.rubber, 0.008);
+  contactShadow(root, {
+    x: 0,
+    z: -0.25,
+    y: 1.224,
+    width: 0.6,
+    depth: 0.35,
+    radius: 0.04,
+    blur: 0.04,
+    opacity: 0.8,
+  });
   curve(
     root,
     [
@@ -359,6 +330,16 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
   specimen.position.set(-3.65, 1.21, -0.92);
   root.add(specimen);
   instrumentCase(specimen, materials, { curve, label, fastener });
+  contactShadow(specimen, {
+    x: 0,
+    z: -0.05,
+    y: 0.261,
+    width: 0.7,
+    depth: 0.28,
+    radius: 0.13,
+    blur: 0.15,
+    opacity: 0.38,
+  });
   const band = new T.Mesh(manifoldGeometry(), materials.ivory);
   band.position.set(0, 1.03, 0);
   band.rotation.y = -0.67;
@@ -391,7 +372,7 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
   lamp.position.set(-2.65, 1.22, 0.12);
   root.add(lamp);
   const glow = taskLamp(lamp, materials, { curve, fastener });
-  const taskLight = new T.SpotLight('#e5ecd8', 16, 7, Math.PI * 0.35, 1, 2);
+  const taskLight = new T.SpotLight('#e8dfca', 19, 7, Math.PI * 0.35, 1, 2);
   taskLight.position.set(-2.05, 2.79, -0.38);
   taskLight.target.position.set(-1.5, 1.2, 0.6);
   root.add(taskLight, taskLight.target);
@@ -658,7 +639,7 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
     tablet,
     drawSky,
     setLamp(on) {
-      taskLight.intensity = on ? 16 : 0;
+      taskLight.intensity = on ? 19 : 0;
       glow.visible = on;
     },
     focus: {

@@ -301,7 +301,7 @@ document.addEventListener('visibilitychange', () => {
 try {
   await document.fonts.ready;
   if (params.get('view') === 'fallback') throw new Error('Fallback preview');
-  const { createScene } = await import('./scene.js?v=20');
+  const { createScene } = await import('./scene.js?v=21');
   scene = createScene($('#scene'), {
     motion,
     onSelect: select,

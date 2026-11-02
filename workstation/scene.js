@@ -1,6 +1,6 @@
 import * as T from '../vendor/three/three.module.min.js';
-import { buildWorkstation } from './model.js?v=20';
-import { createStudioEnvironment } from './surfaces.js?v=20';
+import { buildWorkstation } from './model.js?v=21';
+import { createStudioEnvironment } from './surfaces.js?v=21';
 
 export function createScene(canvas, { onSelect, onProject, motion = true }) {
   const renderer = new T.WebGLRenderer({
@@ -22,7 +22,7 @@ export function createScene(canvas, { onSelect, onProject, motion = true }) {
     room = createStudioEnvironment();
   const env = pmrem.fromScene(room, 0.04);
   scene.environment = env.texture;
-  scene.environmentIntensity = 0.85;
+  scene.environmentIntensity = 0.72;
   scene.environmentRotation.y = 0.35;
   pmrem.dispose();
   room.traverse((object) => {
@@ -31,7 +31,7 @@ export function createScene(canvas, { onSelect, onProject, motion = true }) {
       object.material.dispose();
     }
   });
-  const key = new T.DirectionalLight('#e6edf2', 2.4);
+  const key = new T.DirectionalLight('#e6edf2', 2.85);
   key.position.set(-3.4, 7.8, 1.6);
   key.target.position.set(0, 1.3, 0);
   key.castShadow = true;
@@ -44,12 +44,12 @@ export function createScene(canvas, { onSelect, onProject, motion = true }) {
   key.shadow.camera.near = 0.5;
   key.shadow.camera.far = 24;
   key.shadow.radius = 3;
-  key.shadow.bias = -0.00025;
-  key.shadow.normalBias = 0.014;
+  key.shadow.bias = -0.00012;
+  key.shadow.normalBias = 0.005;
   scene.add(key, key.target);
-  const fill = new T.HemisphereLight('#aec4d1', '#15191b', 0.68);
+  const fill = new T.HemisphereLight('#aec4d1', '#15191b', 0.4);
   scene.add(fill);
-  const rim = new T.DirectionalLight('#9fb8bd', 1.8);
+  const rim = new T.DirectionalLight('#9fb8bd', 1.15);
   rim.position.set(2, 5.5, -3);
   scene.add(rim);
   const model = buildWorkstation(scene, { onChange: requestRender });
