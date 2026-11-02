@@ -8,7 +8,18 @@
     <title>知序 · 研究员工作台</title>
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="workstation.css?v=22" />
-    <script type="module" src="app.js?v=22"></script>
+    <link rel="stylesheet" href="../sandbox/passage.css?v=23" />
+    <link rel="stylesheet" href="luna.css?v=23" />
+    <script>
+      // 从实验室、复习区经竖井上来：页面先用井壁色盖住，等竖井挂上再揭开（../sandbox/passage.js）
+      try {
+        const p = JSON.parse(sessionStorage.getItem('zhixu-passage') || 'null');
+        if (p && p.to === 'workstation' && Date.now() - p.at < 8000)
+          document.documentElement.classList.add('passage-in');
+      } catch {}
+    </script>
+    <script type="module" src="app.js?v=23"></script>
+    <script type="module" src="luna.js?v=23"></script>
   </head>
   <body>
     <main class="station" id="station" aria-label="研究员工作台">

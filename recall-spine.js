@@ -15,7 +15,8 @@ import { createDock } from './recall-dock.js?v=17';
 import { SYSTEMS, drawSpecimen } from './recall-specimen.js?v=17';
 import { bindPulseInput } from './recall-pulse-input.js?v=17';
 import { createLifeState, createSignal } from './recall-life.js?v=17';
-import { createGateway } from './recall-gateway.js?v=17';
+import { createGateway } from './recall-gateway.js?v=18';
+import { takePassage } from './sandbox/passage.js';
 import { terminalFrame, terminalRect, segment, clamp } from './recall-terminal.js?v=17';
 
 // 示例数据；images 留空。以后在 IMAGES 里登记图片路径，屏幕就会以那张图做底，没有图就只显示复习信息。
@@ -1438,6 +1439,12 @@ const gate = createGateway({
   onArriveReview: () => document.getElementById('open-entry').focus({ preventScroll: true }),
 });
 if (params.get('region') === 'lab') gate.settle('lab');
+// 从工作台（2F）经竖井下来：接着播下行和到达
+{
+  const came = takePassage(params.get('region') === 'lab' ? 'lab' : 'review');
+  if (came) gate.arriveFromStation(params.get('region') === 'lab' ? 'lab' : 'review');
+  else document.documentElement.classList.remove('passage-in');
+}
 reduced.addEventListener('change', syncMotion);
 markList(Math.round(target));
 updateLife();

@@ -242,6 +242,47 @@ export function createScene(canvas, { onSelect, onProject, motion = true }) {
       model.drawSky(a);
       requestRender();
     },
+    // 露娜：区域竖井要一张此刻的工作台画面切成百叶（sandbox/passage.js）。
+    // 画布不保留绘图缓冲，所以先画一帧，再在同一个任务里读出来。
+    snapshot() {
+      if (lost) return null;
+      camera.position.copy(targetPosition);
+      look.copy(targetLook);
+      camera.lookAt(look);
+      renderer.render(scene, camera);
+      try {
+        const r = canvas.getBoundingClientRect();
+        return {
+          url: canvas.toDataURL('image/jpeg', 0.86),
+          x: r.left,
+          y: r.top,
+          w: r.width,
+          h: r.height,
+        };
+      } catch {
+        return null;
+      }
+    },
+    // 露娜：平板开机动画要屏幕四个角在页面上的位置（左上、右上、右下、左下）。
+    screenQuad() {
+      const rect = canvas.getBoundingClientRect();
+      return [
+        [-1.46, 0.835],
+        [1.46, 0.835],
+        [1.46, -0.835],
+        [-1.46, -0.835],
+      ].map(([x, y]) => {
+        const v = model.tablet.localToWorld(new T.Vector3(x, y, 0.03)).project(camera);
+        return [rect.left + ((v.x + 1) * rect.width) / 2, rect.top + ((1 - v.y) * rect.height) / 2];
+      });
+    },
+    // 镜头是否已经停在目标位置（开机动画在镜头推近后开始）
+    get settled() {
+      return (
+        camera.position.distanceToSquared(targetPosition) + look.distanceToSquared(targetLook) <
+        0.0004
+      );
+    },
     // 仅供检查资源规模，不暴露渲染器或学习数据。
     stats() {
       return {

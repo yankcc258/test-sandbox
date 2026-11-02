@@ -7,6 +7,8 @@
 //         缝最后闪一下合上，回到实验室。
 // 关闭动效或系统减少动画时直接切换。时间线是纯函数 frameAt(dir, t)，测试可以停在任意一刻截图。
 
+import { createPassage, passageFrame, savePassage, play, PASSAGE } from './sandbox/passage.js';
+
 export const GATE = { down: 3.2, up: 2.7, seam: 0.56, strips: 24, hold: 1.5 };
 const REGIONS = [
   ['lab', '实验室', 'LEARNING / 学习'],
@@ -158,7 +160,7 @@ export function createGateway({ motion, scene, stage, onLeaveReview, onArriveRev
     run = null;
     cancelAnimationFrame(raf);
     raf = 0;
-    lab.classList.remove('moving', 'holding');
+    lab.classList.remove('moving', 'holding', 'no-blinds');
     stage.classList.remove('gating');
     stage.style.removeProperty('--hud');
     const inLab = next === 'lab';
@@ -178,6 +180,20 @@ export function createGateway({ motion, scene, stage, onLeaveReview, onArriveRev
     if (inLab) lab.querySelector('[data-gateway] summary').focus({ preventScroll: true });
     else onArriveReview?.();
   }
+  // 楼层表：实验室 1F、复习区 B1（工作台 2F 只在跨页的竖井里经过）
+  const floorEls = [...lab.querySelectorAll('.ps-floors li')],
+    car = lab.querySelector('.ps-car');
+  function floors(dir, depth) {
+    if (!car) return;
+    const level = -depth; // 下沉 0 → −1，上升 −1 → 0
+    car.style.setProperty('--level', level.toFixed(3));
+    floorEls.forEach((li) =>
+      li.style.setProperty(
+        '--lit',
+        Math.max(0, 1 - Math.abs(Number(li.dataset.level) - level) * 1.6).toFixed(3),
+      ),
+    );
+  }
   function tick(now) {
     raf = 0;
     if (!run) return;
@@ -190,14 +206,23 @@ export function createGateway({ motion, scene, stage, onLeaveReview, onArriveRev
       run.t = GATE.hold;
       drift += dt * 90;
     } else run.t += dt;
-    apply(frameAt(run.dir, run.t));
+    const frame = frameAt(run.dir, run.t);
+    apply(frame);
+    floors(run.dir, frame.depth);
+    // 去工作台：到竖井完全挡住画面的那一刻停下，交给跨页的竖井
+    if (run.until !== undefined && run.t >= run.until) {
+      const done = run.onUntil;
+      run = null;
+      return done();
+    }
     if (run.t >= (run.dir === 'down' ? GATE.down : GATE.up)) return settle(run.to);
     raf = requestAnimationFrame(tick);
   }
-  function start(dir) {
+  function start(dir, { t0 = 0, until, onUntil, noBlinds = false } = {}) {
     const to = dir === 'down' ? 'review' : 'lab';
     drift = 0;
-    run = { dir, t: 0, to };
+    run = { dir, t: t0, to, until, onUntil };
+    lab.classList.toggle('no-blinds', noBlinds);
     lab.hidden = false;
     lab.inert = false; // 过渡期间整层挡住输入
     stage.inert = true;
@@ -209,11 +234,52 @@ export function createGateway({ motion, scene, stage, onLeaveReview, onArriveRev
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(tick);
   }
+  // ---- 去工作台（2F）：复习区先让镜头升出竖井，实验室先让截图薄片翻开，然后换页继续上行 ----
+  function toStation() {
+    const from = region;
+    savePassage(from, 'workstation');
+    location.assign('workstation/?via=passage');
+  }
+  async function leaveForStation() {
+    if (region === 'review') {
+      onLeaveReview?.();
+      return start('up', { until: 1.46, onUntil: toStation });
+    }
+    // 实验室（截图占位）：截图切成薄片翻开，进入竖井
+    const p = createPassage({ from: 'lab', to: 'workstation' });
+    const shot = new URL(
+      innerWidth <= 760 ? 'assets/lab/lab-mobile.jpg' : 'assets/lab/lab-desktop.jpg',
+      location.href,
+    );
+    p.el.style.setProperty('--ps-img', `url("${shot.href}")`);
+    p.el.style.setProperty('--ps-pos', 'center');
+    p.el.style.setProperty('--ps-size', 'cover');
+    p.apply(passageFrame('leave', 0));
+    document.body.append(p.el);
+    await play('leave', PASSAGE.leave, (t) => p.apply(passageFrame('leave', t)));
+    toStation();
+  }
+  // ---- 从工作台下来：先在跨页的竖井里下行，再接上这一页原来的到达动画 ----
+  async function arriveFromStation(to) {
+    const p = createPassage({ from: 'workstation', to });
+    p.apply(passageFrame('ride', 0));
+    document.body.append(p.el);
+    document.documentElement.classList.remove('passage-in');
+    if (!motion()) {
+      p.el.remove();
+      return;
+    }
+    await play('ride', PASSAGE.ride, (t) => p.apply(passageFrame('ride', t)));
+    // 复习区：接「下沉」的后半段（竖井已不透明，镜头从脊柱正上方落回螺旋）；实验室：接「上升」的结尾（薄片合上）
+    if (to === 'review') start('down', { t0: 0.95, noBlinds: true });
+    else start('up', { t0: 1.42 });
+    requestAnimationFrame(() => p.el.remove());
+  }
   function goTo(id) {
     if (run || id === region) return;
     if (id === 'cabin') {
-      location.href = 'workstation/' + (!motion() ? '?motion=0' : '');
-      return;
+      if (!motion()) return location.assign('workstation/?motion=0');
+      return leaveForStation();
     }
     if (id === 'lab') onLeaveReview?.();
     if (!motion()) return settle(id);
@@ -224,6 +290,7 @@ export function createGateway({ motion, scene, stage, onLeaveReview, onArriveRev
     goTo,
     // 直接停在某个区域（用于 ?region=lab）
     settle,
+    arriveFromStation,
     get region() {
       return region;
     },

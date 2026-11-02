@@ -114,6 +114,8 @@ function content(id) {
 function animatePanel(opening, id) {
   panelAnimation?.cancel();
   if (!motion) return Promise.resolve();
+  // 露娜：平板用开机动画展开 / 收回（boot.js）
+  if (id === 'tablet' && window.zxBoot) return window.zxBoot.animate(opening, dialog);
   const p = projected[id] || { x: innerWidth / 2, y: innerHeight * 0.65 };
   const x = (p.x - innerWidth / 2) * 0.45,
     y = (p.y - innerHeight / 2) * 0.45;
@@ -132,6 +134,8 @@ function select(id, trigger) {
     id = 'tablet';
   }
   if (id === 'lamp') return toggleLamp();
+  // 露娜：纸飞机起飞，一路飞进星空（flight.js）
+  if (id === 'sky' && window.zxFlight) return void window.zxFlight.start();
   if (!sections[id]) return;
   if (closing) {
     panelAnimation?.cancel();
@@ -328,7 +332,7 @@ document.addEventListener('visibilitychange', () => {
 try {
   await document.fonts.ready;
   if (params.get('view') === 'fallback') throw new Error('Fallback preview');
-  const { createScene } = await import('./scene.js?v=22');
+  const { createScene } = await import('./scene.js?v=23');
   scene = createScene($('#scene'), {
     motion,
     onSelect: select,
@@ -348,6 +352,8 @@ try {
   themeKey = '';
   refreshAtmosphere();
   scene.lamp(lamp);
+  // 露娜的动画模块（luna.js）用：场景、当前时段、物件在屏幕上的位置
+  window.zxStation = { scene, mood: () => mood, anchor: (id) => projected[id] };
   // 只包含原型状态的检查入口，无正式数据或网络请求。
   window.zhixuWorkstation = {
     stats: () => scene.stats(),

@@ -9,6 +9,15 @@
     <link rel="stylesheet" href="recall-gateway.css?v=17" />
     <link rel="stylesheet" href="recall-terminal.css?v=17" />
     <link rel="stylesheet" href="recall-workbench.css?v=17b" />
+    <link rel="stylesheet" href="sandbox/passage.css?v=18" />
+    <script>
+      // 从工作台经竖井下来：页面先用井壁色盖住，等竖井挂上再揭开（sandbox/passage.js）
+      try {
+        const p = JSON.parse(sessionStorage.getItem('zhixu-passage') || 'null');
+        if (p && /^(lab|review|workstation)$/.test(p.to) && Date.now() - p.at < 8000)
+          document.documentElement.classList.add('passage-in');
+      } catch {}
+    </script>
   </head>
   <body>
     <section id="spine" class="stage" aria-label="复习区">
@@ -181,6 +190,12 @@
             ><span class="go">脊髓信号接入中</span><span class="hold">正在载入脊柱…</span></span
           >
         </div>
+        <ol class="ps-floors" aria-hidden="true">
+          <li data-level="1"><b>2F</b><span>研究员工作台</span></li>
+          <li data-level="0"><b>1F</b><span>实验室</span></li>
+          <li data-level="-1"><b>B1</b><span>复习区</span></li>
+          <i class="ps-car"></i>
+        </ol>
         <div class="shaft-read">
           <span>SHAFT · LAB-01 ⇣ RECALL</span>
           <strong>−<span id="shaft-depth">000</span><em>M</em></strong>
@@ -212,6 +227,6 @@
         }
       });
     </script>
-    <script type="module" src="recall-spine.js?v=17"></script>
+    <script type="module" src="recall-spine.js?v=18"></script>
   </body>
 </html>

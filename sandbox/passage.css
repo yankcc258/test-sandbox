@@ -1,0 +1,289 @@
+/* 三个区域之间的竖井（露娜）。和 recall-gateway.css 同一种语言：深色井壁、深度刻度、脊髓光、横向薄片。 */
+.passage {
+  --fall: 0;
+  --seam: 0;
+  --shaft: 0;
+  --arrive: 0;
+  --depth-px: 0px;
+  --ps-ink: #e8ebe4;
+  --ps-muted: #8d978f;
+  --ps-tissue: #9cc2b9;
+  --ps-accent: #c9e755;
+  --ps-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --ps-sans:
+    'Inter', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  overflow: hidden;
+  color: var(--ps-ink);
+  font-family: var(--ps-sans);
+  pointer-events: auto;
+}
+/* 换页后、竖井还没挂上之前，先用同一种井壁底色盖住页面，不闪出半截内容 */
+html.passage-in body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 3999;
+  background: linear-gradient(90deg, #0b0e0f, #121618 30%, #121618 70%, #0b0e0f);
+}
+.ps-shaft {
+  position: absolute;
+  inset: 0;
+  opacity: var(--shaft);
+  background:
+    radial-gradient(ellipse 34% 60% at 50% 50%, #1d2427 0%, transparent 70%),
+    linear-gradient(90deg, #0b0e0f 0%, #121618 30%, #121618 70%, #0b0e0f 100%);
+}
+.ps-walls {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      to bottom right,
+      transparent calc(50% - 0.5px),
+      #e8ebe414 50%,
+      transparent calc(50% + 0.5px)
+    ),
+    linear-gradient(
+      to bottom left,
+      transparent calc(50% - 0.5px),
+      #e8ebe414 50%,
+      transparent calc(50% + 0.5px)
+    );
+  mask: radial-gradient(circle at 50% 50%, transparent 8%, #000 60%);
+}
+.ps-scale {
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  width: 54px;
+  background:
+    repeating-linear-gradient(#e8ebe466 0 1px, transparent 1px 120px) 0 var(--depth-px) / 100% 120px,
+    repeating-linear-gradient(#e8ebe426 0 1px, transparent 1px 24px) 0 var(--depth-px) / 40% 24px;
+  background-repeat: repeat-y;
+  mask: linear-gradient(transparent, #000 22%, #000 78%, transparent);
+}
+.ps-scale.l {
+  left: 22%;
+}
+.ps-scale.r {
+  right: 22%;
+  transform: scaleX(-1);
+}
+.ps-cord {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  opacity: calc(var(--shaft) * 0.85);
+  background: linear-gradient(
+    transparent,
+    var(--ps-tissue) 30%,
+    var(--ps-accent) 52%,
+    var(--ps-tissue) 74%,
+    transparent
+  );
+  box-shadow: 0 0 12px #9cc2b9aa;
+}
+.ps-arrive {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  opacity: var(--arrive);
+  text-align: center;
+}
+.ps-arrive small {
+  font: 600 10px var(--ps-mono);
+  letter-spacing: 0.2em;
+  color: var(--ps-tissue);
+}
+.ps-arrive b {
+  font-size: 34px;
+  font-weight: 300;
+  letter-spacing: 0.12em;
+}
+.ps-arrive .ps-state {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--ps-muted);
+}
+.passage:not(.holding) .ps-state .hold,
+.passage.holding .ps-state .go {
+  display: none;
+}
+.ps-read {
+  position: absolute;
+  left: 52px;
+  bottom: 48px;
+  display: grid;
+  gap: 6px;
+  font: 600 10px/1.4 var(--ps-mono);
+  letter-spacing: 0.14em;
+  color: var(--ps-muted);
+}
+.ps-read strong {
+  font: 300 44px/1 var(--ps-sans);
+  letter-spacing: 0.04em;
+  color: var(--ps-ink);
+}
+.ps-read strong::after {
+  content: ' M';
+  font: 600 11px var(--ps-mono);
+  color: var(--ps-muted);
+}
+/* 楼层表：右侧竖排，2F 在上、B1 在下，小方块跟着当前高度走 */
+.ps-floors {
+  --gap: 46px;
+  --ps-ink: #e8ebe4;
+  --ps-accent: #c9e755;
+  --ps-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  color: var(--ps-ink);
+  position: absolute;
+  right: 52px;
+  top: 50%;
+  translate: 0 -50%;
+  display: grid;
+  gap: calc(var(--gap) - 20px);
+  margin: 0;
+  padding: 0 0 0 22px;
+  border-left: 1px solid #e8ebe42a;
+  list-style: none;
+}
+.ps-floors li {
+  --lit: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  height: 20px;
+  opacity: calc(0.35 + 0.65 * var(--lit));
+}
+.ps-floors b {
+  width: 22px;
+  font: 600 12px var(--ps-mono);
+  color: color-mix(in srgb, var(--ps-accent) calc(var(--lit) * 100%), var(--ps-ink));
+}
+.ps-floors span {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+.ps-car {
+  --level: 0;
+  position: absolute;
+  left: -4px;
+  top: calc((1 - var(--level)) * var(--gap) + 3px);
+  width: 7px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--ps-accent);
+  box-shadow: 0 0 10px var(--ps-accent);
+}
+/* 薄片：--o 0 = 平铺成完整画面，1 = 翻成侧面 */
+.ps-blinds {
+  --h: calc(100vh / var(--n));
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+  transform: translateY(calc(var(--fall) * -30%))
+    scale(calc(1 + max(var(--fall), calc(var(--fall) * -1)) * 0.2));
+  perspective: 1400px;
+}
+@supports (height: 100dvh) {
+  .ps-blinds {
+    --h: calc(100dvh / var(--n));
+  }
+}
+.ps-strip {
+  --o: 0;
+  --glint: 0;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--j) * var(--h));
+  height: calc(var(--h) + 1px);
+  overflow: hidden;
+  transform: rotateX(calc(var(--o) * var(--dir) * 88deg));
+  opacity: calc(1 - var(--o) * var(--o));
+}
+.ps-strip > i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--j) * var(--h) * -1);
+  height: calc(var(--h) * var(--n));
+  background:
+    var(--ps-img, none) var(--ps-pos, 0 0) / var(--ps-size, auto) no-repeat,
+    var(--ps-bg, #15191b);
+  filter: brightness(calc(1 - var(--o) * 0.55));
+}
+.ps-strip::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--ps-accent) 30%,
+    var(--ps-ink) 50%,
+    var(--ps-accent) 70%,
+    transparent
+  );
+  opacity: calc(var(--glint) * 0.7);
+}
+.ps-seam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  opacity: var(--seam);
+  transform: scaleX(var(--seam));
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--ps-accent) 25%,
+    #f2f6e8 50%,
+    var(--ps-accent) 75%,
+    transparent
+  );
+  box-shadow:
+    0 0 18px #c9e755aa,
+    0 0 60px #c9e75555;
+}
+@media (max-width: 760px) {
+  .ps-read {
+    left: 18px;
+    bottom: 28px;
+  }
+  .ps-read strong {
+    font-size: 34px;
+  }
+  .ps-scale.l {
+    left: 8%;
+  }
+  .ps-scale.r {
+    right: 8%;
+  }
+  .ps-floors {
+    right: 18px;
+    top: 26%;
+    --gap: 38px;
+  }
+  .ps-floors span {
+    display: none;
+  }
+  .ps-arrive b {
+    font-size: 26px;
+  }
+}

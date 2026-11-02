@@ -10,7 +10,8 @@
     "check:terminal": "node scripts/check-terminal.mjs",
     "check:workstation": "node scripts/check-workstation.mjs",
     "check:links": "node scripts/check-links.mjs",
-    "check": "npm run check:pulse && npm run check:experience && npm run check:terminal && npm run check:workstation && npm run check:links"
+    "check:motion": "node scripts/check-motion.mjs",
+    "check": "npm run check:pulse && npm run check:experience && npm run check:terminal && npm run check:workstation && npm run check:links && npm run check:motion"
   },
   "devDependencies": {
     "meshoptimizer": "1.3.0"

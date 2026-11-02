@@ -392,3 +392,13 @@ details.gateway > nav i {
     font-size: 9px;
   }
 }
+
+/* 从工作台下来时竖井已经不透明，没有实验室薄片可翻 */
+.lab-gate.no-blinds .lab-blinds,
+.lab-gate.no-blinds .lab-seam {
+  visibility: hidden;
+}
+/* 楼层表（样式在 sandbox/passage.css），实验室 ⇄ 复习区时只在 1F 与 B1 之间走 */
+.lab-shaft .ps-floors {
+  opacity: var(--shaft);
+}
