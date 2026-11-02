@@ -1,6 +1,6 @@
 import * as T from '../vendor/three/three.module.min.js';
-import { buildWorkstation } from './model.js?v=21';
-import { createStudioEnvironment } from './surfaces.js?v=21';
+import { buildWorkstation } from './model.js?v=22';
+import { createStudioEnvironment } from './surfaces.js?v=22';
 
 export function createScene(canvas, { onSelect, onProject, motion = true }) {
   const renderer = new T.WebGLRenderer({

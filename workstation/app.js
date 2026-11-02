@@ -1,3 +1,4 @@
+import { toolPreviews, toolOverview, toolScreenshot } from './tools.js?v=22';
 import { atmosphere, createFocusTimer } from './atmosphere.js';
 
 const $ = (s) => document.querySelector(s);
@@ -12,7 +13,8 @@ let scene = null,
   lastFocus = null,
   panelAnimation = null,
   closing = false,
-  tab = 'today';
+  tab = 'tools',
+  previewTool = null;
 let notes = '',
   themeKey = '',
   projected = {};
@@ -50,7 +52,7 @@ function diagram(type = 'material') {
 }
 function tabletPage() {
   body.innerHTML =
-    '<div class="tablet-layout"><nav class="tablet-tabs" aria-label="个人终端页面"><small>PERSONAL / 03</small><button data-tab="today"><small>01</small>今日概览</button><button data-tab="focus"><small>02</small>专注时段</button><button data-tab="notes"><small>03</small>随手记</button><p>把复杂的世界，<br>拆成今天能弄懂的<br>一小步。</p></nav><section class="tablet-page" id="tablet-page"></section></div>';
+    '<div class="tablet-layout"><nav class="tablet-tabs" aria-label="个人终端页面"><small>PERSONAL / 03</small><button data-tab="today"><small>01</small>今日概览</button><button data-tab="tools"><small>02</small>个人工具</button><button data-tab="focus"><small>03</small>专注试用</button><button data-tab="notes"><small>04</small>随手记</button><p>把复杂的世界，<br>拆成今天能弄懂的<br>一小步。</p></nav><section class="tablet-page" id="tablet-page"></section></div>';
   renderTab();
 }
 function renderTab() {
@@ -58,14 +60,17 @@ function renderTab() {
     .querySelectorAll('[data-tab]')
     .forEach((b) => b.setAttribute('aria-current', b.dataset.tab === tab ? 'page' : 'false'));
   const page = $('#tablet-page');
-  if (tab === 'today') {
+  page.classList.toggle('tools-page', tab === 'tools');
+  if (tab === 'tools') {
+    page.innerHTML = previewTool ? toolScreenshot(previewTool) : toolOverview();
+  } else if (tab === 'today') {
     const now = new Date();
     page.innerHTML =
       '<small class="eyebrow">PERSONAL RESEARCH / 工作概览</small><h3>从一个问题开始。</h3><p class="lede">读一段材料，留下一点思考。<br>让好奇心有一个可以停靠、也可以继续出发的位置。</p><div class="today-strip"><time>' +
       dateFormatter.format(now).replace('月', '.').replace('日', '') +
       '</time><div><strong>' +
       weekdays.format(now) +
-      ' · 东京</strong>当前日期 / 个人研究时段</div></div><div class="quick-actions"><button data-tab="focus"><strong>留出一段专注时间 ↗</strong><small>25 分钟 · 可暂停、可继续</small></button><button data-tab="notes"><strong>记下此刻的问题 ↗</strong><small>一张留在本次页面里的便笺</small></button></div><p class="tool-index">个人工具预留位置<br><span>课表</span><span>论文</span><span>健康</span><span>备考</span><span>出愿</span><span>陪学</span></p>';
+      ' · 东京</strong>当前日期 / 个人研究时段</div></div><div class="quick-actions"><button data-tab="focus"><strong>留出一段专注时间 ↗</strong><small>25 分钟 · 可暂停、可继续</small></button><button data-tab="notes"><strong>记下此刻的问题 ↗</strong><small>一张留在本次页面里的便笺</small></button></div><div class="tool-shortcuts"><button data-tab="tools">个人工具 · 七项界面预览 ↗</button></div>';
   } else if (tab === 'focus') {
     page.innerHTML =
       '<small class="eyebrow">FOCUS / 只做眼前这一件事</small><h3>给思考一点完整的时间。</h3><div class="timer" id="timer" role="timer" aria-label="剩余专注时间">25:00</div><div class="actions"><button class="primary" id="timer-toggle">开始专注</button><button id="timer-reset">重新计时</button></div><p class="subtle" id="timer-status" role="status">此计时仅用于范本体验，不会写入学习记录。</p>';
@@ -91,7 +96,7 @@ function content(id) {
       common +
       '<small class="eyebrow">RESEARCH NOTE / 001 · 设计手记</small><h3>连接材料，连接记忆。</h3><p>学习让知识进入，复习让连接留下。工作台把这些连接带回一个人的日常：一张正在读的纸，一个尚未完成的问题，一扇可以望向天空的窗。</p>' +
       diagram() +
-      '<h4>01 / 结构与生命</h4><p>脊柱区的骨架承担记忆的组织，工作台上的材料试样则把同样的关系缩小到手边。研究的对象清楚可见，周围留给人操作和思考的空间。</p><h4>02 / 计算与记录</h4><p>平板沿用复习区的深色玻璃和细线层级。研究、专注与便笺在同一个终端里展开，返回时仍然坐在原来的桌前。</p><h4>03 / 向天空提问</h4><p>窗台上的纸飞机还没有出发。视线越过桌面和地平线，先把一个问题留给远方。</p><p class="subtle">本篇为范本中的原创示例手记。</p></article>';
+      '<h4>01 / 结构与生命</h4><p>脊柱区的骨架承担记忆的组织，工作台上的材料试样则把同样的关系缩小到手边。研究的对象清楚可见，周围留给人操作和思考的空间。</p><h4>02 / 计算与记录</h4><p>平板沿用复习区的深色玻璃和细线层级。研究、专注与便笺在同一个终端里展开，返回时仍然坐在原来的桌前。</p><h4>03 / 向天空提问</h4><p>窗台上的纸飞机还没有出发。视线越过桌面和地平线，先把一个问题留给远方。</p><p class="subtle">本篇为范本中的原创示例手记。</p><button class="paper-preview-link" data-preview="papers">每周论文 · 界面预览 ↗</button></article>';
   if (id === 'sky')
     body.innerHTML =
       common +
@@ -101,7 +106,7 @@ function content(id) {
   if (id === 'about')
     body.innerHTML =
       common +
-      '<small class="eyebrow">ZHIXU / 03 · WORKSTATION</small><h3>研究，也是一种生活。</h3><p>这是一处与实验室、脊柱区共用石墨、象牙白和钛金属的个人研究空间。窗外随东京时段轻微变化，平板、手记与材料试样承载桌前的日常。</p><h4>这一版可以体验</h4><p>拖动观察空间，打开平板和研究手记，查看材料试样，切换台灯，预览晨光、黄昏与深夜。平板中的专注计时与便笺可以实际使用，但不写入正式数据。</p><h4>仍在设计中</h4><p>工作台与实验室、脊柱区的连续镜头，纸飞机到星空的过渡，以及个人工具的正式数据接入。</p><a class="action-link" href="../">返回沙盒目录 ↗</a></article>';
+      '<small class="eyebrow">ZHIXU / 03 · WORKSTATION</small><h3>研究，也是一种生活。</h3><p>这是一处与实验室、脊柱区共用石墨、象牙白和钛金属的个人研究空间。窗外随东京时段轻微变化，平板、手记与材料试样承载桌前的日常。</p><h4>这一版可以体验</h4><p>拖动观察空间，打开平板和研究手记，查看材料试样，切换台灯，预览晨光、黄昏与深夜。平板的“个人工具”可以查看课表、番茄钟、餐盘、日历、论文、希可和特蕾莎陪学的界面截图。另有专注试用与便笺可以实际使用，但不写入正式数据。</p><h4>仍在设计中</h4><p>工作台与实验室、脊柱区的连续镜头，纸飞机到星空的过渡，以及个人工具的正式数据接入。</p><a class="action-link" href="../">返回沙盒目录 ↗</a></article>';
   if (id === 'art')
     body.innerHTML =
       '<article class="art-gallery"><p class="lede">把研究对象留在桌上，把尚未回答的问题挂在墙上。</p><div class="art-pair"><figure><img src="art/continuum.png" alt="连续体：象牙色曲面与细密分枝交织的原创抽象画" width="1086" height="1448" /><figcaption><small>01 / CONTINUUM</small><h3>连续体</h3><p>形态折转，连接延伸。生命与材料之间，一条尚未闭合的思路。</p></figcaption></figure><figure><img src="art/distant-field.png" alt="远场：深青灰色空间中的轨迹、薄膜与远方天体" width="1086" height="1448" /><figcaption><small>02 / DISTANT FIELD</small><h3>远场</h3><p>从一段轨迹望向远处。计算、生命与天空，共用同一个未完成的问题。</p></figcaption></figure></div><p class="subtle">ZHIXU · 2026 · 原创生成作品</p></article>';
@@ -121,6 +126,11 @@ function animatePanel(opening, id) {
   return panelAnimation.finished.catch(() => {});
 }
 function select(id, trigger) {
+  if (id === 'seeko') {
+    tab = 'tools';
+    previewTool = 'seeko';
+    id = 'tablet';
+  }
   if (id === 'lamp') return toggleLamp();
   if (!sections[id]) return;
   if (closing) {
@@ -267,9 +277,26 @@ document.querySelectorAll('[data-mood]').forEach((b) =>
 body.addEventListener('click', (e) => {
   const target = e.target.closest('button');
   if (!target) return;
+  if (target.dataset.preview && toolPreviews.some((t) => t.id === target.dataset.preview)) {
+    previewTool = target.dataset.preview;
+    tab = 'tools';
+    if (active === 'tablet') renderTab();
+    else select('tablet');
+    body.scrollTop = 0;
+    $('#preview-title')?.focus({ preventScroll: true });
+  }
+  if (target.hasAttribute('data-preview-back')) {
+    const previous = previewTool;
+    previewTool = null;
+    renderTab();
+    body.scrollTop = 0;
+    body.querySelector('[data-preview="' + previous + '"]')?.focus();
+  }
   if (target.dataset.tab) {
     tab = target.dataset.tab;
+    if (tab === 'tools') previewTool = null;
     renderTab();
+    body.scrollTop = 0;
     document.querySelector('.tablet-tabs [data-tab="' + tab + '"]')?.focus();
   }
   if (target.id === 'timer-toggle') {
@@ -301,7 +328,7 @@ document.addEventListener('visibilitychange', () => {
 try {
   await document.fonts.ready;
   if (params.get('view') === 'fallback') throw new Error('Fallback preview');
-  const { createScene } = await import('./scene.js?v=21');
+  const { createScene } = await import('./scene.js?v=22');
   scene = createScene($('#scene'), {
     motion,
     onSelect: select,

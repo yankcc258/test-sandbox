@@ -1,5 +1,5 @@
 import * as T from '../vendor/three/three.module.min.js';
-import { profiledShell } from './forms.js?v=21';
+import { profiledShell } from './forms.js?v=22';
 
 export const ARTWORKS = [
   {

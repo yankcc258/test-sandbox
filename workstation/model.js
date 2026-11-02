@@ -1,9 +1,9 @@
 import * as T from '../vendor/three/three.module.min.js';
-import { createMaterials, roundedBox, manifoldGeometry } from './surfaces.js?v=21';
-import { tabletShell, instrumentCase, taskLamp, ribbonSupport } from './forms.js?v=21';
-import { addWallArt } from './wall-art.js?v=21';
-import { contactShadow } from './contact.js?v=21';
-import { createWindowSky } from './sky.js?v=21';
+import { createMaterials, roundedBox, manifoldGeometry } from './surfaces.js?v=22';
+import { tabletShell, instrumentCase, taskLamp, ribbonSupport } from './forms.js?v=22';
+import { addWallArt } from './wall-art.js?v=22';
+import { contactShadow } from './contact.js?v=22';
+import { createWindowSky } from './sky.js?v=22';
 
 // 原创程序几何。各物件独立成组，后续区域镜头可直接使用 anchors / focus。
 export function buildWorkstation(scene, { onChange = () => {} } = {}) {
@@ -247,7 +247,7 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
       c.fillText('好奇心，仍在继续。', 60, 172);
       c.font = '21px sans-serif';
       c.fillStyle = '#a2afa6';
-      c.fillText('今日  /  专注  /  随手记', 62, 223);
+      c.fillText('课表  /  日历  /  研究  /  陪学', 62, 223);
       c.strokeStyle = '#354640';
       c.beginPath();
       c.moveTo(60, 260);
@@ -260,7 +260,7 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
       c.fillText('从一个问题开始', 60, 375);
       c.fillStyle = '#8b9c92';
       c.font = '20px sans-serif';
-      c.fillText('打开个人终端  ↗', 60, 460);
+      c.fillText('打开个人工具  ↗', 60, 460);
       c.strokeStyle = '#8a9c90';
       c.lineWidth = 1.2;
       for (let j = 0; j < 14; j++) {
@@ -587,7 +587,8 @@ export function buildWorkstation(scene, { onChange = () => {} } = {}) {
     true,
   );
   for (const x of [-0.78, 0.78]) fastener(home, x, 0.86, 0.657, 0.022);
-  label(home, 'XIKE / REST', -0.47, 0.84, 0.66, 0.85, '#859589');
+  label(home, 'SEEKO / REST', -0.47, 0.84, 0.66, 0.85, '#859589');
+  hit('seeko', home, [1.9, 1.2, 1.65], [0, 0.5, 0]);
   for (let i = 0; i < 7; i++)
     box(home, 'nook-vent', [0.08, 0.012, 0.015], [-0.3 + i * 0.1, 0.71, -0.541], materials.dark);
   const shelf = box(root, 'book-shelf', [1.7, 0.075, 1.0], [4.6, 3.95, -3.0], materials.titanium);

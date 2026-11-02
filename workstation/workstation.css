@@ -1283,3 +1283,318 @@ body.motion-off *::after {
   transition: none !important;
   animation: none !important;
 }
+
+/* Personal tools: the preview stays inside the same glass terminal. */
+.tablet-page.tools-page {
+  padding: 28px 32px 26px;
+  min-width: 0;
+}
+.tools-heading {
+  position: relative;
+  margin-bottom: 19px;
+}
+.tools-heading h3 {
+  font-size: 26px;
+  margin: 10px 0;
+}
+.tools-heading .lede {
+  margin: 0;
+  font-size: 12px;
+}
+.tools-heading > .preview-label {
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+.preview-label {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #a8b99835;
+  border-radius: 20px;
+  color: #b8c7aa;
+  padding: 5px 10px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.tool-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  min-width: 0;
+  padding: 15px;
+  background: linear-gradient(135deg, #c5d9c209, #9db6b803);
+  border: 1px solid #a9c5b52b;
+  border-radius: 5px;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+.tool-card:hover,
+.tool-card:focus-visible {
+  background: #bbceb912;
+  border-color: #b5c49b80;
+}
+.tool-number {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font: 11px var(--mono);
+  color: #a2b8a9;
+}
+.tool-number i {
+  font-style: normal;
+  color: #a5b5a1;
+}
+.tool-card > small {
+  font: 8px var(--mono);
+  letter-spacing: 0.12em;
+  color: #a1b39e;
+}
+.tool-card > strong {
+  display: block;
+  margin-top: 7px;
+  font-size: 16px;
+  font-weight: 450;
+  color: #e0e6d7;
+}
+.tool-card p {
+  margin: 9px 0 0;
+  font-size: 11px;
+  line-height: 1.8;
+  color: #9aada2;
+}
+.tool-card-foot {
+  display: none;
+}
+.tools-note {
+  color: #91a399;
+  font-size: 11px;
+  line-height: 1.8;
+  margin: 20px 0 0;
+}
+.preview-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 19px;
+}
+.preview-toolbar > button {
+  font-size: 12px;
+  padding: 8px 0;
+  color: #cad3bd;
+}
+.preview-toolbar > span:nth-child(2) {
+  font: 10px var(--mono);
+  color: #8d9f94;
+}
+.preview-toolbar .preview-label {
+  margin-left: auto;
+}
+.preview-heading h3 {
+  font-size: 25px;
+  margin: 8px 0;
+}
+.preview-heading p {
+  color: #9eaea1;
+  font-size: 12px;
+  margin: 0 0 21px;
+}
+.tool-screenshot {
+  margin: 0;
+}
+.tool-screenshot picture {
+  display: block;
+  overflow: hidden;
+  border: 1px solid #b1c2b333;
+  border-radius: 5px;
+  background: #172023;
+  box-shadow: 0 10px 26px #0003;
+}
+.tool-screenshot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.tool-screenshot figcaption {
+  margin-top: 12px;
+  font-size: 10px;
+  line-height: 1.7;
+  color: #91a399;
+}
+.preview-pagination {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  border-top: 1px solid #a4beb222;
+  margin-top: 20px;
+  padding-top: 12px;
+}
+.preview-pagination button {
+  font-size: 11px;
+  line-height: 1.7;
+  padding: 9px 0;
+  color: #bfccae;
+}
+.preview-pagination button:last-child {
+  text-align: right;
+}
+.tool-shortcuts {
+  border-top: 1px solid #a4beb22b;
+  margin-top: 28px;
+  padding-top: 22px;
+}
+.tool-shortcuts button,
+.paper-preview-link {
+  font-size: 13px;
+  color: #c1cda9;
+}
+.paper-preview-link {
+  padding: 12px 18px;
+  border: 1px solid #a5bc9b4a;
+  border-radius: 4px;
+  margin-top: 18px;
+}
+@media (min-width: 901px) {
+  .tool-card:last-child {
+    grid-column: span 2;
+  }
+}
+@media (max-width: 900px) {
+  .tools-heading > .preview-label {
+    position: static;
+    margin-top: 14px;
+  }
+  .tool-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 699px) {
+  .tablet-page.tools-page {
+    padding: 22px 17px;
+  }
+  .tablet-tabs {
+    gap: 4px;
+    padding: 10px 9px;
+  }
+  .tablet-tabs button {
+    padding: 10px 5px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .tablet-tabs button small {
+    display: none;
+  }
+  .tools-heading h3 {
+    font-size: 24px;
+  }
+  .tool-grid {
+    gap: 9px;
+  }
+  .tool-card {
+    padding: 14px 12px;
+  }
+  .tool-card > strong {
+    font-size: 14px;
+  }
+  .tool-card > small {
+    font-size: 7px;
+    letter-spacing: 0.07em;
+  }
+  .tool-card p {
+    font-size: 10px;
+  }
+  .preview-toolbar {
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .preview-toolbar .preview-label {
+    font-size: 9px;
+    padding: 4px 8px;
+  }
+  .preview-heading h3 {
+    font-size: 23px;
+  }
+  .preview-heading p {
+    line-height: 1.8;
+  }
+  .tool-screenshot {
+    margin: 0 -5px;
+  }
+  .hotspots button[data-object='seeko'] {
+    display: none;
+  }
+}
+
+.preview-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 15px;
+}
+.preview-heading .eyebrow {
+  display: none;
+}
+.preview-heading h3 {
+  font-size: 18px;
+  margin: 0;
+}
+.preview-heading p {
+  margin: 0;
+  font-size: 11px;
+}
+.preview-original {
+  color: #bccbab;
+  font-size: 10px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.preview-original:hover {
+  text-decoration: underline;
+}
+.mobile-original {
+  display: none;
+}
+@media (max-width: 699px) {
+  .preview-heading {
+    display: block;
+  }
+  .preview-heading h3 {
+    font-size: 21px;
+    margin-bottom: 8px;
+  }
+  .preview-toolbar {
+    gap: 9px;
+  }
+  .preview-toolbar > span:nth-child(2) {
+    display: none;
+  }
+  .preview-toolbar .preview-label {
+    margin-left: auto;
+  }
+  .desktop-original {
+    display: none;
+  }
+  .mobile-original {
+    display: inline;
+  }
+}
+
+/* Keep the terminal navigation reachable while reading a tall preview. */
+.tablet-tabs {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  z-index: 2;
+}
+@media (max-width: 699px) {
+  .tablet-tabs {
+    background: #1c272af5;
+  }
+}

@@ -7,6 +7,7 @@ const queue = [
   'index.html',
   'recall.html',
   'workstation/index.html',
+  'workstation/previews/source.html',
   'preview/index.html',
   'docs/index.html',
   'preview/starfield/index.html',
