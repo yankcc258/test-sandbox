@@ -5,15 +5,77 @@
 // 飞行器都是我们自己画的俯视剪影（机头朝上），火箭是侧视；不用任何航空公司、机构的涂装和标志。
 import { atmosphere } from './atmosphere.js';
 
+// 各个世代有代表性的飞行器（高度是这段飞行里的高度，用来讲「越飞越高」，不是各自的纪录）
 const STAGES = [
-  { id: 'paper', t: 0, year: '窗台', name: '纸飞机', alt: 1 },
-  { id: 'flyer', t: 1.9, year: '1903', name: '飞行者一号', alt: 30 },
-  { id: 'twin', t: 3.4, year: '1930s', name: '双螺旋桨客机', alt: 3000 },
-  { id: 'jet', t: 4.9, year: '1950s', name: '喷气客机', alt: 11000 },
-  { id: 'shuttle', t: 6.4, year: '1981', name: '航天飞机', alt: 100000 },
-  { id: 'rocket', t: 7.6, year: '今天', name: '运载火箭', alt: 400000 },
+  { id: 'paper', t: 0, year: '窗台', name: '纸飞机', note: '从桌前出发', alt: 1 },
+  {
+    id: 'balloon',
+    t: 1.2,
+    year: '1783',
+    name: '热气球',
+    note: '蒙戈尔菲耶兄弟 · 人类第一次升空',
+    alt: 300,
+  },
+  {
+    id: 'flyer',
+    t: 2.3,
+    year: '1903',
+    name: '飞行者一号',
+    note: '莱特兄弟 · 第一次有动力的持续飞行',
+    alt: 600,
+  },
+  {
+    id: 'spirit',
+    t: 3.4,
+    year: '1927',
+    name: '圣路易斯精神号',
+    note: '林德伯格 · 第一次单人不着陆飞越大西洋',
+    alt: 1500,
+  },
+  {
+    id: 'dc3',
+    t: 4.5,
+    year: '1936',
+    name: 'DC-3',
+    note: '让航空旅行走进日常的螺旋桨客机',
+    alt: 3000,
+  },
+  { id: 'x1', t: 5.6, year: '1947', name: 'X-1', note: '第一次在平飞中突破音障', alt: 13700 },
+  {
+    id: 'concorde',
+    t: 6.7,
+    year: '1969',
+    name: '协和式',
+    note: '以两倍音速载客的超音速客机',
+    alt: 18000,
+  },
+  {
+    id: 'saturn',
+    t: 7.8,
+    year: '1969',
+    name: '土星五号',
+    note: '把阿波罗 11 号送往月球',
+    alt: 67000,
+  },
+  {
+    id: 'shuttle',
+    t: 8.9,
+    year: '1981',
+    name: '航天飞机',
+    note: '第一种可部分重复使用的航天器',
+    alt: 110000,
+  },
+  {
+    id: 'cz2f',
+    t: 10.0,
+    year: '2003',
+    name: '长征二号F',
+    note: '神舟五号 · 中国第一次载人航天',
+    alt: 343000,
+  },
 ];
-export const FLIGHT = { total: 9.8, morph: 0.45, out: 8.4 };
+// env：天色、云、星星、地球边缘的时间表按这个倍数拉长（第一版是 6 种飞行器，现在 10 种）
+export const FLIGHT = { total: 12.6, morph: 0.45, out: 10.8, env: 1.32 };
 const KEY = 'zhixu-flight';
 
 // ---------- 剪影（200 × 200 的格子，机头朝上，左右对称） ----------
@@ -75,6 +137,33 @@ const shapes = () =>
       ],
       line: [line([100, 10], [100, 182]), line([100, 10], [110, 152]), line([100, 10], [90, 152])],
     },
+    // 侧视：梨形气囊、横向装饰带、下面的吊篮和火光
+    balloon: {
+      fill: [
+        (() => {
+          const p = new Path2D();
+          p.moveTo(100, 12);
+          p.bezierCurveTo(162, 12, 164, 92, 128, 126);
+          p.lineTo(116, 148);
+          p.lineTo(84, 148);
+          p.lineTo(72, 126);
+          p.bezierCurveTo(36, 92, 38, 12, 100, 12);
+          p.closePath();
+          return p;
+        })(),
+        rect(82, 150, 118, 160, 2),
+      ],
+      dark: [rect(52, 58, 148, 66), rect(62, 100, 138, 106)],
+      line: [
+        line([100, 12], [100, 148]),
+        line([100, 12], [80, 60], [86, 120], [92, 148]),
+        line([100, 12], [120, 60], [114, 120], [108, 148]),
+        line([84, 148], [86, 150]),
+        line([116, 148], [114, 150]),
+      ],
+      dot: [100, 156],
+    },
+    // 俯视：上下两层长翼、前方的升降舵、后方双方向舵、两副推进式螺旋桨
     flyer: {
       fill: [
         rect(16, 90, 184, 108, 2),
@@ -93,15 +182,33 @@ const shapes = () =>
       ],
       dot: [100, 100],
     },
-    twin: {
+    // 俯视：上单翼、长机身、机头一副螺旋桨
+    spirit: {
+      fill: [
+        rect(14, 66, 186, 88, 10),
+        fuselage(38, 182, 9),
+        poly(
+          mirror([
+            [100, 160],
+            [130, 162],
+            [134, 170],
+            [128, 176],
+            [100, 176],
+          ]),
+        ),
+      ],
+      line: [line([72, 34], [128, 34]), line([100, 66], [100, 88])],
+    },
+    // 俯视：梯形下单翼、两台发动机和螺旋桨、圆润的尾翼
+    dc3: {
       fill: [
         fuselage(12, 190, 10),
         poly(
           mirror([
             [100, 76],
-            [186, 90],
-            [186, 99],
-            [100, 106],
+            [186, 94],
+            [186, 103],
+            [100, 110],
           ]),
         ),
         poly(
@@ -109,89 +216,211 @@ const shapes = () =>
             [100, 166],
             [134, 172],
             [134, 180],
-            [100, 182],
+            [100, 184],
           ]),
         ),
-        rect(131, 60, 141, 100, 4),
-        rect(59, 60, 69, 100, 4),
+        rect(129, 62, 139, 102, 4),
+        rect(61, 62, 71, 102, 4),
       ],
-      line: [line([118, 58], [154, 58]), line([46, 58], [82, 58])],
+      line: [line([116, 60], [152, 60]), line([48, 60], [84, 60])],
     },
-    jet: {
+    // 俯视：子弹形机身、短而薄的平直机翼
+    x1: {
       fill: [
-        fuselage(8, 192, 8.5),
         poly(
           mirror([
-            [100, 80],
-            [188, 128],
-            [188, 136],
-            [150, 128],
-            [100, 118],
+            [100, 8],
+            [106, 22],
+            [111, 50],
+            [111, 172],
+            [104, 190],
+            [100, 190],
+          ]),
+        ),
+        poly(
+          mirror([
+            [100, 92],
+            [166, 98],
+            [166, 108],
+            [100, 116],
           ]),
         ),
         poly(
           mirror([
             [100, 160],
-            [138, 184],
-            [138, 189],
-            [100, 182],
+            [132, 166],
+            [132, 174],
+            [100, 178],
           ]),
         ),
-        rect(127, 98, 135, 118, 3),
-        rect(155, 114, 162, 130, 3),
-        rect(65, 98, 73, 118, 3),
-        rect(38, 114, 45, 130, 3),
       ],
-      line: [line([100, 30], [100, 176])],
+      line: [line([89, 34], [111, 34])],
     },
-    shuttle: {
-      fill: [
-        poly(
-          mirror([
-            [100, 6],
-            [109, 14],
-            [113, 40],
-            [113, 64],
-            [124, 112],
-            [178, 176],
-            [176, 186],
-            [100, 186],
-          ]),
-        ),
-        rect(91, 186, 109, 193, 1),
-      ],
-      line: [line([113, 64], [113, 186]), line([87, 64], [87, 186]), line([100, 30], [100, 120])],
-      bells: [
-        [92, 196],
-        [108, 196],
-        [100, 199],
-      ],
-    },
-    rocket: {
+    // 俯视：修长的机身、尖头（下垂机鼻）、S 形前缘的大三角翼、翼下四台发动机
+    concorde: {
       fill: [
         poly(
           mirror([
             [100, 4],
-            [108, 18],
-            [112, 40],
-            [112, 172],
-            [100, 172],
+            [104, 16],
+            [107, 34],
+            [107, 192],
+            [100, 194],
           ]),
         ),
-        poly([
-          [112, 146],
-          [128, 178],
-          [112, 172],
-        ]),
-        poly([
-          [88, 146],
-          [72, 178],
-          [88, 172],
-        ]),
-        rect(93, 172, 107, 182, 1),
+        poly(
+          mirror([
+            [100, 62],
+            [110, 70],
+            [122, 98],
+            [140, 132],
+            [158, 160],
+            [174, 180],
+            [172, 187],
+            [100, 187],
+          ]),
+        ),
+        rect(112, 164, 121, 194, 2),
+        rect(125, 164, 134, 194, 2),
+        rect(79, 164, 88, 194, 2),
+        rect(66, 164, 75, 194, 2),
       ],
-      line: [line([88, 110], [112, 110]), line([88, 48], [112, 48])],
-      flame: true,
+      line: [line([95, 24], [105, 24])],
+    },
+    // 侧视：逃逸塔、指令舱、三级箭体（第一级黑白相间）、尾翼和五台发动机
+    saturn: {
+      fill: [
+        poly([
+          [100, 16],
+          [108, 30],
+          [92, 30],
+        ]),
+        rect(92, 30, 108, 40),
+        poly([
+          [92, 40],
+          [108, 40],
+          [112, 56],
+          [88, 56],
+        ]),
+        rect(88, 56, 112, 90),
+        rect(86, 92, 114, 138),
+        rect(86, 140, 114, 186),
+        poly([
+          [86, 168],
+          [76, 190],
+          [86, 186],
+        ]),
+        poly([
+          [114, 168],
+          [124, 190],
+          [114, 186],
+        ]),
+      ],
+      dark: [
+        rect(88, 74, 100, 90),
+        rect(100, 92, 114, 110),
+        rect(86, 140, 100, 160),
+        rect(100, 160, 114, 186),
+      ],
+      line: [line([100, 2], [100, 16]), line([96, 8], [104, 8])],
+      bells: [
+        [92, 192],
+        [100, 194],
+        [108, 192],
+      ],
+      flame: [[88, 112, 196]],
+    },
+    // 侧视：中间的外储箱、一侧的固体助推器、另一侧的轨道器（机鼻朝上、尾翼伸向外侧）
+    shuttle: {
+      fill: [
+        poly([
+          [100, 8],
+          [110, 26],
+          [110, 176],
+          [90, 176],
+          [90, 26],
+        ]),
+        poly([
+          [116, 22],
+          [120, 34],
+          [120, 188],
+          [112, 188],
+          [112, 34],
+        ]),
+        poly([
+          [80, 52],
+          [88, 64],
+          [88, 168],
+          [70, 168],
+          [70, 74],
+        ]),
+        poly([
+          [70, 136],
+          [52, 166],
+          [52, 174],
+          [70, 166],
+        ]),
+      ],
+      dark: [rect(91, 30, 109, 176)],
+      line: [line([70, 110], [88, 110])],
+      bells: [
+        [75, 174],
+        [83, 174],
+        [116, 194],
+      ],
+      flame: [
+        [70, 88, 176],
+        [112, 120, 190],
+      ],
+    },
+    // 侧视：逃逸塔、整流罩、芯级和两侧助推器（另外两台在背后）
+    cz2f: {
+      fill: [
+        poly([
+          [100, 14],
+          [110, 28],
+          [110, 60],
+          [90, 60],
+          [90, 28],
+        ]),
+        rect(92, 60, 108, 182),
+        poly([
+          [83, 92],
+          [88, 106],
+          [88, 184],
+          [78, 184],
+          [78, 106],
+        ]),
+        poly([
+          [117, 92],
+          [122, 106],
+          [122, 184],
+          [112, 184],
+          [112, 106],
+        ]),
+        poly([
+          [78, 172],
+          [70, 186],
+          [78, 184],
+        ]),
+        poly([
+          [122, 172],
+          [130, 186],
+          [122, 184],
+        ]),
+      ],
+      dark: [rect(92, 64, 108, 72), rect(92, 130, 108, 134)],
+      line: [line([100, 0], [100, 14]), line([95, 10], [105, 10]), line([90, 44], [110, 44])],
+      bells: [
+        [83, 190],
+        [100, 190],
+        [117, 190],
+      ],
+      flame: [
+        [78, 88, 186],
+        [92, 108, 184],
+        [112, 122, 186],
+      ],
     },
   });
 
@@ -240,7 +469,7 @@ export function createFlight({ motion, station }) {
     el.className = 'flight';
     el.setAttribute('role', 'dialog');
     el.setAttribute('aria-label', '纸飞机飞向星空');
-    el.innerHTML = `<canvas></canvas><div class="fl-read"><small>FLIGHT · 窗台 ⇡ 星空</small><strong data-alt>1 M</strong><span data-name></span></div><ol class="fl-stages" aria-hidden="true">${STAGES.map(
+    el.innerHTML = `<canvas></canvas><div class="fl-read"><small>FLIGHT · 窗台 ⇡ 星空</small><strong data-alt>1 M</strong><span data-name></span><em data-note></em></div><ol class="fl-stages" aria-hidden="true">${STAGES.map(
       (s) => `<li><b>${s.year}</b><span>${s.name}</span></li>`,
     ).join(
       '',
@@ -261,6 +490,7 @@ export function createFlight({ motion, station }) {
       ctx = canvas.getContext('2d'),
       altEl = el.querySelector('[data-alt]'),
       nameEl = el.querySelector('[data-name]'),
+      noteEl = el.querySelector('[data-note]'),
       items = [...el.querySelectorAll('.fl-stages li')];
     // 纸飞机在屏幕上的起点：窗台上那只的位置
     const from = window.zxStation?.anchor?.('sky') || {
@@ -308,17 +538,17 @@ export function createFlight({ motion, station }) {
       ctx.scale(s / 200, s / 200);
       ctx.translate(-100, -100);
       ctx.globalAlpha = alpha;
-      if (shape.flame) {
-        // 火焰：每帧轻微抖动的长焰
-        const len = 60 + Math.random() * 18,
-          g = ctx.createLinearGradient(0, 182, 0, 182 + len);
+      // 火焰：每帧轻微抖动的长焰（[左, 右, 喷口高度]，可以有几股）
+      for (const [x0, x1, y0] of shape.flame || []) {
+        const len = (x1 - x0) * (3.2 + Math.random() * 0.8),
+          g = ctx.createLinearGradient(0, y0, 0, y0 + len);
         g.addColorStop(0, 'rgba(255,248,220,0.95)');
         g.addColorStop(0.3, 'rgba(201,231,85,0.75)');
         g.addColorStop(1, 'rgba(201,231,85,0)');
         ctx.fillStyle = g;
         ctx.beginPath();
-        ctx.moveTo(93, 182);
-        ctx.quadraticCurveTo(100, 182 + len * 1.1, 107, 182);
+        ctx.moveTo(x0, y0);
+        ctx.quadraticCurveTo((x0 + x1) / 2, y0 + len * 1.1, x1, y0);
         ctx.fill();
       }
       ctx.fillStyle = 'rgba(232,235,228,0.16)';
@@ -329,6 +559,9 @@ export function createFlight({ motion, station }) {
         ctx.fill(p);
         ctx.stroke(p);
       }
+      // 深色色块：土星五号的黑白相间、航天飞机的外储箱等
+      ctx.fillStyle = 'rgba(232,235,228,0.55)';
+      for (const p of shape.dark || []) ctx.fill(p);
       ctx.lineWidth *= 0.6;
       ctx.strokeStyle = 'rgba(240,243,236,0.6)';
       for (const p of shape.line || []) ctx.stroke(p);
@@ -348,10 +581,11 @@ export function createFlight({ motion, station }) {
     }
     function frame(t, dt) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const { i, stage, morph, alt } = flightStage(t),
-        up = smooth(seg(t, 0.8, 7.6)),
+      const e = t / FLIGHT.env, // 天色、云、星的时间表按飞行总长拉长
+        { i, stage, morph, alt } = flightStage(t),
+        up = smooth(seg(e, 0.8, 7.6)),
         fade = smooth(seg(t, 0, 0.9)),
-        speed = 0.15 + 1.6 * smooth(seg(t, 0.6, 7.8));
+        speed = 0.15 + 1.6 * smooth(seg(e, 0.6, 7.8));
       climb += dt * speed;
       // 天空：窗外的颜色 → 高空的深蓝 → 太空
       const sky =
@@ -370,7 +604,7 @@ export function createFlight({ motion, station }) {
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, w, h);
       // 星星：高空以上慢慢亮起
-      const starK = seg(t, 5.6, 7.4);
+      const starK = seg(e, 5.6, 7.4);
       if (starK > 0)
         for (const s of stars) {
           ctx.globalAlpha = fade * starK * s.a * (0.7 + 0.3 * Math.sin(t * 3 + s.x * 40));
@@ -378,7 +612,8 @@ export function createFlight({ motion, station }) {
           ctx.fillRect(s.x * w, ((s.y + climb * 0.02) % 1) * h, s.s, s.s);
         }
       // 地球的边缘：大气层的一道蓝光
-      const limb = smooth(seg(t, 6.4, 7.8)) * (1 - seg(t, 8.6, 9.6) * 0.6);
+      const limb =
+        smooth(seg(e, 6.4, 7.8)) * (1 - seg(t, FLIGHT.out + 0.2, FLIGHT.out + 1.2) * 0.6);
       if (limb > 0) {
         const R = Math.max(w, h) * 1.6,
           cy = h + R - h * 0.18 * limb;
@@ -397,7 +632,7 @@ export function createFlight({ motion, station }) {
         ctx.fill();
       }
       // 云：越飞越快地落到下面，穿出云层后消失
-      const cloudK = (1 - seg(t, 4.8, 6.0)) * fade;
+      const cloudK = (1 - seg(e, 4.8, 6.0)) * fade;
       if (cloudK > 0)
         for (const c of clouds) {
           const y = ((c.y + climb * 0.35) % 1.4) - 0.2,
@@ -416,7 +651,7 @@ export function createFlight({ motion, station }) {
           }
         }
       // 速度线
-      const lines = Math.round(6 + 26 * speed * (1 - seg(t, 8.4, 9.2)));
+      const lines = Math.round(6 + 26 * speed * (1 - seg(t, FLIGHT.out, FLIGHT.out + 0.8)));
       ctx.strokeStyle = 'rgba(232,240,236,0.18)';
       ctx.lineWidth = 1;
       for (let k = 0; k < lines; k++) {
@@ -463,10 +698,11 @@ export function createFlight({ motion, station }) {
       const shown = morph > 0.5 && STAGES[i + 1] ? STAGES[i + 1] : stage;
       altEl.textContent = fmtAlt(alt);
       nameEl.textContent = `${shown.year} · ${shown.name}`;
+      noteEl.textContent = shown.note;
       items.forEach((li, k) => li.classList.toggle('on', k === STAGES.indexOf(shown)));
       items.forEach((li, k) => li.classList.toggle('past', k < STAGES.indexOf(shown)));
       el.style.setProperty('--ui', fade.toFixed(3));
-      el.style.setProperty('--quote', smooth(seg(t, 8.4, 9.3)).toFixed(3));
+      el.style.setProperty('--quote', smooth(seg(t, FLIGHT.out, FLIGHT.out + 0.9)).toFixed(3));
     }
     let t = 0,
       last = 0,

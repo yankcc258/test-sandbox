@@ -17,11 +17,11 @@
 
 露娜这一轮做了纸飞机飞行、三个区域之间的竖井、平板开机三段动画，详见 [region-motion.md](region-motion.md)。新代码都在露娜自己的文件里，Codex 的文件只加了几处钩子，每一处都用「露娜：」注释标出：
 
-| 文件                           | 改了什么                                                                                                                                                                                           |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `workstation/app.js`           | `select('sky')` 交给 `zxFlight.start()`；`animatePanel()` 在平板打开和关闭时交给 `zxBoot.animate()`；场景建好后设置 `window.zxStation = { scene, mood, anchor }`；`scene.js` 的引用版本号改成 v=23 |
-| `workstation/scene.js`         | 返回的接口里新增 `snapshot()`（把镜头直接放到目标位置、画一帧并读出画面，只在换页时用）、`screenQuad()`（平板屏幕四个角在页面上的位置）和 `settled`（镜头是否停稳）。后两个只读                    |
-| `workstation/index.html`       | 引入 `../sandbox/passage.css`、`luna.css`、`luna.js`；`<head>` 里加了一小段换页防闪的脚本                                                                                                          |
-| `preview/starfield/index.html` | 引入 `arrival.js`（从纸飞机飞来时接住最后一帧）                                                                                                                                                    |
+| 文件                           | 改了什么                                                                                                                                                                                                                                                                                     |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `workstation/app.js`           | `select('sky')` 交给 `zxFlight.start()`；`animatePanel()` 在平板打开和关闭时交给 `zxBoot.animate()`；场景建好后设置 `window.zxStation = { scene, mood, anchor }`；`scene.js` 的引用版本号改成 v=23                                                                                           |
+| `workstation/scene.js`         | 返回的接口里新增 `snapshot()`（把镜头直接放到目标位置、画一帧并读出画面，只在换页时用）、`screenQuad()`（平板屏幕四个角在页面上的位置）和 `settled`（镜头是否停稳）。后两个只读。v25 又加了 `tabletView()`（低头看平板的镜头位置），并让镜头的朝上方向也平滑过渡（`targetUp`，平时就是朝上） |
+| `workstation/index.html`       | 引入 `../sandbox/passage.css`、`luna.css`、`luna.js`；`<head>` 里加了一小段换页防闪的脚本                                                                                                                                                                                                    |
+| `preview/starfield/index.html` | 引入 `arrival.js`（从纸飞机飞来时接住最后一帧）                                                                                                                                                                                                                                              |
 
 如果要重构 `select()`、`animatePanel()` 或场景的返回接口，保留这几个钩子就行。拿不准的话，在交接里写一句，露娜来跟。

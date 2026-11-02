@@ -61,7 +61,10 @@ export function createScene(canvas, { onSelect, onProject, onHover = () => {}, m
     pointer = new T.Vector2();
   const look = new T.Vector3(),
     targetLook = new T.Vector3(),
-    targetPosition = new T.Vector3();
+    targetPosition = new T.Vector3(),
+    // 露娜：低头看平板时镜头可以绕视线转 90°（手机竖着看平板），平时朝上
+    targetUp = new T.Vector3(0, 1, 0);
+  let tabletPose = null;
   let enabledMotion = motion,
     raf = 0,
     last = 0,
@@ -78,16 +81,40 @@ export function createScene(canvas, { onSelect, onProject, onHover = () => {}, m
       target: mobile ? [0.15, 1.15, 0.6] : [0, 2.65, -0.7],
     };
   }
+  // 露娜：低头看着平板——镜头沿屏幕法线放在正上方，距离刚好让屏幕占满画面的 fit 比例
+  function lookAtTablet(fit) {
+    const mobile = innerWidth < 700;
+    model.tablet.updateMatrixWorld(true);
+    const center = model.tablet.localToWorld(new T.Vector3(0, 0, 0.03)),
+      normal = new T.Vector3(0, 0, 1).transformDirection(model.tablet.matrixWorld),
+      side = new T.Vector3(1, 0, 0).transformDirection(model.tablet.matrixWorld),
+      along = new T.Vector3(0, 1, 0).transformDirection(model.tablet.matrixWorld),
+      // 手机竖着看：画面里屏幕的宽高对调
+      [sw, sh] = mobile ? [1.67, 2.92] : [2.92, 1.67],
+      half = Math.tan(T.MathUtils.degToRad(camera.fov / 2)),
+      d = Math.max(sh / 2 / half, sw / 2 / (half * camera.aspect)) / fit;
+    return {
+      position: center.clone().addScaledVector(normal, d).toArray(),
+      target: center.toArray(),
+      up: (mobile ? side.negate() : along).toArray(),
+    };
+  }
   function setTargets() {
-    const pose = focused ? model.focus[focused] : home();
+    const pose =
+      focused === 'tablet-view'
+        ? (tabletPose ||= lookAtTablet(innerWidth < 700 ? 0.94 : 0.86))
+        : focused
+          ? model.focus[focused]
+          : home();
     targetPosition.set(...pose.position);
     targetLook.set(...pose.target);
+    targetUp.set(...(pose.up || [0, 1, 0]));
     if (!focused) {
       targetLook.x += dragX;
       targetLook.y += dragY;
       targetPosition.x += dragX * 0.22;
     }
-    if (innerWidth < 700 && focused) {
+    if (innerWidth < 700 && focused && focused !== 'tablet-view') {
       targetPosition.z += 1.7;
       targetPosition.y += 0.45;
     }
@@ -113,11 +140,14 @@ export function createScene(canvas, { onSelect, onProject, onHover = () => {}, m
     const factor = enabledMotion ? 1 - Math.exp(-dt * 8) : 1;
     camera.position.lerp(targetPosition, factor);
     look.lerp(targetLook, factor);
+    camera.up.lerp(targetUp, factor).normalize();
     camera.lookAt(look);
     renderer.render(scene, camera);
     project();
     if (
-      camera.position.distanceToSquared(targetPosition) + look.distanceToSquared(targetLook) >
+      camera.position.distanceToSquared(targetPosition) +
+        look.distanceToSquared(targetLook) +
+        camera.up.distanceToSquared(targetUp) >
       0.000002
     )
       raf = requestAnimationFrame(render);
@@ -135,6 +165,7 @@ export function createScene(canvas, { onSelect, onProject, onHover = () => {}, m
     camera.aspect = w / h;
     camera.fov = innerWidth < 700 ? 43 : 45;
     camera.updateProjectionMatrix();
+    tabletPose = null;
     setTargets();
     requestRender();
   }
@@ -265,6 +296,7 @@ export function createScene(canvas, { onSelect, onProject, onHover = () => {}, m
       if (lost) return null;
       camera.position.copy(targetPosition);
       look.copy(targetLook);
+      camera.up.copy(targetUp);
       camera.lookAt(look);
       renderer.render(scene, camera);
       try {
@@ -279,6 +311,15 @@ export function createScene(canvas, { onSelect, onProject, onHover = () => {}, m
       } catch {
         return null;
       }
+    },
+    // 露娜：低头看着平板（个人终端显示在平板屏幕里）；reset() 回到座位
+    tabletView() {
+      focused = 'tablet-view';
+      tabletPose = null;
+      dragX = 0;
+      dragY = 0;
+      setTargets();
+      requestRender();
     },
     // 露娜：平板开机动画要屏幕四个角在页面上的位置（左上、右上、右下、左下）。
     screenQuad() {
@@ -296,7 +337,9 @@ export function createScene(canvas, { onSelect, onProject, onHover = () => {}, m
     // 镜头是否已经停在目标位置（开机动画在镜头推近后开始）
     get settled() {
       return (
-        camera.position.distanceToSquared(targetPosition) + look.distanceToSquared(targetLook) <
+        camera.position.distanceToSquared(targetPosition) +
+          look.distanceToSquared(targetLook) +
+          camera.up.distanceToSquared(targetUp) <
         0.0004
       );
     },

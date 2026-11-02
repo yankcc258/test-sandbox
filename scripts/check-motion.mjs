@@ -21,7 +21,8 @@ assert.ok(FLOORS.workstation.level > FLOORS.lab.level && FLOORS.lab.level > FLOO
 // 纸飞机（flight.js 依赖 DOM，这里只检查纯函数部分）
 const { flightStage, FLIGHT } = await import('../workstation/flight.js');
 assert.equal(flightStage(0).stage.id, 'paper');
-assert.equal(flightStage(FLIGHT.total).stage.id, 'rocket');
+assert.equal(flightStage(FLIGHT.total).stage.id, 'cz2f');
+assert.equal(flightStage(0).stage.note, '从桌前出发');
 let last = 0;
 for (let t = 0; t <= FLIGHT.total; t += 0.1) {
   const { alt } = flightStage(t);
