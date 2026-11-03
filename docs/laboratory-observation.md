@@ -66,6 +66,8 @@
 
 ### 历史交接：v33（2026-11-03 JST）
 
+> 2026-11-04 · 露娜：Yank 说 v33 展开动画不错，但目录状态的大带子太出戏。露娜做了[流星组装小样](meteor-assembly.md)（`preview/meteor/`，复用本目录的 `assembly-models.js`，未改 `laboratory/`），里面有接入建议。
+
 这一轮把“螺旋展开后进入学习”扩展为完整的课程目录：六个学科入口中，数学、物理、化学有课，共 **17 章、85 道原题**；计算机科学、生命科学、地球与空间仍为规划入口。生命科学没有新增课程。讨论来源仍见 [学科空间与流星组装标本讨论稿](laboratory-proposal.md)，该讨论稿未改写；其中设想不自动等于本轮已经实现的功能。
 
 源数据固定于主站 [`05be1e3f63e4a81f3e4b52ca37c06d43aeb38b4c`](https://github.com/yankcc258/yank-study-lab/tree/05be1e3f63e4a81f3e4b52ca37c06d43aeb38b4c)，不实时同步。读取 `content.js`、`chapters.js`、`foundation-chapters.js`、`curriculum.js`、`course-archive.js`，并保留 12 章在 `depth.js` / `depth-science.js` 中的补充推导。原课程 ID、原题顺序、题目、答案、提示和解析保留，判题采用主站语义。

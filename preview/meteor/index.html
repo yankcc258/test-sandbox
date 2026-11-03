@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#121617" />
+    <meta
+      name="description"
+      content="知序沙盒小样：螺旋展开后薄片化作流星沿测量环流动，选章时飞出来组装成这一章的模型。"
+    />
+    <title>知序 · 流星组装小样</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./meteor.css?v=1" />
+    <script type="module" src="./meteor.js?v=1"></script>
+  </head>
+  <body data-mode="knot">
+    <canvas
+      id="scene"
+      aria-label="薄片组成的螺旋、流动的测量环和数学观察模型；选好章节后可以拖动旋转"
+    ></canvas>
+    <header class="top">
+      <a class="brand" href="../" aria-label="返回历史原型目录">知序 <span>ZHIXU</span></a>
+      <small>流星组装 · 小样</small>
+      <div class="tools">
+        <button type="button" id="slow" aria-pressed="false">慢放 ×¼</button>
+        <button type="button" id="motion" aria-pressed="true">动效 · 开</button>
+      </div>
+    </header>
+    <nav class="chapters" aria-label="螺旋与数学章节">
+      <div class="phase">
+        <button type="button" data-go="knot">螺旋</button>
+        <button type="button" data-go="stream">展开</button>
+      </div>
+      <p class="eyebrow">MATHEMATICS / 选一章</p>
+      <ol id="chapter-list"></ol>
+    </nav>
+    <section class="readout" id="readout" aria-live="polite" hidden>
+      <small>OBSERVATION / 组装完成后可拖动</small>
+      <h2 id="readout-title"></h2>
+      <p id="readout-desc"></p>
+      <label><span id="probe-label"></span><input id="probe" type="range" /></label>
+      <output id="probe-value"></output>
+    </section>
+    <footer class="foot">
+      <span>↑↓ 换章 · Esc 散回环里 · K 收拢成螺旋 · 拖动旋转模型</span>
+      <span>沙盒小样：五个模型复用实验室 v33，只演示薄片怎么走过去</span>
+    </footer>
+    <p class="no-webgl-note">这台设备暂时无法显示立体画面。</p>
+  </body>
+</html>
