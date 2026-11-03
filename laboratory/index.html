@@ -10,9 +10,10 @@
     />
     <title>知序 ZHIXU · 学科观察</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="./laboratory.css?v=32" />
-    <link rel="stylesheet" href="./course-workspace.css?v=32" />
-    <script type="module" src="./app.js?v=32"></script>
+    <link rel="stylesheet" href="./laboratory.css?v=33" />
+    <link rel="stylesheet" href="./course-workspace.css?v=33" />
+    <link rel="stylesheet" href="./archive.css?v=33" />
+    <script type="module" src="./app.js?v=33"></script>
   </head>
   <body data-stage="overview">
     <div class="laboratory">
@@ -36,11 +37,11 @@
             aria-label="三叶结学科模型，可通过聚焦数学按钮开始观察"
             aria-describedby="interaction-hint"
           >
-            三叶结学科模型。下方按钮可以打开数学观察与示例章节。
+            螺旋学科目录。可使用下方章节列表阅读、观察与练习。
           </canvas>
           <div class="scene-index" aria-hidden="true">
             <span class="index-cross">+</span>
-            <span>MATHEMATICS</span>
+            <span id="scene-subject">MATHEMATICS</span>
             <span class="index-line"></span>
             <span>01</span>
           </div>
@@ -48,7 +49,7 @@
             <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
           </div>
           <p id="fallback" class="fallback" hidden>
-            当前设备无法显示立体模型，仍可查看数学观察说明与示例章节。
+            当前使用文字目录，课程正文、练习与本页进度仍可使用。
           </p>
         </div>
 
@@ -60,6 +61,7 @@
             <p class="eyebrow" id="stage-eyebrow">LABORATORY / 01</p>
             <h1 id="stage-title">从形态，<br />进入数学。</h1>
             <p class="stage-copy" id="stage-copy">沿着数学片段，观察整体与局部的关系。</p>
+            <nav id="discipline-list" class="discipline-list" aria-label="学科"></nav>
             <div class="stage-actions">
               <button type="button" id="primary-action" class="primary-action">
                 聚焦数学 <span aria-hidden="true">↗</span>
@@ -82,7 +84,13 @@
               <span class="section-code" aria-hidden="true">M / 01</span>
             </div>
             <p class="specimen-copy">从整体形态进入局部，比较曲面、切平面与截面的关系。</p>
-            <div id="observer-controls">
+            <section
+              id="chapter-detail"
+              class="chapter-detail"
+              hidden
+              aria-label="所选章节详情"
+            ></section>
+            <div id="observer-controls" hidden>
               <div
                 id="observation-tabs"
                 class="observation-tabs"
@@ -117,9 +125,26 @@
             </div>
             <div class="section-heading chapter-heading">
               <h2 id="chapters-title">数学 · 课程目录</h2>
-              <span class="section-code">本轮开放 1 / 5</span>
+              <span id="archive-count" class="section-code">本页试学</span>
+            </div>
+            <div class="archive-search">
+              <label for="archive-search">检索章节</label>
+              <input
+                id="archive-search"
+                type="search"
+                placeholder="搜索全部课程…"
+                autocomplete="off"
+              />
+              <label for="archive-track">方向</label>
+              <select id="archive-track">
+                <option value="">全部方向</option>
+              </select>
+              <button id="archive-clear" type="button">清除</button>
             </div>
             <nav id="chapter-list" class="chapter-list" aria-labelledby="chapters-title"></nav>
+            <p class="archive-legend">
+              细片代表各题最近结果：浅色已答对，灰色未作答，暖色待再试。细线为本页已读标记。
+            </p>
           </section>
         </div>
         <section

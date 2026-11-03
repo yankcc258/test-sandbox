@@ -6,7 +6,7 @@ import {
   approach,
   tokyoMood,
 } from '../laboratory/state.js';
-import { CHAPTERS } from '../laboratory/chapters.js';
+import { COURSES } from '../laboratory/course-data.js';
 import { advanceRelease, releasePhase } from '../laboratory/motion.js';
 
 let state = initialState();
@@ -17,11 +17,11 @@ assert.equal(state.stage, 'observe');
 for (let i = 0; i < 10; i++) state = reduceState(state, { type: 'activate' });
 assert.equal(state.stage, 'observe', 'repeated clicks must not queue further entry stages');
 state = reduceState(state, { type: 'probe', value: -0.63 });
-for (const chapter of CHAPTERS) {
+for (const chapter of COURSES) {
   state = reduceState(state, { type: 'chapter', chapter });
   assert.equal(state.stage, 'lesson');
   assert.equal(state.mode, chapter.mode);
-  assert.ok(chapter.html.includes('示例'));
+  assert.ok(chapter.sections.length >= 8);
   state = reduceState(state, { type: 'back' });
   assert.equal(state.stage, 'observe');
   assert.equal(state.probe, -0.63, 'return from reading keeps the observation position');
@@ -33,7 +33,11 @@ assert.equal(
   'observe',
   'chapter shortcut skips focus',
 );
-assert.equal(reduceState(state, { type: 'probe', value: 12 }).probe, 1);
+assert.equal(
+  reduceState(state, { type: 'probe', value: 12 }).probe,
+  12,
+  'model metadata defines the per-chapter parameter range',
+);
 assert.equal(reduceState(state, { type: 'probe', value: NaN }), state);
 
 // Interrupt a partially opened scene and reverse to the same closed endpoint.

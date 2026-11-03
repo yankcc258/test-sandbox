@@ -1,108 +1,120 @@
-import { initialState, reduceState, tokyoMood } from './state.js?v=32';
-import { mountCourseWorkspace } from './course-workspace.js?v=32';
-
+import { initialState, reduceState, tokyoMood } from './state.js?v=33';
+import { DISCIPLINES, getCourse } from './course-data.js?v=33';
+import { mountCourseWorkspace } from './course-workspace.js?v=33';
+import { mountArchive, disciplineCourses } from './archive.js?v=33';
+import { buildModelPoses } from './assembly-models.js?v=33';
 const $ = (id) => document.getElementById(id);
 let state = initialState(),
   scene = null,
-  userMotion = new URLSearchParams(location.search).get('motion') !== '0';
-const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-const motion = () => userMotion && !reduced.matches;
-const copy = {
-  overview: [
-    '01 / MATHEMATICS',
-    '从结构，进入理解。',
-    '点一次螺旋，聚焦数学。再点一次，展开其中的观察对象。',
-  ],
-  focus: [
-    'MATHEMATICS / FOCUS',
-    '数学，近一些。',
-    '再点一次，薄片向外展开。曲面与章节会一起出现。',
-  ],
-  observe: [
-    'SPECIMEN 01 / OBSERVATION',
-    '从整体，看到局部。',
-    '旋转曲面，比较切平面与截面；也可以直接选择章节开始阅读。',
-  ],
-  lesson: [
-    'MATHEMATICS / READING',
-    '把观察，写成理解。',
-    '模型仍在身旁。阅读时也可以切换观察方式，返回后继续探索。',
-  ],
-};
+  archive = null;
+let userMotion = new URLSearchParams(location.search).get('motion') !== '0';
+const reduced = matchMedia('(prefers-reduced-motion: reduce)'),
+  motion = () => userMotion && !reduced.matches;
+const parameters = new Map();
+const defaultProbe = (id) => parameters.get(id) ?? buildModelPoses(id).metadata.probeDefault;
 const anchor = document.createElement('button');
+anchor.type = 'button';
 anchor.id = 'math-anchor';
 anchor.className = 'model-anchor';
-anchor.type = 'button';
 anchor.onclick = () => dispatch({ type: 'activate' });
 document.querySelector('.scene-viewport').append(anchor);
+const open = (c) => {
+  if (c) dispatch({ type: 'chapter', chapter: c, probe: defaultProbe(c.id) });
+};
 const workspace = mountCourseWorkspace({
-  open: (chapter) => dispatch({ type: 'chapter', chapter }),
+  open,
   back: () => dispatch({ type: 'back' }),
+  onProgress: () => {
+    archive?.refresh();
+    scene?.refresh();
+  },
+});
+archive = mountArchive({
+  select: (c) => {
+    if (!c) return;
+    workspace.recordVisit(c.id, 'details');
+    dispatch({ type: 'select', chapter: c, probe: defaultProbe(c.id) });
+  },
+  open,
+  discipline: (id) => dispatch({ type: 'discipline', id }),
+  hover: (id) => scene?.setHover(id),
+  progress: (id) => workspace.getProgress(id),
+  visits: (id) => workspace.getVisits(id),
 });
 function render() {
   document.body.dataset.stage = state.stage;
-  document.body.dataset.mode = state.mode;
+  document.body.dataset.selection = String(!!state.chapter);
   document.body.classList.toggle('motion-off', !motion());
-  const [eyebrow, title, description] = copy[state.stage];
-  $('stage-eyebrow').textContent = eyebrow;
+  const d = DISCIPLINES.find((d) => d.id === state.discipline),
+    inside = ['observe', 'lesson'].includes(state.stage);
+  $('scene-subject').textContent = d.en;
+  $('stage-eyebrow').textContent =
+    state.stage === 'overview'
+      ? 'ZHIXU / FIELD OF STUDY'
+      : `${d.en} / ${state.stage === 'focus' ? 'FOCUS' : 'COURSE ARCHIVE'}`;
+  const title =
+    state.stage === 'overview'
+      ? '从结构，进入理解。'
+      : state.stage === 'focus'
+        ? `${d.name}，近一些。`
+        : `${d.name} · 学科目录`;
   $('stage-title').replaceChildren(
-    ...title.match(/[^，]+，?/g).map((clause) => {
+    ...title.match(/[^，]+，?/g).map((part) => {
       const span = document.createElement('span');
-      span.textContent = clause;
+      span.textContent = part;
       return span;
     }),
   );
-  $('stage-copy').textContent = description;
-  const inside = state.stage === 'observe' || state.stage === 'lesson';
+  $('stage-copy').textContent =
+    state.stage === 'overview'
+      ? '沿着同一条螺旋，找到学科、章节和正在理解的问题。'
+      : state.stage === 'focus'
+        ? '再点一次，这一段薄片按章节松开。也可以直接进入目录。'
+        : '选一章，薄片在身旁组成观察对象。';
+  $('primary-action').hidden = inside;
+  $('skip-study').hidden = inside;
+  $('primary-action').textContent = state.stage === 'overview' ? `聚焦${d.name} →` : '展开章节 →';
+  $('back-stage').hidden = state.stage === 'overview';
+  $('back-stage').textContent = '← 收拢回总览';
+  $('study-panel').hidden = !inside;
+  $('chapters-title').textContent = `${d.name} · 课程目录`;
+  anchor.hidden = inside || !scene;
+  anchor.textContent = `${d.name} · ${state.stage === 'overview' ? '聚焦' : '展开'} ↗`;
   $('lab-canvas').setAttribute(
     'aria-label',
     inside
-      ? '数学曲面标本，可拖动或用左右方向键旋转'
-      : '三叶结学科模型，第一次点击聚焦数学，第二次展开观察',
+      ? '螺旋章节目录与所选观察对象，可拖动旋转；下方有完整文字目录'
+      : `${d.name}螺旋，点击聚焦后再点击展开章节`,
   );
-  $('study-panel').hidden = !inside;
-  $('primary-action').hidden = inside;
-  $('skip-study').hidden = inside;
-  $('primary-action').textContent = state.stage === 'overview' ? '聚焦数学 →' : '展开观察对象 →';
-  $('back-stage').hidden = state.stage === 'overview';
-  $('back-stage').textContent = state.stage === 'lesson' ? '← 返回观察' : '← 收拢回总览';
-  anchor.hidden = inside || !scene;
-  anchor.textContent = state.stage === 'overview' ? '数学 · 聚焦 ↗' : '数学 · 展开 ↗';
-  document
-    .querySelectorAll('#observation-tabs button[data-mode]')
-    .forEach((button) =>
-      button.setAttribute('aria-pressed', String(button.dataset.mode === state.mode)),
-    );
-  $('probe').disabled = state.mode === 'surface';
-  $('probe').value = String(state.probe);
-  $('probe-label').textContent = state.mode === 'section' ? '截面高度 c' : '切点横坐标 a';
-  $('probe-value').textContent = (
-    state.mode === 'section' ? state.probe * 0.5 : state.probe
-  ).toFixed(state.mode === 'section' ? 3 : 2);
-  $('probe').setAttribute(
-    'aria-valuetext',
-    state.mode === 'section'
-      ? `截面高度 ${(state.probe * 0.5).toFixed(3)}`
-      : `切点横坐标 ${state.probe.toFixed(2)}`,
-  );
-  document.querySelector('.probe-limits').firstElementChild.textContent =
-    state.mode === 'section' ? '−0.50' : '−1';
-  document.querySelector('.probe-limits').lastElementChild.textContent =
-    state.mode === 'section' ? '0.50' : '1';
-  $('specimen-note').textContent =
-    state.mode === 'surface'
-      ? 'y = (x² − z²) / 2 · 拖动观察曲面，切换模式查看局部与截面。'
-      : state.mode === 'tangent'
-        ? `参数 (u, v) = (${state.probe.toFixed(2)}, 0.30) · 移动切点，观察切平面的方向。`
-        : `y = ${(state.probe * 0.5).toFixed(3)} · 亮线表示水平面与曲面的真实交线。`;
-  $('interaction-hint').textContent = inside
-    ? '拖动旋转 · 方向键观察 · Esc 返回'
-    : '点按聚焦 / 展开 · 拖动只旋转 · Enter 选择';
   $('motion-toggle').textContent = motion() ? '动效 · 开' : '动效 · 关';
   $('motion-toggle').setAttribute('aria-pressed', String(motion()));
   $('motion-toggle').disabled = reduced.matches;
-  $('motion-toggle').title = reduced.matches ? '跟随系统减少动态效果设置' : '开关场景动效';
+  $('interaction-hint').textContent = inside
+    ? '点击章节选中 · Enter 直接学习 · ↑↓ 换章 · Esc 返回'
+    : '点按聚焦 / 展开 · 拖动旋转 · 下方选择学科';
   workspace.update(state);
+  $('observer-controls').hidden = !state.chapter;
+  if (state.chapter) {
+    const model = buildModelPoses(state.chapter, state.probe),
+      m = model.metadata;
+    $('probe').min = m.probeMin;
+    $('probe').max = m.probeMax;
+    $('probe').step = m.probeStep;
+    $('probe').value = state.probe;
+    $('probe').disabled = !m.interactive;
+    document.querySelector('.probe-control').hidden = !m.interactive;
+    $('probe-label').textContent = m.probeLabel;
+    $('probe-value').textContent = Number(state.probe.toFixed(3));
+    $('probe').setAttribute('aria-valuetext', `${m.probeLabel} ${state.probe}`);
+    const limits = document.querySelector('.probe-limits');
+    limits.firstElementChild.textContent = m.probeMin;
+    limits.lastElementChild.textContent = m.probeMax;
+    limits.children[1].textContent = '';
+    $('specimen-note').textContent = m.readout || m.description;
+    document.querySelector('.observer-heading h2').textContent = m.title;
+    document.querySelector('.observation-disclaimer').textContent = m.description;
+  }
+  archive.update(state);
   scene?.update(state);
 }
 function dispatch(action) {
@@ -111,40 +123,41 @@ function dispatch(action) {
   workspace.beforeChange(next);
   state = next;
   render();
+  if (action.type === 'select') {
+    if (innerWidth > 900) document.querySelector('.content-column').scrollTop = 0;
+    else
+      document
+        .querySelector('.scene-viewport')
+        .scrollIntoView({ behavior: 'instant', block: 'start' });
+  }
   if (before.stage !== state.stage) {
-    if (state.stage === 'lesson') {
-      workspace.focus();
-    } else if (state.stage === 'observe') {
+    if (state.stage === 'lesson') workspace.focus();
+    else if (state.stage === 'observe') {
+      if (before.stage === 'lesson' && innerWidth <= 900)
+        window.scrollTo({ top: 0, behavior: 'instant' });
       $('study-panel').focus({ preventScroll: true });
-      if (before.stage === 'lesson') {
-        if (innerWidth <= 900) window.scrollTo({ top: 0, behavior: 'instant' });
-        else document.querySelector('.content-column').scrollTop = 0;
-      }
-    } else if (before.stage === 'observe' || before.stage === 'lesson') {
+    } else {
       $('primary-action').focus({ preventScroll: true });
-      if (innerWidth < 900) window.scrollTo({ top: 0, behavior: 'instant' });
+      if (innerWidth <= 900) window.scrollTo({ top: 0, behavior: 'instant' });
     }
   }
 }
 $('primary-action').onclick = () => dispatch({ type: 'activate' });
 $('skip-study').onclick = () => dispatch({ type: 'observe' });
 $('back-stage').onclick = () => dispatch({ type: 'back' });
-document.querySelectorAll('#observation-tabs button[data-mode]').forEach((button) => {
-  button.onclick = () => dispatch({ type: 'mode', mode: button.dataset.mode });
-});
-$('probe').oninput = (event) => dispatch({ type: 'probe', value: Number(event.target.value) });
+$('probe').oninput = (e) => {
+  const v = Number(e.target.value);
+  parameters.set(state.chapter, v);
+  dispatch({ type: 'probe', value: v });
+};
 $('motion-toggle').onclick = () => {
   userMotion = !motion();
   render();
-  scene?.refresh();
 };
-reduced.addEventListener('change', () => {
-  render();
-  scene?.refresh();
-});
-document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') {
-    event.preventDefault();
+reduced.addEventListener('change', render);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    e.preventDefault();
     dispatch({ type: 'back' });
   }
 });
@@ -162,16 +175,25 @@ setInterval(() => {
   if (!document.hidden) atmosphere();
 }, 60000);
 try {
-  const { createLaboratory } = await import('./scene.js?v=32');
+  const { createLaboratory } = await import('./scene.js?v=33');
   scene = await createLaboratory({
     canvas: $('lab-canvas'),
     anchor,
     activate: () => dispatch({ type: 'activate' }),
     motion,
+    labels: archive.labels,
+    courses: disciplineCourses,
+    progress: (id) => workspace.getProgress(id),
+    select: (id) => {
+      const c = getCourse(id);
+      workspace.recordVisit(c.id, 'details');
+      dispatch({ type: 'select', chapter: c, probe: defaultProbe(c.id) });
+    },
   });
   scene.update(state);
   atmosphere();
   document.body.dataset.ready = 'true';
+  render();
 } catch (error) {
   console.warn('Laboratory preview:', error);
   anchor.hidden = true;

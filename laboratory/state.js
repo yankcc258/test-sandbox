@@ -1,5 +1,6 @@
 export const initialState = () => ({
   stage: 'overview',
+  discipline: 'mathematics',
   mode: 'surface',
   probe: 0.35,
   chapter: null,
@@ -13,19 +14,46 @@ export function reduceState(state, action) {
           state.stage === 'overview' ? 'focus' : state.stage === 'focus' ? 'observe' : state.stage,
       };
     case 'observe':
+      return { ...state, stage: 'observe' };
+    case 'discipline':
+      return {
+        ...state,
+        discipline: action.id,
+        chapter: null,
+        stage:
+          state.stage === 'overview' ? 'focus' : state.stage === 'lesson' ? 'observe' : state.stage,
+      };
+    case 'select':
+      return {
+        ...state,
+        stage: 'observe',
+        discipline: action.chapter.discipline ?? state.discipline,
+        chapter: action.chapter.id,
+        probe: action.probe ?? state.probe,
+      };
+    case 'clear':
       return { ...state, stage: 'observe', chapter: null };
     case 'back':
-      return { ...state, stage: state.stage === 'lesson' ? 'observe' : 'overview', chapter: null };
+      return {
+        ...state,
+        stage: state.stage === 'lesson' ? 'observe' : 'overview',
+        chapter: state.stage === 'lesson' ? state.chapter : null,
+      };
     case 'chapter':
-      return { ...state, stage: 'lesson', mode: action.chapter.mode, chapter: action.chapter.id };
+      return {
+        ...state,
+        stage: 'lesson',
+        discipline: action.chapter.discipline ?? state.discipline,
+        mode: action.chapter.mode,
+        chapter: action.chapter.id,
+        probe: action.probe ?? state.probe,
+      };
     case 'mode':
       return ['surface', 'tangent', 'section'].includes(action.mode)
         ? { ...state, mode: action.mode }
         : state;
     case 'probe':
-      return Number.isFinite(action.value)
-        ? { ...state, probe: Math.max(-1, Math.min(1, action.value)) }
-        : state;
+      return Number.isFinite(action.value) ? { ...state, probe: action.value } : state;
     default:
       return state;
   }
