@@ -1,4 +1,4 @@
-import { COURSES, DISCIPLINES, TRACKS, getCourse } from './course-data.js?v=34';
+import { COURSES, DISCIPLINES, TRACKS, getCourse } from './course-data.js?v=35';
 const $ = (id) => document.getElementById(id);
 function el(tag, cls, text) {
   const n = document.createElement(tag);
@@ -16,21 +16,45 @@ export function mountArchive({ select, open, discipline, hover, progress, visits
   let state = null,
     query = '',
     track = '',
-    detailTab = 'overview';
+    detailTab = 'overview',
+    labelOrder = '';
   const labels = new Map();
-  const overlay = el('div', 'chapter-labels');
-  document.querySelector('.scene-viewport').append(overlay);
+  const overlay = el('nav', 'chapter-labels');
+  overlay.setAttribute('aria-label', '章节目录');
+  overlay.setAttribute('aria-describedby', 'archive-legend');
+  overlay.hidden = true;
+  const directoryTitle = el('p', 'chapter-labels-title');
+  overlay.append(directoryTitle);
+  document.querySelector('.lab-main').append(overlay);
   const progressText = (id) => {
     const p = progress(id);
     return `${p.read ? '已读' : '未标记读完'} · 最近答对 ${p.correct}/${p.total}`;
+  };
+  const resultNames = {
+    unanswered: '未作答',
+    correct: '答对',
+    wrong: '待再试',
+    partial: '部分答对',
+    unknown: '未判定',
+  };
+  const resultText = (id) =>
+    progress(id).results
+      .map((status, i) => `第 ${i + 1} 题${resultNames[status] ?? '未判定'}`)
+      .join('，');
+  const describeChapter = (button, course) => {
+    button.setAttribute(
+      'aria-label',
+      `${course.title}；${progressText(course.id)}。本页最近结果：${resultText(course.id)}。`,
+    );
   };
   function marks(id) {
     const p = progress(id),
       row = el('span', 'question-marks');
     row.setAttribute('aria-hidden', 'true');
-    for (const status of p.results) {
+    for (const [index, status] of p.results.entries()) {
       const mark = el('i');
       mark.dataset.result = status;
+      mark.title = `第 ${index + 1} 题：${resultNames[status] ?? '未判定'}`;
       row.append(mark);
     }
     row.dataset.read = String(p.read);
@@ -44,6 +68,7 @@ export function mountArchive({ select, open, discipline, hover, progress, visits
     const b = el('button', 'chapter-label');
     b.type = 'button';
     b.dataset.chapter = c.id;
+    b.hidden = true;
     b.append(
       el('span', 'label-leader'),
       el('strong', '', c.title.split('：')[0]),
@@ -64,6 +89,13 @@ export function mountArchive({ select, open, discipline, hover, progress, visits
     overlay.append(b);
     labels.set(c.id, b);
   }
+  const chooseDiscipline = (id) => {
+    query = '';
+    track = '';
+    $('archive-search').value = '';
+    $('archive-track').value = '';
+    discipline(id);
+  };
   for (const d of DISCIPLINES) {
     const b = el('button', 'discipline-button');
     b.type = 'button';
@@ -76,12 +108,7 @@ export function mountArchive({ select, open, discipline, hover, progress, visits
         disciplineCourses(d.id).length ? `${disciplineCourses(d.id).length} 章` : '规划中',
       ),
     );
-    b.onclick = () => {
-      query = '';
-      track = '';
-      $('archive-search').value = '';
-      discipline(d.id);
-    };
+    b.onclick = () => chooseDiscipline(d.id);
     b.onkeydown = (e) => {
       if (['ArrowLeft', 'ArrowRight'].includes(e.key)) navigate(e, null);
       else if (e.key === 'ArrowDown') {
@@ -121,7 +148,7 @@ export function mountArchive({ select, open, discipline, hover, progress, visits
       const ds = DISCIPLINES;
       const i = ds.findIndex((d) => d.id === state.discipline);
       const nextId = ds[(i + (e.key === 'ArrowRight' ? 1 : -1) + ds.length) % ds.length].id;
-      discipline(nextId);
+      chooseDiscipline(nextId);
       document
         .querySelector(`.discipline-button[data-discipline="${nextId}"]`)
         ?.focus({ preventScroll: true });
@@ -142,6 +169,37 @@ export function mountArchive({ select, open, discipline, hover, progress, visits
         ? label
         : $('chapter-list').querySelector(`[data-chapter="${id}"]`);
     node?.focus({ preventScroll: true });
+    if (node && overlay.contains(node)) {
+      const item = node.getBoundingClientRect(),
+        viewport = overlay.getBoundingClientRect();
+      if (item.top < viewport.top + 6) overlay.scrollTop += item.top - viewport.top - 6;
+      else if (item.bottom > viewport.bottom - 6)
+        overlay.scrollTop += item.bottom - viewport.bottom + 6;
+    }
+  }
+  function renderLabels() {
+    const courses = disciplineCourses(state.discipline),
+      active = new Set(courses.map((c) => c.id)),
+      order = courses.map((c) => c.id).join('|'),
+      d = DISCIPLINES.find((d) => d.id === state.discipline);
+    overlay.hidden = state.stage !== 'observe' || !!query || !!track || !courses.length;
+    overlay.setAttribute('aria-label', `${d.name}章节目录`);
+    directoryTitle.textContent = `${d.name} · ${courses.length} 章`;
+    for (const [id, button] of labels) {
+      button.hidden = !active.has(id);
+      if (!active.has(id)) continue;
+      button.querySelector('small').textContent = progressText(id);
+      button.querySelector('.question-marks').replaceWith(marks(id));
+      button.setAttribute('aria-pressed', String(id === state.chapter));
+      describeChapter(button, getCourse(id));
+    }
+    // Reorder only when the subject changes. A progress refresh must preserve
+    // the focused button and its position in this scrollable DOM directory.
+    if (order !== labelOrder) {
+      for (const c of courses) overlay.append(labels.get(c.id));
+      overlay.scrollTop = 0;
+      labelOrder = order;
+    }
   }
   function renderList() {
     const focused = document.activeElement?.closest('#chapter-list [data-chapter]')?.dataset
@@ -152,6 +210,7 @@ export function mountArchive({ select, open, discipline, hover, progress, visits
     );
     document.body.dataset.catalogDensity =
       disciplineCourses(state.discipline).length > 6 ? 'dense' : 'normal';
+    renderLabels();
     $('chapter-list').replaceChildren();
     $('archive-count').textContent = `${list.length} 章 · 本页试学`;
     if (!list.length) {
@@ -170,6 +229,7 @@ export function mountArchive({ select, open, discipline, hover, progress, visits
       b.type = 'button';
       b.dataset.chapter = c.id;
       b.setAttribute('aria-pressed', String(c.id === state.chapter));
+      describeChapter(b, c);
       b.append(
         el('small', '', String(COURSES.indexOf(c) + 1).padStart(2, '0')),
         el('strong', '', c.title),
@@ -179,6 +239,8 @@ export function mountArchive({ select, open, discipline, hover, progress, visits
       b.onclick = () => selectCourse(c.id);
       b.onpointerenter = () => hover(c.id);
       b.onpointerleave = () => hover(null);
+      b.onfocus = () => hover(c.id);
+      b.onblur = () => hover(null);
       b.onkeydown = (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
@@ -264,11 +326,6 @@ export function mountArchive({ select, open, discipline, hover, progress, visits
     if (!state) return;
     renderList();
     renderDetails();
-    for (const [id, b] of labels) {
-      b.querySelector('small').textContent = progressText(id);
-      b.querySelector('.question-marks').replaceWith(marks(id));
-      b.setAttribute('aria-pressed', String(id === state.chapter));
-    }
   }
   return {
     labels,
@@ -276,7 +333,6 @@ export function mountArchive({ select, open, discipline, hover, progress, visits
     update(next) {
       const changed = !state || state.discipline !== next.discipline;
       state = next;
-      overlay.hidden = state.stage !== 'observe';
       $('discipline-list').hidden = state.stage === 'lesson';
       document
         .querySelectorAll('[data-discipline]')

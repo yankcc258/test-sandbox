@@ -1,8 +1,8 @@
-import { initialState, reduceState, tokyoMood } from './state.js?v=34';
-import { DISCIPLINES, getCourse } from './course-data.js?v=34';
-import { mountCourseWorkspace } from './course-workspace.js?v=34';
-import { mountArchive, disciplineCourses } from './archive.js?v=34';
-import { buildModelPoses } from './assembly-models.js?v=34';
+import { initialState, reduceState, tokyoMood } from './state.js?v=35';
+import { DISCIPLINES, getCourse } from './course-data.js?v=35';
+import { mountCourseWorkspace } from './course-workspace.js?v=35';
+import { mountArchive, disciplineCourses } from './archive.js?v=35';
+import { buildModelPoses } from './assembly-models.js?v=35';
 const $ = (id) => document.getElementById(id);
 let state = initialState(),
   scene = null,
@@ -83,7 +83,7 @@ function render() {
   $('lab-canvas').setAttribute(
     'aria-label',
     inside
-      ? '螺旋章节目录与所选观察对象，可拖动旋转；下方有完整文字目录'
+      ? '螺旋章节目录与所选观察对象，可拖动旋转；可从文字目录选择章节'
       : `${d.name}螺旋，点击聚焦后再点击展开章节`,
   );
   $('motion-toggle').textContent = motion() ? '动效 · 开' : '动效 · 关';
@@ -175,7 +175,7 @@ setInterval(() => {
   if (!document.hidden) atmosphere();
 }, 60000);
 try {
-  const { createLaboratory } = await import('./scene.js?v=34');
+  const { createLaboratory } = await import('./scene.js?v=35');
   scene = await createLaboratory({
     canvas: $('lab-canvas'),
     anchor,

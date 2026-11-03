@@ -6,14 +6,14 @@
     <meta name="theme-color" content="#15191b" />
     <meta
       name="description"
-      content="知序实验室：沿着三叶结进入数学，观察曲面、切平面与截面的关系。"
+      content="知序实验室：从六个学科进入课程目录，观察真实数学对象，阅读与练习现有 17 章课程。"
     />
     <title>知序 ZHIXU · 学科观察</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="./laboratory.css?v=34" />
-    <link rel="stylesheet" href="./course-workspace.css?v=34" />
-    <link rel="stylesheet" href="./archive.css?v=34" />
-    <script type="module" src="./app.js?v=34"></script>
+    <link rel="stylesheet" href="./laboratory.css?v=35" />
+    <link rel="stylesheet" href="./course-workspace.css?v=35" />
+    <link rel="stylesheet" href="./archive.css?v=35" />
+    <script type="module" src="./app.js?v=35"></script>
   </head>
   <body data-stage="overview">
     <div class="laboratory">
@@ -141,9 +141,14 @@
               </select>
               <button id="archive-clear" type="button">清除</button>
             </div>
-            <nav id="chapter-list" class="chapter-list" aria-labelledby="chapters-title"></nav>
-            <p class="archive-legend">
-              细片代表各题最近结果：浅色已答对，灰色未作答，暖色待再试。细线为本页已读标记。
+            <nav
+              id="chapter-list"
+              class="chapter-list"
+              aria-labelledby="chapters-title"
+              aria-describedby="archive-legend"
+            ></nav>
+            <p id="archive-legend" class="archive-legend">
+              章节标题旁的 5 个刻度显示本页最近作答结果：浅色答对，灰色未作答，暖色待再试，半格暖色为部分答对，空框为未判定。下方细线表示已手动标记读完；刷新后清空。
             </p>
           </section>
         </div>
