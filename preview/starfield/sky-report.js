@@ -1,4 +1,4 @@
-import { orbitSkyToday, orbitSkyEvents } from './orbit-sky.js';
+import { orbitSkyToday, orbitSkyEvents } from './orbit-sky.js?v=29.1';
 
 export function calculateSkyReport(A, timestamp) {
   const now = new Date(timestamp);

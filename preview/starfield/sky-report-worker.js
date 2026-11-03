@@ -1,6 +1,6 @@
 import './vendor/astronomy/astronomy.browser.min.js';
-import { calculateSkyReport } from './sky-report.js?v=28';
-import { calculateBodyObservation } from './body-info.js?v=29';
+import { calculateSkyReport } from './sky-report.js?v=29.1';
+import { calculateBodyObservation } from './body-info.js?v=29.1';
 
 // Eclipse / elongation searches must not block the camera or the arrival fade.
 self.onmessage = ({ data }) => {

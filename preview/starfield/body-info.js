@@ -1,4 +1,4 @@
-import { SKY_TOKYO } from './orbit-sky.js';
+import { SKY_TOKYO } from './orbit-sky.js?v=29.1';
 
 // Short, independently written summaries of NASA's linked fact pages. Periods
 // below are physical reference values, unrelated to the accelerated scene.

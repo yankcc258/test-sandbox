@@ -4,7 +4,7 @@
 // 星空页面接着这一帧淡出，所以这段动画也是星空的载入画面。
 // 飞行器都是我们自己画的俯视剪影（机头朝上），火箭是侧视；不用任何航空公司、机构的涂装和标志。
 import { atmosphere } from './atmosphere.js';
-import { warmStarfield } from '../preview/starfield/preload.js?v=29';
+import { warmStarfield } from '../preview/starfield/preload.js?v=29.1';
 
 // 各个世代有代表性的飞行器（高度是这段飞行里的高度，用来讲「越飞越高」，不是各自的纪录）
 const STAGES = [

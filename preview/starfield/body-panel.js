@@ -1,5 +1,5 @@
-import { BODY_INFO } from './body-info.js?v=29';
-import { skyDay, skyClock } from './orbit-sky.js';
+import { BODY_INFO } from './body-info.js?v=29.1';
+import { skyDay, skyClock } from './orbit-sky.js?v=29.1';
 
 const byId = (id) => document.getElementById(id);
 const stamp = (date) => `${skyDay(new Date(date))} · ${skyClock(new Date(date))} JST`;

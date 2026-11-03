@@ -1,9 +1,9 @@
 import * as THREE from '../../vendor/three/three.module.min.js';
 import { BODIES, position, orbitOffset } from './orbit-space.js';
 import { makeBody, makeSky, whenTexturesReady } from './orbit-models.js?v=28';
-import { skyDay, skyClock, orbitSkyCountdown } from './orbit-sky.js';
-import { createSkyClient } from './sky-client.js?v=29';
-import { createBodyPanel } from './body-panel.js?v=29';
+import { skyDay, skyClock, orbitSkyCountdown } from './orbit-sky.js?v=29.1';
+import { createSkyClient } from './sky-client.js?v=29.1';
+import { createBodyPanel } from './body-panel.js?v=29.1';
 import { bindExploreControls, clampZoom } from './explore-controls.js?v=29';
 
 // A self-contained view: no study routes, user data or storage.

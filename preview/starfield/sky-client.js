@@ -15,7 +15,7 @@ export function createSkyClient() {
   }
   function startWorker() {
     try {
-      worker = new Worker(new URL('./sky-report-worker.js?v=29', import.meta.url), {
+      worker = new Worker(new URL('./sky-report-worker.js?v=29.1', import.meta.url), {
         type: 'module',
       });
       worker.onmessage = ({ data }) => {
