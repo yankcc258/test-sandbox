@@ -10,7 +10,7 @@ import {
   ASSEMBLY_COUNT,
   MATH_MODEL_IDS,
   buildModelPoses,
-} from '../../laboratory/assembly-models.js?v=33';
+} from '../../laboratory/assembly-models.js?v=34';
 
 const N = ASSEMBLY_COUNT;
 const params = new URLSearchParams(location.search);
