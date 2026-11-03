@@ -1,5 +1,6 @@
 // Original, deterministic observation models for one reusable 288-box instance pool.
 // Scientific coordinates live in `data`; poses are their explicitly scaled display.
+import { createModelDetails } from './model-details.js';
 export const ASSEMBLY_COUNT = 288;
 export const MATH_MODEL_IDS = [
   'math',
@@ -29,7 +30,9 @@ const hidden = () => ({
 function builder() {
   const poses = [];
   const box = (position, scale, color = C.ivory, rotation = [0, 0, 0], role = 'structure') => {
-    poses.push({ position, rotation, scale, color, role });
+    const pose = { position, rotation, scale, color, role };
+    poses.push(pose);
+    return pose;
   };
   const line = (a, b, width = 0.018, color = C.ivory, depth = width, role = 'curve') => {
     const d = b.map((v, i) => v - a[i]);
@@ -38,7 +41,7 @@ function builder() {
       poses.push(hidden());
       return;
     }
-    box(
+    return box(
       a.map((v, i) => (v + b[i]) / 2),
       [length, width, depth],
       color,
@@ -95,15 +98,9 @@ function builder() {
         'arrowhead',
       );
   };
-  const foot = () => {
-    box([0, -1.28, -0.03], [2.95, 0.06, 0.27], C.dark);
-    box([0, -1.239, 0.08], [2.76, 0.018, 0.03], C.titanium);
-    for (const x of [-1.3, 1.3]) {
-      box([x, -1.34, -0.04], [0.29, 0.06, 0.43], C.titanium);
-      box([x, -1.376, -0.04], [0.23, 0.012, 0.35], C.dark);
-      box([x, -1.245, 0.13], [0.055, 0.012, 0.055], C.ceramic);
-    }
-  };
+  const details = createModelDetails({ box, line });
+  let base;
+  const foot = (level) => (base = details.foot(level));
   const axes = (origin, xRange, yRange, unit = 0.5) => {
     line(
       [xRange[0], origin[1], origin[2]],
@@ -148,7 +145,20 @@ function builder() {
         'tick',
       );
   };
-  return { poses, box, line, curve, ring, arrow, foot, axes };
+  return {
+    poses,
+    box,
+    line,
+    curve,
+    ring,
+    arrow,
+    foot,
+    axes,
+    details,
+    get base() {
+      return base;
+    },
+  };
 }
 
 export function midpointRectangles(count) {
@@ -201,7 +211,8 @@ export function complexObservation(real = 1) {
 function derivative(model, raw) {
   const a = clamp(finite(raw, 0.8), -1.3, 1.3);
   const point = (x) => [0.95 * x, 0.8 * x * x - 0.95, 0.08];
-  model.foot();
+  const base = model.foot();
+  model.details.rearSupport(point(0), 0.02, base.top);
   model.axes([0, -0.95, -0.06], [-1.5, 1.5], [-1.1, 1.18], 0.475);
   model.curve(point, -1.5, 1.5, 80, 0.037, C.ivory, 0.12);
   // Exact tangent y = a² + 2a(x-a), rather than a sampled secant.
@@ -236,7 +247,10 @@ function derivative(model, raw) {
 }
 function integral(model, raw) {
   const data = midpointRectangles(raw);
-  model.foot();
+  const base = model.foot();
+  // The carrier touches the common lower face, never the measured rectangle area.
+  model.box([0, -1.012, 0.015], [2.65, 0.024, 0.115], '#b9c0c2', [0, 0, 0], 'hardware-metal');
+  for (const x of [-1.12, 1.12]) model.details.rearSupport([x, -1.024, 0.015], -0.0425, base.top);
   model.axes([-1.3, -1, -0.1], [-1.42, 1.42], [-1.08, 1.15], 0.26);
   model.curve((x) => [-1.3 + 2.6 * x, -1 + 2 * x * x, 0.2], 0, 1, 72, 0.028, C.ivory, 0.055);
   // Reserve exactly three slots per possible rectangle, including inactive slots.
@@ -278,7 +292,11 @@ function integral(model, raw) {
 function explog(model, raw) {
   const t = clamp(finite(raw, 0.4), -1.1, 1);
   const map = (x, y, z = 0.08) => [0.7 * x - 0.48, 0.7 * y - 0.48, z];
-  model.foot();
+  // The logarithm reaches y=-1.32 and the axis -1.4. Lower only its hardware,
+  // keeping both inverse curves and their equal scientific scales unchanged.
+  const base = model.foot(-1.48);
+  model.details.rearSupport(map(-1.2, Math.exp(-1.2), 0.1), 0.0525, base.top);
+  model.details.rearSupport(map(Math.exp(-1.2), -1.2, 0.04), 0.0025, base.top);
   model.axes(map(0, 0, -0.06), [-1.4, 1.65], [-1.4, 1.65], 0.35);
   model.curve((v) => map(v, Math.exp(v), 0.1), -1.2, 1.1, 64, 0.032, C.ivory, 0.095);
   model.curve((v) => map(Math.exp(v), v, 0.04), -1.2, 1.1, 64, 0.029, C.ice, 0.075);
@@ -325,6 +343,21 @@ function partials(model, raw) {
   const data = partialObservation(raw);
   const map = (x, y, f = x * x * y) => [2 * (x - 2), 0.12 * (f - 12), 2 * (y - 3)];
   model.foot();
+  // Four fitted saddles meet the lower face of existing edge scan segments.
+  // The support coordinates use chord midpoints because the rendered strips
+  // are finite chords, while the scientific sample coordinates remain exact.
+  for (const segment of [0, 15]) {
+    const x0 = 1.45 + (1.1 * segment) / 16,
+      x1 = 1.45 + (1.1 * (segment + 1)) / 16;
+    model.details.depthRail(2 * ((x0 + x1) / 2 - 2));
+    for (const y of [2.5, 3.5]) {
+      const p0 = map(x0, y),
+        p1 = map(x1, y),
+        center = p0.map((v, i) => (v + p1[i]) / 2),
+        angle = Math.atan2(p1[1] - p0[1], p1[0] - p0[0]);
+      model.details.surfaceSupport(center, angle, -1.28);
+    }
+  }
   // Real f=x²y around (2,3), never the earlier saddle. Narrow ceramic scan
   // strips are chords of this exact surface; the center coordinates are fixed.
   const samples = [];
@@ -383,7 +416,8 @@ function partials(model, raw) {
 function complex(model, raw) {
   const data = complexObservation(raw);
   const map = (a, b, z = 0.08) => [-0.5 + 0.52 * a, -0.15 + 0.52 * b, z];
-  model.foot();
+  const base = model.foot();
+  model.details.rearSupport(map(0, -1, -0.015), -0.0265, base.top);
   model.axes(map(0, 0, -0.06), [-1.62, 0.65], [-0.88, 0.97], 0.26);
   // An actual circular unit reference, built from thin ivory segments.
   model.curve(
@@ -411,6 +445,7 @@ function complex(model, raw) {
     const x = 0.94 + i * 0.46,
       p = data.probabilities[i],
       color = i ? C.ice : C.lime;
+    model.details.probabilityChannel(x, bottom, height, base.top);
     model.box(
       [x, bottom + height / 2, -0.06],
       [0.3, height, 0.045],
@@ -516,7 +551,7 @@ export function buildModelPoses(id, probe) {
   while (model.poses.length < ASSEMBLY_COUNT) model.poses.push(hidden());
   return {
     poses: model.poses,
-    metadata: { interactive: true, ...result.metadata },
+    metadata: { interactive: true, contactY: model.base.contactY, ...result.metadata },
     data: { ...result.data, activeCount },
   };
 }

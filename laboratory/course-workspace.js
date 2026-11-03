@@ -1,5 +1,5 @@
-import { COURSES, getCourse } from './course-data.js?v=33';
-import { createCourseSessions, compareExample } from './course-session.js?v=33';
+import { COURSES, getCourse } from './course-data.js?v=34';
+import { createCourseSessions, compareExample } from './course-session.js?v=34';
 
 const $ = (id) => document.getElementById(id);
 const chapterId = (state) =>

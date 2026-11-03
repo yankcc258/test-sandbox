@@ -1,4 +1,4 @@
-import { getCourse, gradeAnswer } from './course-data.js?v=33';
+import { getCourse, gradeAnswer } from './course-data.js?v=34';
 
 const copyDraft = (value) => (Array.isArray(value) ? [...value] : value);
 

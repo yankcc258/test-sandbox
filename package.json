@@ -12,7 +12,7 @@
     "check:links": "node scripts/check-links.mjs",
     "check:motion": "node scripts/check-motion.mjs",
     "check": "npm run check:pulse && npm run check:experience && npm run check:terminal && npm run check:workstation && npm run check:links && npm run check:motion && npm run check:starfield && npm run check:laboratory",
-    "check:laboratory": "node scripts/check-specimen.mjs && node scripts/check-laboratory.mjs && node scripts/check-course-data.mjs && node scripts/check-course-session.mjs && node scripts/check-assembly-models.mjs && node scripts/check-assembly-flow.mjs",
+    "check:laboratory": "node scripts/check-specimen.mjs && node scripts/check-laboratory.mjs && node scripts/check-course-data.mjs && node scripts/check-course-session.mjs && node scripts/check-assembly-models.mjs && node scripts/check-assembly-flow.mjs && node scripts/check-specimen-materials.mjs",
     "check:starfield": "node scripts/check-starfield.mjs && node scripts/check-starfield-observation.mjs && node scripts/check-starfield-controls.mjs"
   },
   "devDependencies": {
