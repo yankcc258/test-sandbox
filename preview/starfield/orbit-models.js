@@ -3,13 +3,29 @@
 import * as THREE from '../../vendor/three/three.module.min.js';
 export const BRASS = new THREE.Color('#d3b36f');
 const loader = new THREE.TextureLoader();
-function texture(name, done) {
-  return loader.load(new URL(`./textures/${name}.jpg`, import.meta.url).href, (t) => {
-    t.colorSpace = THREE.SRGBColorSpace;
-    t.anisotropy = 4;
-    done?.(t);
-  });
+const pendingTextures = [];
+export function whenTexturesReady() {
+  return Promise.all(pendingTextures);
 }
+function texture(name, done) {
+  let loaded;
+  const ready = new Promise((resolve) => {
+    loaded = loader.load(
+      new URL(`./textures/${name}.jpg`, import.meta.url).href,
+      (t) => {
+        t.colorSpace = THREE.SRGBColorSpace;
+        t.anisotropy = 4;
+        done?.(t);
+        resolve(t);
+      },
+      undefined,
+      () => resolve(null),
+    );
+  });
+  pendingTextures.push(ready);
+  return loaded;
+}
+
 function random(seed) {
   let n = seed;
   return () => {

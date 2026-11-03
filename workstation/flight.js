@@ -4,6 +4,7 @@
 // 星空页面接着这一帧淡出，所以这段动画也是星空的载入画面。
 // 飞行器都是我们自己画的俯视剪影（机头朝上），火箭是侧视；不用任何航空公司、机构的涂装和标志。
 import { atmosphere } from './atmosphere.js';
+import { warmStarfield } from '../preview/starfield/preload.js?v=28';
 
 // 各个世代有代表性的飞行器（高度是这段飞行里的高度，用来讲「越飞越高」，不是各自的纪录）
 const STAGES = [
@@ -456,13 +457,42 @@ export function flightStage(t) {
   return { i, stage: prev, morph, alt };
 }
 
+// Keep the moving canvas within a pixel budget. DOM text remains native-resolution.
+export function flightPixelRatio(width, height, pixelRatio) {
+  return Math.min(2, pixelRatio || 1, Math.sqrt(2000000 / Math.max(1, width * height)));
+}
+function cloudTexture(puffs) {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 144;
+  const g = c.getContext('2d'),
+    R = 256 / 4.4;
+  for (const [dx, dy, k] of puffs) {
+    const x = 128 + dx * R,
+      y = 72 + dy * R;
+    const gradient = g.createRadialGradient(x, y, 0, x, y, R * k);
+    gradient.addColorStop(0, 'rgba(235,240,242,0.8)');
+    gradient.addColorStop(1, 'rgba(235,240,242,0)');
+    g.fillStyle = gradient;
+    g.beginPath();
+    g.ellipse(x, y, R * k, R * k * 0.55, 0, 0, Math.PI * 2);
+    g.fill();
+  }
+  return c;
+}
+
 export function createFlight({ motion, station }) {
   let run = null;
-  function go(mood) {
+  function go(mood, picture = null) {
     try {
-      sessionStorage.setItem(KEY, JSON.stringify({ at: Date.now(), mood }));
+      sessionStorage.setItem(
+        KEY,
+        JSON.stringify({ at: Date.now(), mood, picture, still: !motion() }),
+      );
     } catch {}
-    location.assign('../preview/starfield/?from=workstation&via=flight');
+    location.assign(
+      '../preview/starfield/?from=workstation&via=flight' + (!motion() ? '&motion=0' : ''),
+    );
   }
   function build() {
     const el = document.createElement('section');
@@ -484,6 +514,7 @@ export function createFlight({ motion, station }) {
       go(mood);
       return true;
     }
+    if (!test) warmStarfield();
     const a = atmosphere(new Date(), mood),
       el = build(),
       canvas = el.querySelector('canvas'),
@@ -516,14 +547,18 @@ export function createFlight({ motion, station }) {
         s: 0.4 + r() * 1.3,
         a: 0.3 + r() * 0.7,
       }));
+    clouds.forEach((c) => {
+      c.sprite = cloudTexture(c.puffs);
+    });
+    shapes();
     let w = 0,
       h = 0,
       dpr = 1,
       climb = 0;
     function size() {
-      dpr = Math.min(2, devicePixelRatio || 1);
       w = innerWidth;
       h = innerHeight;
+      dpr = flightPixelRatio(w, h, devicePixelRatio);
       canvas.width = w * dpr;
       canvas.height = h * dpr;
     }
@@ -579,6 +614,10 @@ export function createFlight({ motion, station }) {
       }
       ctx.restore();
     }
+    let lastRead = -Infinity,
+      lastStage = null,
+      lastUi = null,
+      lastQuote = null;
     function frame(t, dt) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const e = t / FLIGHT.env, // 天色、云、星的时间表按飞行总长拉长
@@ -638,17 +677,14 @@ export function createFlight({ motion, station }) {
           const y = ((c.y + climb * 0.35) % 1.4) - 0.2,
             R = c.w * Math.max(w, h * 0.8);
           ctx.globalAlpha = cloudK * c.a * (up < 0.3 ? 1.2 : 1);
-          for (const [dx, dy, k] of c.puffs) {
-            const px = c.x * w + dx * R,
-              py = y * h + dy * R,
-              cg = ctx.createRadialGradient(px, py, 0, px, py, R * k);
-            cg.addColorStop(0, 'rgba(235,240,242,0.8)');
-            cg.addColorStop(1, 'rgba(235,240,242,0)');
-            ctx.fillStyle = cg;
-            ctx.beginPath();
-            ctx.ellipse(px, py, R * k, R * k * 0.55, 0, 0, Math.PI * 2);
-            ctx.fill();
-          }
+          // Baked once at launch: 18 texture draws replace 72 radial gradients.
+          ctx.drawImage(
+            c.sprite,
+            c.x * w - 2.2 * R,
+            y * h - (144 / 256) * 2.2 * R,
+            4.4 * R,
+            (144 / 256) * 4.4 * R,
+          );
         }
       // 速度线
       const lines = Math.round(6 + 26 * speed * (1 - seg(t, FLIGHT.out, FLIGHT.out + 0.8)));
@@ -696,13 +732,31 @@ export function createFlight({ motion, station }) {
       ctx.globalAlpha = 1;
       // 读数
       const shown = morph > 0.5 && STAGES[i + 1] ? STAGES[i + 1] : stage;
-      altEl.textContent = fmtAlt(alt);
-      nameEl.textContent = `${shown.year} · ${shown.name}`;
-      noteEl.textContent = shown.note;
-      items.forEach((li, k) => li.classList.toggle('on', k === STAGES.indexOf(shown)));
-      items.forEach((li, k) => li.classList.toggle('past', k < STAGES.indexOf(shown)));
-      el.style.setProperty('--ui', fade.toFixed(3));
-      el.style.setProperty('--quote', smooth(seg(t, FLIGHT.out, FLIGHT.out + 0.9)).toFixed(3));
+      if (t - lastRead >= 0.1 || t < lastRead || t >= FLIGHT.total) {
+        const value = fmtAlt(alt);
+        if (altEl.textContent !== value) altEl.textContent = value;
+        lastRead = t;
+      }
+      if (lastStage !== shown.id) {
+        nameEl.textContent = `${shown.year} · ${shown.name}`;
+        noteEl.textContent = shown.note;
+        const index = STAGES.indexOf(shown);
+        items.forEach((li, k) => {
+          li.classList.toggle('on', k === index);
+          li.classList.toggle('past', k < index);
+        });
+        lastStage = shown.id;
+      }
+      const quote = smooth(seg(t, FLIGHT.out, FLIGHT.out + 0.9)).toFixed(3);
+      const ui = (fade * (1 - smooth(seg(t, FLIGHT.out, FLIGHT.out + 0.9)))).toFixed(3);
+      if (ui !== lastUi) {
+        el.style.setProperty('--ui', ui);
+        lastUi = ui;
+      }
+      if (quote !== lastQuote) {
+        el.style.setProperty('--quote', quote);
+        lastQuote = quote;
+      }
     }
     let t = 0,
       last = 0,
@@ -712,7 +766,13 @@ export function createFlight({ motion, station }) {
       if (done) return;
       done = true;
       cancelAnimationFrame(raf);
-      go(mood);
+      removeEventListener('resize', size);
+      document.removeEventListener('visibilitychange', visibility);
+      let picture = null;
+      try {
+        picture = canvas.toDataURL('image/jpeg', 0.82);
+      } catch {}
+      go(mood, picture);
     }
     function tick(now) {
       const dt = last ? Math.min(0.1, (now - last) / 1000) : 0;
@@ -734,12 +794,29 @@ export function createFlight({ motion, station }) {
         skip();
       }
     });
-    run = { el, frame, setClimb: (v) => (climb = v) };
+    function visibility() {
+      cancelAnimationFrame(raf);
+      last = 0;
+      if (!document.hidden && !done) raf = requestAnimationFrame(tick);
+    }
+    function cleanup() {
+      cancelAnimationFrame(raf);
+      removeEventListener('resize', size);
+      document.removeEventListener('visibilitychange', visibility);
+      el.remove();
+      run = null;
+      station()?.reset?.();
+    }
+    run = { el, frame, setClimb: (v) => (climb = v), cleanup };
+    document.addEventListener('visibilitychange', visibility);
     if (test) return run;
     el.querySelector('.fl-skip').focus({ preventScroll: true });
     raf = requestAnimationFrame(tick);
     return true;
   }
+  addEventListener('pageshow', (e) => {
+    if (e.persisted) run?.cleanup();
+  });
   return {
     start,
     // 测试用：画出第 t 秒的样子（不跑循环、不跳转）

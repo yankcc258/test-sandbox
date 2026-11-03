@@ -135,16 +135,16 @@ export function grudgePat(b, now = Date.now()) {
   return x;
 }
 // 东京时间的夜里（23:00–6:00，老知序的默认作息）
+const tokyoHour = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Tokyo',
+  hour: '2-digit',
+  hourCycle: 'h23',
+});
 export function seekoNight(d = new Date()) {
-  const h = Number(
-    new Intl.DateTimeFormat('en-GB', {
-      timeZone: 'Asia/Tokyo',
-      hour: '2-digit',
-      hourCycle: 'h23',
-    }).format(d),
-  );
+  const h = Number(tokyoHour.format(d));
   return h >= 23 || h < 6;
 }
+
 function when(ms) {
   const d = new Date(ms),
     f = new Intl.DateTimeFormat('zh-CN', {
@@ -259,6 +259,13 @@ export function createSeeko({ region, spots = null, motion = () => true, hidden 
   }
   // ---- 每帧 ----
   function tick() {
+    // A covered/background character must not compete with flight or WebGL.
+    // Wall-clock deadlines still catch up on the next visible update.
+    if (document.hidden || hidden()) {
+      el.classList.add('away');
+      setTimeout(() => requestAnimationFrame(tick), 200);
+      return;
+    }
     const now = Date.now(),
       isNight = night();
     if (moodUntil && now > moodUntil) {

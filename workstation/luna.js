@@ -9,9 +9,9 @@ import {
   play,
   PASSAGE,
 } from '../sandbox/passage.js';
-import { createFlight } from './flight.js?v=26';
+import { createFlight } from './flight.js?v=28';
 import { createBoot } from './boot.js?v=26';
-import { createSeeko } from '../sandbox/seeko.js?v=27';
+import { createSeeko } from '../sandbox/seeko.js?v=28';
 
 const params = new URLSearchParams(location.search),
   reduced = matchMedia('(prefers-reduced-motion: reduce)');

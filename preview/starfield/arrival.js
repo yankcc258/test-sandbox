@@ -4,21 +4,23 @@
   let came = null;
   try {
     came = JSON.parse(sessionStorage.getItem('zhixu-flight') || 'null');
-    if (!came || Date.now() - came.at > 8000) came = null;
+    if (!came || Date.now() - came.at > 30000) came = null;
     else sessionStorage.removeItem('zhixu-flight');
   } catch {
     came = null;
   }
   if (!came) return;
   const still =
+    came.still ||
     matchMedia('(prefers-reduced-motion: reduce)').matches ||
     new URLSearchParams(location.search).get('motion') === '0';
   const style = document.createElement('style');
   style.textContent = `
-    .flight-arrive{position:fixed;inset:0;z-index:5000;background:#04060c;color:#e8ebe4;transition:opacity 1.4s ease;font-family:Inter,'PingFang SC','Noto Sans SC',sans-serif}
-    .flight-arrive canvas{position:absolute;inset:0;width:100%;height:100%}
+    .flight-arrive{position:fixed;inset:0;z-index:5000;background:#04060c;color:#e8ebe4;transition:opacity 1s ease;will-change:opacity;font-family:Inter,'PingFang SC','Noto Sans SC',sans-serif}
+    .flight-arrive canvas,.flight-arrive img{position:absolute;inset:0;width:100%;height:100%;object-fit:fill}
     .flight-arrive p{position:absolute;left:50%;top:30%;translate:-50% 0;display:grid;gap:10px;justify-items:center;width:min(90vw,640px);margin:0;text-align:center;font-size:clamp(18px,2.2vw,26px);font-weight:300;letter-spacing:.12em;transition:opacity .9s ease}
     .flight-arrive small{margin-top:6px;font-size:12px;letter-spacing:.14em;color:#9fb0b8}
+    @media(max-width:760px){.flight-arrive p{top:24%}}
     .flight-arrive.out{opacity:0}.flight-arrive.out p{opacity:0}`;
   document.head.append(style);
   const el = document.createElement('div');
@@ -26,8 +28,23 @@
   el.setAttribute('aria-hidden', 'true');
   el.innerHTML =
     '<canvas></canvas><p><span>地球是人类的摇篮，</span><span>但人不能永远生活在摇篮里。</span><small>— 康斯坦丁 · 齐奥尔科夫斯基</small></p>';
+  // Preserve the departing canvas exactly; rebuilding different stars caused a
+  // visible cut at navigation. The snapshot contains only this generated scene.
+  const picture =
+    typeof came.picture === 'string' &&
+    came.picture.length < 2000000 &&
+    /^data:image\/jpeg;base64,/.test(came.picture)
+      ? came.picture
+      : null;
   function mount() {
     document.body.append(el);
+    if (picture) {
+      const image = new Image();
+      image.alt = '';
+      image.src = picture;
+      el.querySelector('canvas').replaceWith(image);
+      return;
+    }
     const c = el.querySelector('canvas'),
       dpr = Math.min(2, devicePixelRatio || 1);
     c.width = innerWidth * dpr;
@@ -44,18 +61,25 @@
     }
   }
   function leave() {
+    if (still) return el.remove();
     el.classList.add('out');
-    setTimeout(() => el.remove(), still ? 0 : 1500);
+    setTimeout(() => el.remove(), 1100);
   }
   if (document.body) mount();
   else document.addEventListener('DOMContentLoaded', mount, { once: true });
-  // 星空贴图和星历载入后再揭开；最多等 6 秒
+  // A navigation load event does not mean that textures are on the GPU yet.
+  // Reveal only after the scene has rendered; still retain an escape for a
+  // failed script so the static content / return link can always be reached.
   let done = false;
-  const go = () => {
+  const watchdog = setTimeout(go, 12000);
+  function go() {
     if (done) return;
     done = true;
-    setTimeout(leave, still ? 0 : 700);
-  };
-  addEventListener('load', go, { once: true });
-  setTimeout(go, 6000);
+    clearTimeout(watchdog);
+    removeEventListener('zhixu:starfield-ready', go);
+    if (document.body) requestAnimationFrame(leave);
+    else document.addEventListener('DOMContentLoaded', leave, { once: true });
+  }
+  addEventListener('zhixu:starfield-ready', go, { once: true });
+  if (document.documentElement.dataset.starfieldReady) go();
 })();

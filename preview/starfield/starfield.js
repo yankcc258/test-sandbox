@@ -1,7 +1,7 @@
 import * as THREE from '../../vendor/three/three.module.min.js';
 import { BODIES, position, orbitOffset } from './orbit-space.js';
-import { makeBody, makeSky } from './orbit-models.js';
-import { skyDay, skyClock, orbitSkyToday, orbitSkyEvents, orbitSkyCountdown } from './orbit-sky.js';
+import { makeBody, makeSky, whenTexturesReady } from './orbit-models.js?v=28';
+import { skyDay, skyClock, orbitSkyCountdown } from './orbit-sky.js';
 
 // A self-contained view: no study routes, user data or storage.
 // 原始内容预览地址不增加操作界面，仅在从目录/工作台进入时给出返回入口。
@@ -18,17 +18,54 @@ const text = (key, value) => {
 };
 let reportDay = '';
 let nextEventAt = 0;
-function updateReport() {
+let reportPending = false,
+  reportId = 0,
+  reportWorker = null;
+try {
+  reportWorker = new Worker(new URL('./sky-report-worker.js?v=28', import.meta.url), {
+    type: 'module',
+  });
+} catch {}
+async function readReport(now) {
+  if (!reportWorker) {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const { calculateSkyReport } = await import('./sky-report.js?v=28');
+    await import('./vendor/astronomy/astronomy.browser.min.js');
+    return calculateSkyReport(globalThis.Astronomy, now.getTime());
+  }
+  return new Promise((resolve, reject) => {
+    const id = ++reportId;
+    const timer = setTimeout(() => reject(new Error('Sky report timed out')), 15000);
+    reportWorker.onmessage = ({ data }) => {
+      if (data.id !== id) return;
+      clearTimeout(timer);
+      data.error ? reject(new Error('Sky report unavailable')) : resolve(data);
+    };
+    reportWorker.onerror = () => {
+      clearTimeout(timer);
+      reportWorker.terminate();
+      reportWorker = null;
+      reject(new Error('Sky worker unavailable'));
+    };
+    reportWorker.postMessage({ id, timestamp: now.getTime() });
+  });
+}
+async function updateReport() {
   const now = new Date();
   text('clock', `${skyClock(now)} JST`);
   if (reportDay === skyDay(now) && now.getTime() < nextEventAt) return;
-  const A = window.Astronomy;
-  if (!A) {
+  if (reportPending) return;
+  reportPending = true;
+  let report;
+  try {
+    report = await readReport(now);
+  } catch {
     text('note', '天象数据暂未载入');
     return;
+  } finally {
+    reportPending = false;
   }
-  const today = orbitSkyToday(A, now);
-  const events = orbitSkyEvents(A, now);
+  const { today, events } = report;
   const clock = (date) => (date ? skyClock(date) : '—');
   const visible = (list) => list.map((p) => p.cn).join(' · ') || '无主要行星';
   text('day', today.day.replaceAll('-', '.'));
@@ -63,7 +100,7 @@ function updateReport() {
   nextEventAt = next?.time.getTime() || now.getTime() + 3600000;
 }
 
-function mountScene() {
+async function mountScene() {
   const canvas = document.querySelector('#starfield');
   const host = document.querySelector('.universe');
   const labels = document.querySelector('#planet-labels');
@@ -147,6 +184,7 @@ function mountScene() {
   const projected = new THREE.Vector3();
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const motionOff = new URLSearchParams(location.search).get('motion') === '0';
+  let ready = false;
   let width = 1,
     height = 1,
     time = 0,
@@ -162,8 +200,7 @@ function mountScene() {
       projected.copy(b.group.position).project(camera);
       const x = (projected.x * 0.5 + 0.5) * width;
       const y = (-projected.y * 0.5 + 0.5) * height;
-      const w = b.label.offsetWidth,
-        h = b.label.offsetHeight;
+      const { w, h } = b.labelBounds;
       const offsets = [
         [16, -22],
         [16, 12],
@@ -190,6 +227,7 @@ function mountScene() {
     }
   }
   function draw(forceLabels = false) {
+    if (!ready) return;
     for (const b of bodies) {
       b.group.position.set(...position(b.id, opened, time));
       if (b.spin) b.surface.rotation.y = (time / b.spin) * Math.PI * 2;
@@ -240,11 +278,14 @@ function mountScene() {
         h: r.height + 20,
       };
     });
+    bodies.forEach((b) => {
+      b.labelBounds = { w: b.label.offsetWidth, h: b.label.offsetHeight };
+    });
     draw(true);
   }
   function tick(now) {
     frame = 0;
-    if (document.hidden || reduced.matches || motionOff) return;
+    if (!ready || document.hidden || reduced.matches || motionOff) return;
     if (!last) last = now;
     // Cap the resumed delta; never catch up hidden time in one visual jump.
     time += Math.min((now - last) / 1000, 0.06);
@@ -258,7 +299,7 @@ function mountScene() {
     last = 0;
     if (!document.hidden) {
       resize();
-      if (!reduced.matches && !motionOff) frame = requestAnimationFrame(tick);
+      if (ready && !reduced.matches && !motionOff) frame = requestAnimationFrame(tick);
     }
   }
   new ResizeObserver(resize).observe(host);
@@ -282,7 +323,39 @@ function mountScene() {
     labels.hidden = false;
     syncMotion();
   });
+  resize();
+  // Decode/load first, then yield between uploads while the arrival image
+  // remains in place. A missing texture can use its procedural fallback.
+  let timeout;
+  await Promise.race([
+    whenTexturesReady(),
+    new Promise((resolve) => {
+      timeout = setTimeout(resolve, 6000);
+    }),
+  ]);
+  clearTimeout(timeout);
+  const maps = new Set();
+  scene.traverse((object) => {
+    for (const material of [object.material].flat().filter(Boolean)) {
+      for (const value of Object.values(material))
+        if (value?.isTexture && value.image) maps.add(value);
+      for (const uniform of Object.values(material.uniforms || {}))
+        if (uniform.value?.isTexture && uniform.value.image) maps.add(uniform.value);
+    }
+  });
+  const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+  for (const map of maps) {
+    renderer.initTexture(map);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+  if (renderer.compileAsync) await renderer.compileAsync(scene, camera);
+  else renderer.compile(scene, camera);
+  ready = true;
   syncMotion();
+  await nextFrame();
+  await nextFrame();
+  document.documentElement.dataset.starfieldReady = 'true';
+  dispatchEvent(new Event('zhixu:starfield-ready'));
 }
 
 updateReport();
@@ -292,9 +365,9 @@ setInterval(() => {
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) updateReport();
 });
-try {
-  mountScene();
-} catch (error) {
+mountScene().catch((error) => {
   console.warn('Starfield preview:', error);
   document.querySelector('.render-note').hidden = false;
-}
+  document.documentElement.dataset.starfieldReady = 'fallback';
+  dispatchEvent(new Event('zhixu:starfield-ready'));
+});
