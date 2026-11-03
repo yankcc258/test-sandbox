@@ -1,8 +1,9 @@
 import * as THREE from '../vendor/three/three.module.min.js';
-import { RoomEnvironment } from '../vendor/three/RoomEnvironment.js';
-import { createSpecimen } from './specimen.js?v=31';
-import { approach, sceneTargets } from './state.js?v=31';
-import { advanceRelease, releasePhase } from './motion.js?v=31';
+import { RoomEnvironment } from '../vendor/three/RoomEnvironment.js?v=32';
+import { createSpecimen } from './specimen.js?v=32';
+import { createLabEnvironment } from './environment.js?v=32';
+import { approach, sceneTargets } from './state.js?v=32';
+import { advanceRelease, releasePhase } from './motion.js?v=32';
 
 // The trefoil and Frenet-frame ribbon follow ZHIXU's existing laboratory.
 // The inside specimen is a separate mathematical object, not a transformation
@@ -53,6 +54,8 @@ export async function createLaboratory({ canvas, anchor, activate, motion }) {
   const edge = new THREE.DirectionalLight('#a6c0c7', 1.35);
   edge.position.set(2, 2, -3);
   scene.add(hemi, key, edge);
+  const instrumentBay = createLabEnvironment(THREE);
+  scene.add(instrumentBay.group);
   const world = new THREE.Group(),
     ribbonGroup = new THREE.Group();
   world.add(ribbonGroup);
@@ -201,6 +204,7 @@ export async function createLaboratory({ canvas, anchor, activate, motion }) {
     camera.updateProjectionMatrix();
     camera.updateMatrixWorld();
     world.updateMatrixWorld(true);
+    instrumentBay.setReveal(spread, state.stage === 'lesson');
     renderer.render(scene, camera);
     anchor.hidden = state.stage === 'observe' || state.stage === 'lesson';
     if (!anchor.hidden) {
@@ -360,6 +364,7 @@ export async function createLaboratory({ canvas, anchor, activate, motion }) {
       key.color.set(light);
       key.intensity = mood === 'day' ? 2.7 : mood === 'dusk' ? 2.4 : 2.2;
       scene.environmentIntensity = mood === 'day' ? 0.56 : 0.44;
+      instrumentBay.setMood(mood);
       request();
     },
     refresh: request,

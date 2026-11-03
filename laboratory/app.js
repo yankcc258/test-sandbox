@@ -1,5 +1,5 @@
-import { initialState, reduceState, tokyoMood } from './state.js?v=31';
-import { CHAPTERS } from './chapters.js?v=31';
+import { initialState, reduceState, tokyoMood } from './state.js?v=32';
+import { mountCourseWorkspace } from './course-workspace.js?v=32';
 
 const $ = (id) => document.getElementById(id);
 let state = initialState(),
@@ -35,24 +35,10 @@ anchor.className = 'model-anchor';
 anchor.type = 'button';
 anchor.onclick = () => dispatch({ type: 'activate' });
 document.querySelector('.scene-viewport').append(anchor);
-for (const chapter of CHAPTERS) {
-  const button = document.createElement('button');
-  button.className = 'chapter-entry';
-  button.type = 'button';
-  button.dataset.chapter = chapter.id;
-  const number = document.createElement('small'),
-    title = document.createElement('strong'),
-    summary = document.createElement('span'),
-    arrow = document.createElement('b');
-  number.textContent = chapter.number;
-  title.textContent = chapter.title;
-  summary.textContent = chapter.summary;
-  arrow.textContent = '↗';
-  arrow.setAttribute('aria-hidden', 'true');
-  button.append(number, title, summary, arrow);
-  button.onclick = () => dispatch({ type: 'chapter', chapter });
-  $('chapter-list').append(button);
-}
+const workspace = mountCourseWorkspace({
+  open: (chapter) => dispatch({ type: 'chapter', chapter }),
+  back: () => dispatch({ type: 'back' }),
+});
 function render() {
   document.body.dataset.stage = state.stage;
   document.body.dataset.mode = state.mode;
@@ -75,7 +61,6 @@ function render() {
       : '三叶结学科模型，第一次点击聚焦数学，第二次展开观察',
   );
   $('study-panel').hidden = !inside;
-  $('lesson-panel').hidden = state.stage !== 'lesson';
   $('primary-action').hidden = inside;
   $('skip-study').hidden = inside;
   $('primary-action').textContent = state.stage === 'overview' ? '聚焦数学 →' : '展开观察对象 →';
@@ -117,25 +102,18 @@ function render() {
   $('motion-toggle').setAttribute('aria-pressed', String(motion()));
   $('motion-toggle').disabled = reduced.matches;
   $('motion-toggle').title = reduced.matches ? '跟随系统减少动态效果设置' : '开关场景动效';
-  if (state.stage === 'lesson') {
-    const chapter = CHAPTERS.find((item) => item.id === state.chapter);
-    $('lesson-title').textContent = chapter.title;
-    // Authored local lesson markup; no remote content or user input is parsed.
-    if ($('lesson-content').dataset.chapter !== chapter.id) {
-      $('lesson-content').innerHTML = chapter.html;
-      $('lesson-content').dataset.chapter = chapter.id;
-    }
-  }
+  workspace.update(state);
   scene?.update(state);
 }
 function dispatch(action) {
   const before = state;
-  state = reduceState(state, action);
+  const next = reduceState(state, action);
+  workspace.beforeChange(next);
+  state = next;
   render();
   if (before.stage !== state.stage) {
     if (state.stage === 'lesson') {
-      $('lesson-title').focus({ preventScroll: true });
-      $('lesson-panel').scrollIntoView({ behavior: 'instant', block: 'nearest' });
+      workspace.focus();
     } else if (state.stage === 'observe') {
       $('study-panel').focus({ preventScroll: true });
       if (before.stage === 'lesson') {
@@ -151,7 +129,6 @@ function dispatch(action) {
 $('primary-action').onclick = () => dispatch({ type: 'activate' });
 $('skip-study').onclick = () => dispatch({ type: 'observe' });
 $('back-stage').onclick = () => dispatch({ type: 'back' });
-$('lesson-back').onclick = () => dispatch({ type: 'back' });
 document.querySelectorAll('#observation-tabs button[data-mode]').forEach((button) => {
   button.onclick = () => dispatch({ type: 'mode', mode: button.dataset.mode });
 });
@@ -185,7 +162,7 @@ setInterval(() => {
   if (!document.hidden) atmosphere();
 }, 60000);
 try {
-  const { createLaboratory } = await import('./scene.js?v=31');
+  const { createLaboratory } = await import('./scene.js?v=32');
   scene = await createLaboratory({
     canvas: $('lab-canvas'),
     anchor,

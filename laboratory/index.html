@@ -10,8 +10,9 @@
     />
     <title>知序 ZHIXU · 学科观察</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="./laboratory.css?v=31" />
-    <script type="module" src="./app.js?v=31"></script>
+    <link rel="stylesheet" href="./laboratory.css?v=32" />
+    <link rel="stylesheet" href="./course-workspace.css?v=32" />
+    <script type="module" src="./app.js?v=32"></script>
   </head>
   <body data-stage="overview">
     <div class="laboratory">
@@ -81,60 +82,148 @@
               <span class="section-code" aria-hidden="true">M / 01</span>
             </div>
             <p class="specimen-copy">从整体形态进入局部，比较曲面、切平面与截面的关系。</p>
-            <div
-              id="observation-tabs"
-              class="observation-tabs"
-              role="group"
-              aria-label="切换数学观察方式"
-            >
-              <button type="button" data-mode="surface" aria-pressed="true">曲面</button>
-              <button type="button" data-mode="tangent" aria-pressed="false">切平面</button>
-              <button type="button" data-mode="section" aria-pressed="false">截面</button>
-            </div>
-            <div class="probe-control">
-              <div class="probe-heading">
-                <label id="probe-label" for="probe">观察位置</label>
-                <output id="probe-value" for="probe">0.35</output>
+            <div id="observer-controls">
+              <div
+                id="observation-tabs"
+                class="observation-tabs"
+                role="group"
+                aria-label="切换数学观察方式"
+              >
+                <button type="button" data-mode="surface" aria-pressed="true">曲面</button>
+                <button type="button" data-mode="tangent" aria-pressed="false">切平面</button>
+                <button type="button" data-mode="section" aria-pressed="false">截面</button>
               </div>
-              <input
-                type="range"
-                id="probe"
-                min="-1"
-                max="1"
-                step="0.01"
-                value="0.35"
-                aria-describedby="specimen-note"
-              />
-              <div class="probe-limits" aria-hidden="true">
-                <span>−1</span><span>0</span><span>1</span>
+              <div class="probe-control">
+                <div class="probe-heading">
+                  <label id="probe-label" for="probe">观察位置</label>
+                  <output id="probe-value" for="probe">0.35</output>
+                </div>
+                <input
+                  type="range"
+                  id="probe"
+                  min="-1"
+                  max="1"
+                  step="0.01"
+                  value="0.35"
+                  aria-describedby="specimen-note"
+                />
+                <div class="probe-limits" aria-hidden="true">
+                  <span>−1</span><span>0</span><span>1</span>
+                </div>
               </div>
+              <p id="specimen-note" class="specimen-note">
+                切换观察方式，或移动取样位置，看看局部结构如何变化。
+              </p>
             </div>
-            <p id="specimen-note" class="specimen-note">
-              切换观察方式，或移动取样位置，看看局部结构如何变化。
-            </p>
             <div class="section-heading chapter-heading">
-              <h2 id="chapters-title">从观察到章节</h2>
-              <span class="section-code">示例</span>
+              <h2 id="chapters-title">数学 · 课程目录</h2>
+              <span class="section-code">本轮开放 1 / 5</span>
             </div>
             <nav id="chapter-list" class="chapter-list" aria-labelledby="chapters-title"></nav>
           </section>
-
-          <article id="lesson-panel" class="lesson-panel" hidden aria-labelledby="lesson-title">
-            <div class="section-heading lesson-heading">
-              <span class="eyebrow">MATHEMATICS / READING</span>
-            </div>
-            <h2 id="lesson-title" tabindex="-1">数学示例章节</h2>
-            <div id="lesson-content" class="lesson-content"></div>
-            <button type="button" id="lesson-back" class="text-action lesson-back">
-              <span aria-hidden="true">←</span> 返回观察
-            </button>
-          </article>
         </div>
+        <section
+          id="course-workspace"
+          class="course-workspace"
+          hidden
+          aria-labelledby="course-title"
+        >
+          <header class="course-header">
+            <button id="course-return" type="button">← 课程目录</button>
+            <div class="course-heading">
+              <p class="eyebrow">MATHEMATICS / 04 · RESEARCH NOTES</p>
+              <h1 id="course-title" tabindex="-1">偏导数与全微分</h1>
+              <p class="course-meta" id="course-scope">
+                主站课程内容 · 沙盒作答仅本页有效，不同步学习记录
+              </p>
+            </div>
+            <button
+              id="observer-toggle"
+              type="button"
+              aria-expanded="true"
+              aria-controls="course-observer"
+            >
+              收起观察区
+            </button>
+          </header>
+          <div class="course-layout">
+            <nav class="course-toc" id="course-toc" aria-label="本章目录"></nav>
+            <article class="course-reader" id="course-reader" tabindex="-1">
+              <div class="course-tabs" role="group" aria-label="阅读或练习">
+                <button type="button" data-course-tab="reading" aria-pressed="true">
+                  课程正文
+                </button>
+                <button type="button" data-course-tab="practice" aria-pressed="false">
+                  练习 <span id="practice-count">0 / 5</span>
+                </button>
+              </div>
+              <div id="course-reading"></div>
+              <div id="course-practice" hidden>
+                <div class="practice-summary" id="practice-summary" role="status"></div>
+                <p class="practice-scope">沿用本章原题与判题方式。刷新后清空本轮作答。</p>
+                <div id="exercise-list"></div>
+                <div class="exercise-actions">
+                  <button type="button" id="practice-to-reading">返回课程正文</button>
+                  <button type="button" id="practice-reset">重置本轮作答</button>
+                </div>
+              </div>
+            </article>
+            <aside class="course-observer" id="course-observer" aria-label="侧边观察区">
+              <div class="observer-heading">
+                <p class="eyebrow">OBSERVATION / 局部变化</p>
+                <h2>把局部变化看清楚</h2>
+              </div>
+              <div class="observer-stage"></div>
+              <div id="observer-controls-home"></div>
+              <p class="observation-disclaimer">
+                上方马鞍曲面用于观察局部与切平面的关系；本章算例 f = x²y 的数值在下方对照。
+              </p>
+              <section
+                class="case-observation"
+                id="case-observation"
+                tabindex="-1"
+                aria-labelledby="case-title"
+              >
+                <p class="eyebrow">WORKED EXAMPLE / 本章算例</p>
+                <h3 id="case-title">f = x²y · 从 (2, 3) 出发</h3>
+                <label for="case-dx"
+                  >x 的改变量 dx <output id="case-dx-value" for="case-dx">0.10</output></label
+                >
+                <input type="range" id="case-dx" min="-0.3" max="0.3" step="any" value="0.1" />
+                <label for="case-dy"
+                  >y 的改变量 dy <output id="case-dy-value" for="case-dy">−0.20</output></label
+                >
+                <input type="range" id="case-dy" min="-0.3" max="0.3" step="any" value="-0.2" />
+                <dl class="case-values">
+                  <div>
+                    <dt>一阶估计 df</dt>
+                    <dd id="case-differential"></dd>
+                  </div>
+                  <div>
+                    <dt>精确变化 Δf</dt>
+                    <dd id="case-exact"></dd>
+                  </div>
+                  <div>
+                    <dt>估计 − 精确</dt>
+                    <dd id="case-error"></dd>
+                  </div>
+                </dl>
+                <p id="case-explanation"></p>
+                <div class="case-actions">
+                  <button type="button" id="case-half">步长减半</button
+                  ><button type="button" id="case-reset">回到原例</button>
+                </div>
+                <button type="button" id="case-return">返回刚才的阅读或练习位置 →</button>
+                <p class="case-note">移动数值不会改变上方几何示意，也不会替你填写答案。</p>
+              </section>
+            </aside>
+          </div>
+        </section>
       </main>
 
       <footer class="lab-footer">
         <p id="interaction-hint">点击数学片段，或使用右侧按钮开始观察。</p>
-        <p class="sandbox-note">数学交互范本 <span aria-hidden="true">·</span> 不写入学习记录</p>
+        <p class="sandbox-note">主站课程预览 <span aria-hidden="true">·</span> 不同步学习记录</p>
       </footer>
     </div>
   </body>
