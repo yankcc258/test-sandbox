@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#15191b" />
+    <meta
+      name="description"
+      content="知序实验室：沿着三叶结进入数学，观察曲面、切平面与截面的关系。"
+    />
+    <title>知序 ZHIXU · 学科观察</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./laboratory.css?v=30" />
+    <script type="module" src="./app.js?v=30"></script>
+  </head>
+  <body data-stage="overview">
+    <div class="laboratory">
+      <header class="site-header">
+        <a class="brand" href="../" aria-label="知序，返回沙盒目录">
+          <span class="brand-name">知序 <span>ZHIXU</span></span>
+          <span class="brand-description">实验室 · 学科观察</span>
+        </a>
+        <div class="header-tools">
+          <time id="tokyo-time" aria-label="东京时间">TOKYO / JST</time>
+          <button type="button" id="motion-toggle" aria-pressed="false">关闭动效</button>
+          <a class="catalog-link" href="../">沙盒目录 <span aria-hidden="true">↗</span></a>
+        </div>
+      </header>
+
+      <main class="lab-main">
+        <div class="scene-viewport">
+          <canvas
+            id="lab-canvas"
+            tabindex="0"
+            aria-label="三叶结学科模型，可通过聚焦数学按钮开始观察"
+            aria-describedby="interaction-hint"
+          >
+            三叶结学科模型。下方按钮可以打开数学观察与示例章节。
+          </canvas>
+          <div class="scene-index" aria-hidden="true">
+            <span class="index-cross">+</span>
+            <span>MATHEMATICS</span>
+            <span class="index-line"></span>
+            <span>01</span>
+          </div>
+          <div class="scene-scale" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          </div>
+          <p id="fallback" class="fallback" hidden>
+            当前设备无法显示立体模型，仍可查看数学观察说明与示例章节。
+          </p>
+        </div>
+
+        <div class="content-column">
+          <button type="button" id="back-stage" class="back-stage" hidden>
+            <span aria-hidden="true">←</span> 返回总览
+          </button>
+          <section class="stage-intro" aria-labelledby="stage-title">
+            <p class="eyebrow" id="stage-eyebrow">LABORATORY / 01</p>
+            <h1 id="stage-title">从形态，<br />进入数学。</h1>
+            <p class="stage-copy" id="stage-copy">沿着数学片段，观察整体与局部的关系。</p>
+            <div class="stage-actions">
+              <button type="button" id="primary-action" class="primary-action">
+                聚焦数学 <span aria-hidden="true">↗</span>
+              </button>
+              <button type="button" id="skip-study" class="text-action">
+                直接查看章节 <span aria-hidden="true">→</span>
+              </button>
+            </div>
+          </section>
+
+          <section
+            id="study-panel"
+            class="study-panel"
+            hidden
+            tabindex="-1"
+            aria-labelledby="specimen-title"
+          >
+            <div class="section-heading">
+              <h2 id="specimen-title">曲面观察</h2>
+              <span class="section-code" aria-hidden="true">M / 01</span>
+            </div>
+            <p class="specimen-copy">从整体形态进入局部，比较曲面、切平面与截面的关系。</p>
+            <div
+              id="observation-tabs"
+              class="observation-tabs"
+              role="group"
+              aria-label="切换数学观察方式"
+            >
+              <button type="button" data-mode="surface" aria-pressed="true">曲面</button>
+              <button type="button" data-mode="tangent" aria-pressed="false">切平面</button>
+              <button type="button" data-mode="section" aria-pressed="false">截面</button>
+            </div>
+            <div class="probe-control">
+              <div class="probe-heading">
+                <label id="probe-label" for="probe">观察位置</label>
+                <output id="probe-value" for="probe">0.35</output>
+              </div>
+              <input
+                type="range"
+                id="probe"
+                min="-1"
+                max="1"
+                step="0.01"
+                value="0.35"
+                aria-describedby="specimen-note"
+              />
+              <div class="probe-limits" aria-hidden="true">
+                <span>−1</span><span>0</span><span>1</span>
+              </div>
+            </div>
+            <p id="specimen-note" class="specimen-note">
+              切换观察方式，或移动取样位置，看看局部结构如何变化。
+            </p>
+            <div class="section-heading chapter-heading">
+              <h2 id="chapters-title">从观察到章节</h2>
+              <span class="section-code">示例</span>
+            </div>
+            <nav id="chapter-list" class="chapter-list" aria-labelledby="chapters-title"></nav>
+          </section>
+
+          <article id="lesson-panel" class="lesson-panel" hidden aria-labelledby="lesson-title">
+            <div class="section-heading lesson-heading">
+              <span class="eyebrow">MATHEMATICS / READING</span>
+            </div>
+            <h2 id="lesson-title" tabindex="-1">数学示例章节</h2>
+            <div id="lesson-content" class="lesson-content"></div>
+            <button type="button" id="lesson-back" class="text-action lesson-back">
+              <span aria-hidden="true">←</span> 返回观察
+            </button>
+          </article>
+        </div>
+      </main>
+
+      <footer class="lab-footer">
+        <p id="interaction-hint">点击数学片段，或使用右侧按钮开始观察。</p>
+        <p class="sandbox-note">数学交互范本 <span aria-hidden="true">·</span> 不写入学习记录</p>
+      </footer>
+    </div>
+  </body>
+</html>

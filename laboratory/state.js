@@ -1,0 +1,53 @@
+export const initialState = () => ({
+  stage: 'overview',
+  mode: 'surface',
+  probe: 0.35,
+  chapter: null,
+});
+export function reduceState(state, action) {
+  switch (action.type) {
+    case 'activate':
+      return {
+        ...state,
+        stage:
+          state.stage === 'overview' ? 'focus' : state.stage === 'focus' ? 'observe' : state.stage,
+      };
+    case 'observe':
+      return { ...state, stage: 'observe', chapter: null };
+    case 'back':
+      return { ...state, stage: state.stage === 'lesson' ? 'observe' : 'overview', chapter: null };
+    case 'chapter':
+      return { ...state, stage: 'lesson', mode: action.chapter.mode, chapter: action.chapter.id };
+    case 'mode':
+      return ['surface', 'tangent', 'section'].includes(action.mode)
+        ? { ...state, mode: action.mode }
+        : state;
+    case 'probe':
+      return Number.isFinite(action.value)
+        ? { ...state, probe: Math.max(-1, Math.min(1, action.value)) }
+        : state;
+    default:
+      return state;
+  }
+}
+export function sceneTargets(stage) {
+  return {
+    focus: stage === 'focus' ? 1 : 0,
+    spread: stage === 'observe' || stage === 'lesson' ? 1 : 0,
+  };
+}
+export function approach(value, target, seconds, rate = 6) {
+  const result =
+    value + (target - value) * (1 - Math.exp(-Math.max(0, Math.min(seconds, 0.06)) * rate));
+  return Math.abs(result - target) < 0.0005 ? target : result;
+}
+export function tokyoMood(now = new Date()) {
+  const hour = Number(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Tokyo',
+      hour: '2-digit',
+      hourCycle: 'h23',
+    }).format(now),
+  );
+  return hour >= 6 && hour < 16 ? 'day' : hour >= 16 && hour < 19 ? 'dusk' : 'night';
+}
