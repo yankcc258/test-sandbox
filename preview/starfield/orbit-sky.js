@@ -143,4 +143,4 @@ function orbitSkyCountdown(time, now = new Date()) {
   return days <= 0 ? '今天' : days === 1 ? '明天' : `${days} 天后`;
 }
 
-export { skyDay, skyClock, orbitSkyToday, orbitSkyEvents, orbitSkyCountdown };
+export { SKY_TOKYO, skyDay, skyClock, orbitSkyToday, orbitSkyEvents, orbitSkyCountdown };

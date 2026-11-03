@@ -2,9 +2,12 @@ import * as THREE from '../../vendor/three/three.module.min.js';
 import { BODIES, position, orbitOffset } from './orbit-space.js';
 import { makeBody, makeSky, whenTexturesReady } from './orbit-models.js?v=28';
 import { skyDay, skyClock, orbitSkyCountdown } from './orbit-sky.js';
+import { createSkyClient } from './sky-client.js?v=29';
+import { createBodyPanel } from './body-panel.js?v=29';
+import { bindExploreControls, clampZoom } from './explore-controls.js?v=29';
 
 // A self-contained view: no study routes, user data or storage.
-// 原始内容预览地址不增加操作界面，仅在从目录/工作台进入时给出返回入口。
+// Only the sandbox atlas is interactive; study routes and account data stay separate.
 const from = new URLSearchParams(location.search).get('from');
 if (from === 'workstation' || from === 'catalog') {
   const back = document.createElement('a');
@@ -18,37 +21,20 @@ const text = (key, value) => {
 };
 let reportDay = '';
 let nextEventAt = 0;
-let reportPending = false,
-  reportId = 0,
-  reportWorker = null;
-try {
-  reportWorker = new Worker(new URL('./sky-report-worker.js?v=28', import.meta.url), {
-    type: 'module',
-  });
-} catch {}
-async function readReport(now) {
-  if (!reportWorker) {
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    const { calculateSkyReport } = await import('./sky-report.js?v=28');
-    await import('./vendor/astronomy/astronomy.browser.min.js');
-    return calculateSkyReport(globalThis.Astronomy, now.getTime());
-  }
-  return new Promise((resolve, reject) => {
-    const id = ++reportId;
-    const timer = setTimeout(() => reject(new Error('Sky report timed out')), 15000);
-    reportWorker.onmessage = ({ data }) => {
-      if (data.id !== id) return;
-      clearTimeout(timer);
-      data.error ? reject(new Error('Sky report unavailable')) : resolve(data);
-    };
-    reportWorker.onerror = () => {
-      clearTimeout(timer);
-      reportWorker.terminate();
-      reportWorker = null;
-      reject(new Error('Sky worker unavailable'));
-    };
-    reportWorker.postMessage({ id, timestamp: now.getTime() });
-  });
+let reportPending = false;
+const requestSky = createSkyClient();
+let selectedBody = null,
+  sceneNavigate = () => {};
+const bodyPanel = createBodyPanel(requestSky, selectBody, closeBody);
+function selectBody(id, trigger) {
+  selectedBody = id;
+  bodyPanel.open(id, trigger);
+  sceneNavigate(id);
+}
+function closeBody() {
+  selectedBody = null;
+  bodyPanel.hide();
+  sceneNavigate(null);
 }
 async function updateReport() {
   const now = new Date();
@@ -58,7 +44,7 @@ async function updateReport() {
   reportPending = true;
   let report;
   try {
-    report = await readReport(now);
+    report = await requestSky({ timestamp: now.getTime() });
   } catch {
     text('note', '天象数据暂未载入');
     return;
@@ -136,9 +122,13 @@ async function mountScene() {
   const bodies = BODIES.map((body) => {
     const model = makeBody(body);
     world.add(model.group);
-    const label = document.createElement('span');
+    const label = document.createElement('button');
+    label.type = 'button';
     label.className = 'planet-label';
+    label.style.visibility = 'hidden';
     label.dataset.body = body.id;
+    label.setAttribute('aria-label', `查看${names[body.id]}详情`);
+    label.onclick = () => selectBody(body.id, label);
     label.append(document.createTextNode(names[body.id]));
     const en = document.createElement('small');
     en.textContent = body.id.toUpperCase();
@@ -175,12 +165,17 @@ async function mountScene() {
     });
   const opened = Date.now();
   const openingSun = position('sun', opened);
-  const yaw = Math.atan2(openingSun[0], openingSun[2]) - 2.1;
-  const view = new THREE.Vector3(
-    Math.sin(yaw) * Math.cos(0.6),
-    Math.sin(0.6),
-    Math.cos(yaw) * Math.cos(0.6),
-  );
+  const initialYaw = Math.atan2(openingSun[0], openingSun[2]) - 2.1;
+  let yaw = initialYaw,
+    targetYaw = yaw,
+    zoom = 1,
+    targetZoom = 1;
+  let focus = null,
+    savedView = null,
+    distance = 27;
+  const view = new THREE.Vector3(),
+    center = new THREE.Vector3();
+  const destination = new THREE.Vector3();
   const projected = new THREE.Vector3();
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const motionOff = new URLSearchParams(location.search).get('motion') === '0';
@@ -191,21 +186,94 @@ async function mountScene() {
     frame = 0,
     last = 0,
     lastLabels = -Infinity;
-  let quietZones = [];
+  let quietZones = [],
+    labelsDirty = false;
+  function invalidate() {
+    labelsDirty = true;
+    if (ready && !document.hidden && !frame) frame = requestAnimationFrame(tick);
+  }
+  const isStill = () => reduced.matches || motionOff;
+  function updateCamera(delta, snap = false) {
+    const small = width <= 900;
+    const blend = snap ? 1 : 1 - Math.exp(-delta * 9);
+    const body = bodies.find((b) => b.id === focus);
+    if (body) destination.copy(body.group.position);
+    else destination.set(0, 0, 0);
+    center.lerp(destination, blend);
+    yaw += (targetYaw - yaw) * blend;
+    zoom += (targetZoom - zoom) * blend;
+    const baseDistance = body
+      ? small
+        ? Math.max(
+            2.6,
+            (body.radius * (body.id === 'saturn' ? 2.3 : 1) * height) /
+              (0.53 * (innerHeight < 700 ? 55 : Math.min(95, width * 0.26))),
+          )
+        : Math.max(2.6, body.radius * (body.id === 'saturn' ? 15 : 10))
+      : small
+        ? Math.max(31, 18 / (width / height))
+        : 27;
+    distance += (baseDistance * zoom - distance) * blend;
+    view.set(Math.sin(yaw) * Math.cos(0.6), Math.sin(0.6), Math.cos(yaw) * Math.cos(0.6));
+    camera.position.copy(view).multiplyScalar(distance).add(center);
+    camera.lookAt(center);
+    camera.setViewOffset(
+      width,
+      height,
+      width * (small ? 0 : body ? 0.18 : 0.14),
+      height * (small ? (body ? 0.5 - (innerHeight * 0.24) / height : -0.1) : -0.04),
+      width,
+      height,
+    );
+    camera.updateProjectionMatrix();
+    camera.updateMatrixWorld();
+    sky.group.position.copy(camera.position);
+    tracks.forEach((m) => {
+      m.uniforms.near.value = distance * 0.6;
+      m.uniforms.far.value = distance * 2.2;
+    });
+    canvas.dataset.yaw = yaw.toFixed(3);
+    canvas.dataset.zoom = zoom.toFixed(3);
+    canvas.dataset.selected = focus || '';
+  }
   const overlaps = (a, b) =>
     a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
   function placeLabels() {
     const occupied = [...quietZones];
+    // Labels must avoid the projected bodies as well as other labels and HUD.
     for (const b of bodies) {
+      projected.copy(b.group.position).project(camera);
+      if (projected.z <= -1 || projected.z >= 1) continue;
+      const r =
+        (((b.radius * (b.id === 'saturn' ? 2.3 : 1.05)) /
+          camera.position.distanceTo(b.group.position)) *
+          height) /
+        0.53;
+      occupied.push({
+        x: (projected.x * 0.5 + 0.5) * width - r,
+        y: (-projected.y * 0.5 + 0.5) * height - r,
+        w: r * 2,
+        h: r * 2,
+      });
+    }
+    for (const b of bodies) {
+      if (focus && b.id !== focus) {
+        b.label.style.visibility = 'hidden';
+        continue;
+      }
       projected.copy(b.group.position).project(camera);
       const x = (projected.x * 0.5 + 0.5) * width;
       const y = (-projected.y * 0.5 + 0.5) * height;
       const { w, h } = b.labelBounds;
+      const gap = Math.max(
+        16,
+        ((b.radius / camera.position.distanceTo(b.group.position)) * height) / 0.53 + 9,
+      );
       const offsets = [
-        [16, -22],
-        [16, 12],
-        [-w - 16, -22],
-        [-w - 16, 12],
+        [gap, -22],
+        [gap, 12],
+        [-w - gap, -22],
+        [-w - gap, 12],
       ];
       const candidates = offsets.map(([dx, dy]) => ({ x: x + dx, y: y + dy, w, h }));
       const spot =
@@ -226,7 +294,7 @@ async function mountScene() {
       }
     }
   }
-  function draw(forceLabels = false) {
+  function draw(forceLabels = false, delta = 0.016, snap = false) {
     if (!ready) return;
     for (const b of bodies) {
       b.group.position.set(...position(b.id, opened, time));
@@ -238,60 +306,95 @@ async function mountScene() {
     earth.sunDirection.copy(sun.group.position).normalize();
     sun.uniforms.time.value = time;
     world.updateMatrixWorld(true);
+    updateCamera(delta, snap);
     renderer.render(scene, camera);
-    if (forceLabels || time - lastLabels > 0.08) {
+    if (forceLabels || performance.now() - lastLabels > 80) {
       placeLabels();
-      lastLabels = time;
+      lastLabels = performance.now();
     }
   }
   function resize() {
     width = host.clientWidth;
     height = host.clientHeight;
-    const small = width <= 900;
-    const distance = small ? Math.max(31, 18 / (width / height)) : 27;
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
-    camera.position.copy(view).multiplyScalar(distance);
-    camera.lookAt(0, 0, 0);
-    camera.setViewOffset(
-      width,
-      height,
-      width * (small ? 0 : 0.14),
-      height * (small ? -0.1 : -0.04),
-      width,
-      height,
-    );
-    camera.updateProjectionMatrix();
-    camera.updateMatrixWorld();
-    sky.group.position.copy(camera.position);
-    tracks.forEach((m) => {
-      m.uniforms.near.value = distance * 0.6;
-      m.uniforms.far.value = distance * 2.2;
-    });
+    measureLayout();
+    draw(true, 0, true);
+  }
+  function measureLayout() {
     const base = host.getBoundingClientRect();
-    quietZones = [...document.querySelectorAll('[data-quiet-zone]')].map((el) => {
-      const r = el.getBoundingClientRect();
-      return {
-        x: r.left - base.left - 12,
-        y: r.top - base.top - 10,
-        w: r.width + 24,
-        h: r.height + 20,
-      };
-    });
+    quietZones = [...document.querySelectorAll('[data-quiet-zone]')]
+      .filter((el) => el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden')
+      .map((el) => {
+        const r = el.getBoundingClientRect();
+        return {
+          x: r.left - base.left - 12,
+          y: r.top - base.top - 10,
+          w: r.width + 24,
+          h: r.height + 20,
+        };
+      });
     bodies.forEach((b) => {
       b.labelBounds = { w: b.label.offsetWidth, h: b.label.offsetHeight };
     });
-    draw(true);
   }
+  sceneNavigate = (id) => {
+    if (id && !focus) savedView = { yaw: targetYaw, zoom: targetZoom };
+    if (!id && savedView) {
+      targetYaw = savedView.yaw;
+      targetZoom = savedView.zoom;
+      savedView = null;
+    }
+    if (id) targetZoom = 1;
+    focus = id;
+    measureLayout();
+    invalidate();
+  };
+  const ray = new THREE.Raycaster(),
+    cursor = new THREE.Vector2();
+  bindExploreControls(canvas, {
+    turn(amount) {
+      targetYaw += amount;
+      invalidate();
+    },
+    zoom(scale) {
+      targetZoom = clampZoom(targetZoom * scale);
+      invalidate();
+    },
+    pick(x, y) {
+      if (!ready) return;
+      const rect = canvas.getBoundingClientRect();
+      cursor.set(((x - rect.left) / rect.width) * 2 - 1, (-(y - rect.top) / rect.height) * 2 + 1);
+      ray.setFromCamera(cursor, camera);
+      const hit = ray.intersectObjects(
+        bodies.map((b) => b.axis),
+        true,
+      )[0];
+      if (hit) {
+        const body = bodies.find((b) => b.axis.getObjectById(hit.object.id));
+        if (body) selectBody(body.id, canvas);
+      }
+    },
+    reset() {
+      closeBody();
+      targetYaw = initialYaw;
+      targetZoom = 1;
+      invalidate();
+    },
+    close: closeBody,
+  });
   function tick(now) {
     frame = 0;
-    if (!ready || document.hidden || reduced.matches || motionOff) return;
+    if (!ready || document.hidden) return;
     if (!last) last = now;
     // Cap the resumed delta; never catch up hidden time in one visual jump.
-    time += Math.min((now - last) / 1000, 0.06);
+    const delta = Math.min((now - last) / 1000, 0.06);
+    if (!focus && !isStill()) time += delta;
     last = now;
-    draw();
-    frame = requestAnimationFrame(tick);
+    draw(labelsDirty, delta, isStill());
+    labelsDirty = false;
+    if (!isStill()) frame = requestAnimationFrame(tick);
+    else last = 0;
   }
   function syncMotion() {
     cancelAnimationFrame(frame);
@@ -352,6 +455,7 @@ async function mountScene() {
   else renderer.compile(scene, camera);
   ready = true;
   syncMotion();
+  if (selectedBody) sceneNavigate(selectedBody);
   await nextFrame();
   await nextFrame();
   document.documentElement.dataset.starfieldReady = 'true';
@@ -360,10 +464,16 @@ async function mountScene() {
 
 updateReport();
 setInterval(() => {
-  if (!document.hidden) updateReport();
+  if (!document.hidden) {
+    updateReport();
+    bodyPanel.refresh();
+  }
 }, 60000);
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) updateReport();
+  if (!document.hidden) {
+    updateReport();
+    bodyPanel.refresh();
+  }
 });
 mountScene().catch((error) => {
   console.warn('Starfield preview:', error);

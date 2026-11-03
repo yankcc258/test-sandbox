@@ -2,7 +2,7 @@
 
 [沙盒目录](https://yankcc258.github.io/test-sandbox/) · [工作台](https://yankcc258.github.io/test-sandbox/workstation/) · [历史原型](https://yankcc258.github.io/test-sandbox/preview/)
 
-独立的视觉与交互试验场，不连接正式站接口或学习数据。**当前重点：v28 纸飞机与星图加载优化**。部分脊柱成果已接入正式站，本仓库仍只提供示例体验，不能当作正式站的当前副本。
+独立的视觉与交互试验场，不连接正式站接口或学习数据。**当前重点：v29 星图探索**。部分脊柱成果已接入正式站，本仓库仍只提供示例体验，不能当作正式站的当前副本。
 
 ## 当前预览
 
@@ -12,7 +12,7 @@
 | [脊柱复习区](recall.html?i=1&workbench=1) | v17 容量方案；200 条可浏览术语，只有 8 个示例单词可实际练习。                    |
 | [长笔记](recall.html?i=2&workbench=1)     | 目录、长文、公式与宽表格范本。                                                   |
 | [实验室 ⇄ 脊柱](recall.html?region=lab)   | 原竖井过渡预览；实验室为旧版截图占位，正式站后来已有优化。                       |
-| [星空](preview/starfield/?from=catalog)   | 银河、行星与东京天象，不含学习功能。                                             |
+| [星空](preview/starfield/?from=catalog&v=29)   | 左右拖动、缩放、八个星体档案与东京实时观测，不含学习功能。                      |
 | [历史与模型](preview/)                    | round-0、round-1、紧凑仪器屏与有机脊柱模型。                                     |
 
 工作台使用真实三维几何与 DOM 界面，没有把概念图作为整页背景。希可已有沙盒桌宠行为；个人工具正式接线留待后续。
@@ -27,6 +27,8 @@
 说明见 [docs/region-motion.md](docs/region-motion.md)，给 Codex 的工作台修改清单见 [docs/workstation-feedback.md](docs/workstation-feedback.md)。
 
 **v28**：云层复用贴图，飞行时提前下载星图资源；天象计算移到 Worker，贴图分批上传，星图首帧就绪后接住飞行末帧再淡出。十代飞行器与整体画风不变，保留 v27 希可行为。详见 [加载优化与验证](docs/region-motion.md#v28-纸飞机与星图加载优化)。
+
+**v29**：星图支持左右拖动／方向键、滚轮／双指缩放和快捷按钮；点击星体、标签或底部入口打开档案，关闭时恢复原总览视角。东京观测沿用 Astronomy Engine，在共用 Worker 内计算真实时刻的方位、高度、地心距离与下一次升落；月球另含照亮比例。详情沿用星空银白淡金，手机上下分区。仅改沙盒，未修改正式站或大螺旋。详见 [星图探索](docs/starfield-preview.md)。
 
 **v27 希可（露娜）**：白天在工作台的桌上跳来跳去，偶尔在实验室、复习区「偶遇」；深夜睡在休息舱里。戳她有吐槽，连戳或把她戳醒会记进记仇本，摸头还账，长按或右键翻开本子。表情、台词和记仇本沿用正式站桌宠。说明见 [docs/seeko.md](docs/seeko.md)。
 

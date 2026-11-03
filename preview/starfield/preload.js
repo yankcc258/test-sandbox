@@ -1,14 +1,18 @@
 // Fetch only: the flight keeps its sole animation loop and WebGL scene.
 // Do not execute the observatory or create a second renderer behind the flight.
 export const STARFIELD_ASSETS = [
-  './starfield.css',
-  './starfield.js?v=28',
-  './arrival.js?v=28',
+  './starfield.css?v=29',
+  './starfield.js?v=29',
+  './explore-controls.js?v=29',
+  './body-panel.js?v=29',
+  './body-info.js?v=29',
+  './sky-client.js?v=29',
+  './arrival.js?v=29',
   './orbit-models.js?v=28',
   './orbit-space.js',
   './orbit-sky.js',
   './sky-report.js?v=28',
-  './sky-report-worker.js?v=28',
+  './sky-report-worker.js?v=29',
   './vendor/astronomy/astronomy.browser.min.js',
   './textures/stars.jpg',
   './textures/earth.jpg',

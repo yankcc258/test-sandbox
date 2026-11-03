@@ -4,17 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#0b1018" />
-    <meta name="description" content="知序观星台：星空、行星与今日天象的独立内容预览。" />
-    <title>知序 ZHIXU · 星空内容预览</title>
+    <meta name="description" content="知序观星台：探索星体与轨道，阅读今日天象和星体档案。" />
+    <title>知序 ZHIXU · 星空探索</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="./starfield.css" />
-    <script src="./arrival.js?v=28"></script>
-    <script type="module" src="./starfield.js?v=28"></script>
+    <link rel="stylesheet" href="./starfield.css?v=29" />
+    <script src="./arrival.js?v=29"></script>
+    <script type="module" src="./starfield.js?v=29"></script>
   </head>
   <body>
     <main class="observatory" aria-label="知序观星台">
-      <div class="universe" aria-hidden="true">
-        <canvas id="starfield"></canvas>
+      <div class="universe">
+        <canvas
+          id="starfield"
+          tabindex="0"
+          aria-label="星体与轨道交互图；左右方向键改变观察方向，加减号缩放，也可使用下方按钮"
+          aria-describedby="sky-help"
+        ></canvas>
         <div class="planet-labels" id="planet-labels"></div>
       </div>
       <header class="brand" data-quiet-zone>
@@ -26,6 +31,48 @@
         <span>TOKYO · 35°41′ N / 139°41′ E</span>
         <time data-sky="clock">JST · UTC +09:00</time>
       </div>
+      <div class="sky-controls" data-quiet-zone>
+        <div class="sky-toolbar" role="group" aria-label="星图观察工具">
+          <button type="button" id="sky-left" aria-label="向左观察星图" title="向左观察">←</button>
+          <button type="button" id="sky-right" aria-label="向右观察星图" title="向右观察">→</button>
+          <span aria-hidden="true"></span>
+          <button type="button" id="sky-zoom-out" aria-label="缩小星图" title="缩小">−</button>
+          <button type="button" id="sky-zoom-in" aria-label="放大星图" title="放大">＋</button>
+          <button type="button" id="sky-reset" aria-label="恢复星图总览">恢复总览</button>
+        </div>
+        <p class="sky-help" id="sky-help">单指左右拖动 · 滚轮或双指缩放 · 点选星体</p>
+        <nav id="body-nav" class="body-nav" aria-label="星体快捷入口"></nav>
+      </div>
+      <aside
+        id="body-detail"
+        class="body-detail"
+        hidden
+        tabindex="-1"
+        aria-labelledby="body-title"
+        data-quiet-zone
+      >
+        <header class="body-detail-header">
+          <div>
+            <p class="eyebrow" id="body-kind">CELESTIAL ARCHIVE</p>
+            <h2 id="body-title">星体档案</h2>
+            <p id="body-subtitle" class="body-subtitle"></p>
+          </div>
+          <button type="button" id="body-close" aria-label="关闭星体档案，返回星图">
+            返回星图 <span aria-hidden="true">×</span>
+          </button>
+        </header>
+        <div class="body-detail-content">
+          <p id="body-description" class="body-description"></p>
+          <dl id="body-facts" class="body-facts"></dl>
+          <section class="body-observation" aria-labelledby="body-observation-title">
+            <h3 id="body-observation-title">此刻东京</h3>
+            <p id="body-time" class="body-time"></p>
+            <dl id="body-observation"></dl>
+          </section>
+          <p id="body-status" class="body-status" role="status"></p>
+          <a id="body-source" class="body-source" target="_blank" rel="noopener">查看资料来源 ↗</a>
+        </div>
+      </aside>
       <div class="reading">
         <section class="sky-report" aria-labelledby="sky-title" data-quiet-zone>
           <div class="report-heading">
@@ -85,7 +132,7 @@
         </aside>
       </div>
       <footer class="caption" data-quiet-zone>
-        <span>知序 ZHIXU <i></i> 星空内容预览</span>
+        <span>知序 ZHIXU <i></i> 星空探索</span>
         <span>第谷体系示意 · 非等比例 · 轨道加速</span>
       </footer>
       <p class="render-note" hidden>当前设备无法呈现立体星图，仍可阅读今日天象。</p>
