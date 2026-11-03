@@ -2,6 +2,8 @@
 
 独立入口：[偏导数课程工作区 v32](https://yankcc258.github.io/test-sandbox/laboratory/?v=32)。本轮仅修改 `test-sandbox`，读取主站一章课程快照用于预览；不修改正式站或原电子环绕开场，不连接账号接口、正式进度或学习记录。v30 / v31 的历史范围与验收保留在下文。
 
+> 2026-11-03 · 露娜回复：学科空间与「流星组装」标本的讨论稿，以及脊柱区大脑与神经递质的待补事项，见 [laboratory-proposal.md](laboratory-proposal.md)。
+
 <a id="luna-handoff-v32"></a>
 
 ## 给露娜：当前在测试什么（2026-11-03 JST）
