@@ -43,37 +43,53 @@ export function createSpecimen(T) {
     return m;
   }
   const ivory = material('MeshPhysicalMaterial', {
-    color: '#e4e1d4',
-    roughness: 0.42,
-    metalness: 0.03,
-    clearcoat: 0.23,
-    clearcoatRoughness: 0.5,
-    sheen: 0.18,
+    color: '#d8d2c1',
+    roughness: 0.68,
+    metalness: 0,
+    clearcoat: 0.035,
+    clearcoatRoughness: 0.72,
+    specularIntensity: 0.28,
+    ior: 1.43,
+    envMapIntensity: 0.6,
+    side: T.DoubleSide,
+  });
+  ivory.name = 'warm-matte-ceramic';
+  const ceramicEdge = material('MeshPhysicalMaterial', {
+    color: '#c3beaf',
+    roughness: 0.61,
+    metalness: 0.02,
+    specularIntensity: 0.3,
+    envMapIntensity: 0.55,
     side: T.DoubleSide,
   });
   const underside = material('MeshStandardMaterial', {
-    color: '#aeb3ac',
-    roughness: 0.51,
-    metalness: 0.18,
+    color: '#a1a499',
+    roughness: 0.66,
+    metalness: 0.09,
+    envMapIntensity: 0.5,
   });
   const titanium = material('MeshStandardMaterial', {
-    color: '#8d999b',
-    roughness: 0.3,
-    metalness: 0.72,
+    color: '#929a96',
+    roughness: 0.4,
+    metalness: 0.76,
+    envMapIntensity: 0.65,
+    side: T.DoubleSide,
   });
   const titaniumDark = material('MeshStandardMaterial', {
-    color: '#343e40',
-    roughness: 0.43,
-    metalness: 0.67,
+    color: '#555d59',
+    roughness: 0.53,
+    metalness: 0.59,
+    envMapIntensity: 0.5,
   });
   const gasket = material('MeshStandardMaterial', {
-    color: '#20292a',
-    roughness: 0.78,
-    metalness: 0.05,
+    color: '#454b44',
+    roughness: 0.87,
+    metalness: 0,
+    side: T.DoubleSide,
   });
   const gridMaterial = material('LineBasicMaterial', {
-    color: '#526668',
-    opacity: 0.44,
+    color: '#58665a',
+    opacity: 0.24,
     depthWrite: false,
   });
   const tangentMaterial = material('MeshBasicMaterial', {
@@ -119,7 +135,7 @@ export function createSpecimen(T) {
   }
   const bound = SPECIMEN_BOUND,
     n = 64,
-    thickness = 0.035;
+    thickness = 0.05;
   const coordinates = [],
     indices = [],
     bottomCoordinates = [],
@@ -151,7 +167,6 @@ export function createSpecimen(T) {
   mesh(surfaceGeometry(bottomCoordinates, bottomIndices), underside).name = 'ceramic-underside';
   const boundary = [];
   for (let edge = 0; edge < 4; edge++) {
-    const edgePoints = [];
     for (let i = 0; i <= n; i++) {
       const t = -bound + (2 * bound * i) / n;
       const [u, v] = [
@@ -161,22 +176,60 @@ export function createSpecimen(T) {
         [-bound, -t],
       ][edge];
       const p = surfacePoint(u, v);
-      edgePoints.push(new T.Vector3(...p));
       if (i < n) boundary.push(p);
     }
-    const rim = new T.TubeGeometry(new T.CatmullRomCurve3(edgePoints), 64, 0.009, 5, false);
-    mesh(rim, titanium).name = 'precision-edge';
   }
-  const sidePositions = [],
-    sideIndices = [];
-  for (let i = 0; i < boundary.length; i++) {
-    const a = boundary[i],
-      b = boundary[(i + 1) % boundary.length],
-      start = sidePositions.length / 3;
-    sidePositions.push(...a, ...b, a[0], a[1] - thickness, a[2], b[0], b[1] - thickness, b[2]);
-    sideIndices.push(start, start + 1, start + 2, start + 1, start + 3, start + 2);
+  // A rolled ceramic lip, a narrow isolating seam, then an inset titanium
+  // carrier. This gives the edge a manufactured section without changing any
+  // point on the mathematical top surface or adding a shiny wire outline.
+  const edgeProfile = [
+    [0, 0],
+    [0.004, -0.007],
+    [0.004, -0.033],
+    [0.003, -0.036],
+    [0.003, -0.039],
+    [0.002, -0.047],
+    [0, -thickness],
+  ];
+  const outward = boundary.map((p, i) => {
+    const a = boundary[(i + boundary.length - 1) % boundary.length];
+    const b = boundary[(i + 1) % boundary.length];
+    const dx = b[0] - a[0],
+      dz = b[2] - a[2],
+      length = Math.hypot(dx, dz);
+    return [dz / length, -dx / length];
+  });
+  const edgePositions = [],
+    edgeIndices = [];
+  const edgeGeometry = new T.BufferGeometry();
+  for (let band = 0; band < edgeProfile.length - 1; band++) {
+    const firstIndex = edgeIndices.length;
+    for (let i = 0; i < boundary.length; i++) {
+      const j = (i + 1) % boundary.length,
+        first = edgePositions.length / 3;
+      for (const [k, profile] of [
+        [i, band],
+        [j, band],
+        [i, band + 1],
+        [j, band + 1],
+      ]) {
+        const [offset, drop] = edgeProfile[profile],
+          p = boundary[k],
+          normal = outward[k];
+        edgePositions.push(p[0] + normal[0] * offset, p[1] + drop, p[2] + normal[1] * offset);
+      }
+      edgeIndices.push(first, first + 1, first + 2, first + 1, first + 3, first + 2);
+    }
+    edgeGeometry.addGroup(
+      firstIndex,
+      edgeIndices.length - firstIndex,
+      band < 3 ? 0 : band === 3 ? 1 : 2,
+    );
   }
-  mesh(surfaceGeometry(sidePositions, sideIndices), titanium).material.side = T.DoubleSide;
+  edgeGeometry.setAttribute('position', new T.Float32BufferAttribute(edgePositions, 3));
+  edgeGeometry.setIndex(edgeIndices);
+  edgeGeometry.computeVertexNormals();
+  mesh(edgeGeometry, [ceramicEdge, gasket, titanium]).name = 'layered-ceramic-edge';
 
   const gridPoints = [];
   const gridSteps = 40;
@@ -195,17 +248,128 @@ export function createSpecimen(T) {
   }
   lines(gridPoints, gridMaterial).name = 'surface-coordinates';
 
-  // Three discrete kinematic supports stand outside the surface boundary.
-  // Feet, split collars, insulating pads and visible screw heads give the
-  // abstract surface the scale of a handled physical specimen.
-  const footGeometry = new T.CylinderGeometry(0.13, 0.16, 0.045, 32);
-  const washerGeometry = new T.CylinderGeometry(0.085, 0.085, 0.014, 28);
-  const stemGeometry = new T.CylinderGeometry(0.022, 0.026, 0.72, 16);
-  const sleeveGeometry = new T.CylinderGeometry(0.043, 0.043, 0.16, 24);
-  const collarGeometry = new T.TorusGeometry(0.044, 0.007, 6, 24);
-  const jawGeometry = new T.BoxGeometry(0.21, 0.035, 0.14);
-  const padGeometry = new T.BoxGeometry(0.11, 0.012, 0.1);
-  const screwGeometry = new T.CylinderGeometry(0.025, 0.025, 0.013, 6);
+  // Three discrete kinematic mounts retain their original anchors. Tapered
+  // open brackets replace straight pillars; contoured pads meet the underside
+  // point-for-point, with a small bearing under each carrier.
+  function roundedPlate(width, depth, height, radius) {
+    const shape = new T.Shape(),
+      x = -width / 2,
+      z = -depth / 2;
+    shape.moveTo(x + radius, z);
+    shape.lineTo(x + width - radius, z);
+    shape.quadraticCurveTo(x + width, z, x + width, z + radius);
+    shape.lineTo(x + width, z + depth - radius);
+    shape.quadraticCurveTo(x + width, z + depth, x + width - radius, z + depth);
+    shape.lineTo(x + radius, z + depth);
+    shape.quadraticCurveTo(x, z + depth, x, z + depth - radius);
+    shape.lineTo(x, z + radius);
+    shape.quadraticCurveTo(x, z, x + radius, z);
+    const geometry = new T.ExtrudeGeometry(shape, {
+      depth: height,
+      bevelEnabled: true,
+      bevelSize: 0.0025,
+      bevelThickness: 0.0025,
+      bevelSegments: 2,
+      steps: 1,
+      curveSegments: 5,
+    });
+    geometry.rotateX(-Math.PI / 2);
+    geometry.translate(0, -height / 2, 0);
+    return geometry;
+  }
+  function contactPatch(xSign, zSign, size, topOffset, depth) {
+    const coords = [],
+      faces = [],
+      segments = 8;
+    const u = xSign * 1.135,
+      v = zSign * 1.135;
+    for (let layer = 0; layer < 2; layer++)
+      for (let j = 0; j <= segments; j++) {
+        for (let i = 0; i <= segments; i++) {
+          const p = surfacePoint(
+            u - size / 2 + (size * i) / segments,
+            v - size / 2 + (size * j) / segments,
+          );
+          coords.push(p[0], p[1] - topOffset - layer * depth, p[2]);
+        }
+      }
+    const stride = segments + 1,
+      layerCount = stride * stride;
+    for (let j = 0; j < segments; j++)
+      for (let i = 0; i < segments; i++) {
+        const a = j * stride + i,
+          b = a + 1,
+          c = a + stride,
+          d = c + 1;
+        faces.push(a, c, b, b, c, d);
+        faces.push(
+          a + layerCount,
+          b + layerCount,
+          c + layerCount,
+          b + layerCount,
+          d + layerCount,
+          c + layerCount,
+        );
+      }
+    const perimeter = [];
+    for (let i = 0; i < segments; i++) perimeter.push(i);
+    for (let j = 0; j < segments; j++) perimeter.push(j * stride + segments);
+    for (let i = segments; i > 0; i--) perimeter.push(segments * stride + i);
+    for (let j = segments; j > 0; j--) perimeter.push(j * stride);
+    for (let i = 0; i < perimeter.length; i++) {
+      const a = perimeter[i],
+        b = perimeter[(i + 1) % perimeter.length];
+      faces.push(a, b, a + layerCount, b, b + layerCount, a + layerCount);
+    }
+    const geometry = surfaceGeometry(coords, faces);
+    geometry.userData.contactTopCount = layerCount;
+    return geometry;
+  }
+  const footGeometry = new T.LatheGeometry(
+    [
+      [0, -0.025],
+      [0.125, -0.025],
+      [0.142, -0.018],
+      [0.145, -0.006],
+      [0.14, 0.008],
+      [0.12, 0.017],
+      [0.075, 0.022],
+      [0, 0.022],
+    ].map(([r, y]) => new T.Vector2(r, y)),
+    32,
+  );
+  const isolatorGeometry = new T.CylinderGeometry(0.125, 0.128, 0.008, 32);
+  const washerGeometry = new T.CylinderGeometry(0.071, 0.071, 0.012, 28);
+  const springShape = new T.Shape();
+  springShape.moveTo(-0.045, -0.795);
+  springShape.lineTo(0.045, -0.795);
+  springShape.lineTo(0.015, -0.27);
+  springShape.quadraticCurveTo(0.012, -0.16, -0.035, -0.125);
+  springShape.lineTo(-0.085, -0.125);
+  springShape.quadraticCurveTo(-0.052, -0.31, -0.045, -0.795);
+  const slot = new T.Path();
+  slot.moveTo(-0.023, -0.68);
+  slot.lineTo(0.016, -0.68);
+  slot.lineTo(-0.008, -0.29);
+  slot.quadraticCurveTo(-0.013, -0.23, -0.03, -0.215);
+  slot.lineTo(-0.043, -0.215);
+  slot.closePath();
+  springShape.holes.push(slot);
+  const springGeometry = new T.ExtrudeGeometry(springShape, {
+    depth: 0.042,
+    bevelEnabled: true,
+    bevelSize: 0.003,
+    bevelThickness: 0.003,
+    bevelSegments: 2,
+    curveSegments: 6,
+    steps: 1,
+  });
+  springGeometry.translate(0, 0, -0.021);
+  const jawGeometry = roundedPlate(0.27, 0.09, 0.023, 0.025);
+  const bearingGeometry = new T.SphereGeometry(0.026, 20, 12);
+  const pinGeometry = new T.CylinderGeometry(0.026, 0.026, 0.068, 20);
+  const screwGeometry = new T.CylinderGeometry(0.021, 0.023, 0.013, 24);
+  const socketGeometry = new T.CylinderGeometry(0.009, 0.009, 0.0015, 6);
   for (const [x, z] of [
     [-1, -1],
     [1, -1],
@@ -217,20 +381,26 @@ export function createSpecimen(T) {
     mount.rotation.y = x * z > 0 ? -Math.PI / 4 : Math.PI / 4;
     display.add(mount);
     mesh(footGeometry, titaniumDark, mount).position.y = -0.83;
-    mesh(washerGeometry, titanium, mount).position.y = -0.802;
-    mesh(stemGeometry, titanium, mount).position.y = -0.425;
-    mesh(sleeveGeometry, titaniumDark, mount).position.y = -0.16;
-    for (const y of [-0.245, -0.075]) {
-      const collar = mesh(collarGeometry, titanium, mount);
-      collar.rotation.x = Math.PI / 2;
-      collar.position.y = y;
-    }
-    mesh(jawGeometry, titanium, mount).position.set(-x * 0.04, -0.0645, 0);
-    mesh(padGeometry, gasket, mount).position.set(-x * 0.09, -0.041, 0);
+    mesh(isolatorGeometry, gasket, mount).position.y = -0.859;
+    mesh(washerGeometry, titanium, mount).position.y = -0.8;
+    const bracket = mesh(springGeometry, titanium, mount);
+    bracket.name = 'slotted-titanium-bracket';
+    bracket.scale.x = x;
+    const pin = mesh(pinGeometry, titaniumDark, mount);
+    pin.position.set(-x * 0.058, -0.155, 0);
+    pin.rotation.x = Math.PI / 2;
+    mesh(jawGeometry, titanium, mount).position.set(-x * 0.084, -0.113, 0);
+    const bearing = mesh(bearingGeometry, titaniumDark, mount);
+    bearing.name = 'contact-bearing';
+    bearing.position.set(-x * (1.27 - 1.135) * Math.SQRT2, -0.098, 0);
     const cap = mesh(screwGeometry, titaniumDark, mount);
-    cap.position.set(x * 0.072, -0.041, 0);
-    const slot = mesh(new T.BoxGeometry(0.023, 0.002, 0.004), titanium, mount);
-    slot.position.set(x * 0.072, -0.0335, 0);
+    cap.position.set(x * 0.028, -0.091, 0);
+    mesh(socketGeometry, gasket, mount).position.set(x * 0.028, -0.0838, 0);
+    const carrier = mesh(contactPatch(x, z, 0.144, thickness + 0.013, 0.014), titanium);
+    carrier.name = 'contoured-metal-carrier';
+    const pad = mesh(contactPatch(x, z, 0.13, thickness + 0.0006, 0.0124), gasket);
+    pad.name = 'conformal-contact-pad';
+    pad.userData.topOffset = thickness + 0.0006;
   }
 
   const tangent = new T.Group();

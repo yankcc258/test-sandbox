@@ -50,6 +50,46 @@ for (let i = 0; i < positions.count; i += 31) {
 }
 specimen.setReveal(1);
 assert.equal(specimen.group.visible, true);
+// Contact pads must follow the actual ceramic underside over their entire
+// area, rather than touching a single corner while clipping the curved shell.
+const pads = [],
+  carriers = [],
+  bearings = [];
+specimen.group.traverse((object) => {
+  if (object.name === 'conformal-contact-pad') pads.push(object);
+  if (object.name === 'contoured-metal-carrier') carriers.push(object);
+  if (object.name === 'contact-bearing') bearings.push(object);
+});
+assert.equal(pads.length, 3);
+assert.equal(carriers.length, 3);
+assert.equal(bearings.length, 3);
+const underside = specimen.group.getObjectByName('ceramic-underside').geometry.attributes.position;
+const thickness = positions.getY(0) - underside.getY(0);
+for (const pad of pads) {
+  const points = pad.geometry.attributes.position;
+  for (let i = 0; i < pad.geometry.userData.contactTopCount; i++) {
+    const x = points.getX(i),
+      z = points.getZ(i);
+    assert.ok(Math.abs(x) <= SPECIMEN_BOUND + 1e-6 && Math.abs(z) <= SPECIMEN_BOUND + 1e-6);
+    const gap = (x * x - z * z) / 2 - thickness - points.getY(i);
+    assert.ok(gap >= -1e-6 && gap < 0.001, 'pad must remain in contact with the curved underside');
+  }
+}
+specimen.group.updateMatrixWorld(true);
+for (let i = 0; i < carriers.length; i++) {
+  const carrier = carriers[i],
+    points = carrier.geometry.attributes.position;
+  const count = carrier.geometry.userData.contactTopCount,
+    middle = Math.floor(count / 2);
+  const seat = new T.Vector3().fromBufferAttribute(points, count + middle);
+  const bearing = bearings[i].getWorldPosition(new T.Vector3());
+  near(bearing.x, seat.x, 1e-6);
+  near(bearing.z, seat.z, 1e-6);
+  assert.ok(
+    bearing.y < seat.y && bearing.y + 0.026 > seat.y,
+    'bearing must meet the contoured carrier',
+  );
+}
 specimen.setMode('tangent');
 assert.equal(specimen.group.getObjectByName('tangent-observation').visible, true);
 assert.equal(specimen.group.getObjectByName('horizontal-section').visible, false);
@@ -90,5 +130,5 @@ specimen.setReveal(0);
 assert.equal(specimen.group.visible, false);
 specimen.dispose();
 console.log(
-  'PASS: exact saddle surface, tangent derivatives, disconnected bounded sections, finite mesh buffers, probe geometry reuse and reversible reveal.',
+  'PASS: exact saddle surface, conformal mount contacts, tangent derivatives, disconnected bounded sections, finite mesh buffers, probe geometry reuse and reversible reveal.',
 );

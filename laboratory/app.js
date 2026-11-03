@@ -1,5 +1,5 @@
-import { initialState, reduceState, tokyoMood } from './state.js?v=30';
-import { CHAPTERS } from './chapters.js?v=30';
+import { initialState, reduceState, tokyoMood } from './state.js?v=31';
+import { CHAPTERS } from './chapters.js?v=31';
 
 const $ = (id) => document.getElementById(id);
 let state = initialState(),
@@ -185,7 +185,7 @@ setInterval(() => {
   if (!document.hidden) atmosphere();
 }, 60000);
 try {
-  const { createLaboratory } = await import('./scene.js?v=30');
+  const { createLaboratory } = await import('./scene.js?v=31');
   scene = await createLaboratory({
     canvas: $('lab-canvas'),
     anchor,

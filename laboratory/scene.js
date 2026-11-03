@@ -1,7 +1,8 @@
 import * as THREE from '../vendor/three/three.module.min.js';
 import { RoomEnvironment } from '../vendor/three/RoomEnvironment.js';
-import { createSpecimen } from './specimen.js?v=30';
-import { approach, sceneTargets } from './state.js?v=30';
+import { createSpecimen } from './specimen.js?v=31';
+import { approach, sceneTargets } from './state.js?v=31';
+import { advanceRelease, releasePhase } from './motion.js?v=31';
 
 // The trefoil and Frenet-frame ribbon follow ZHIXU's existing laboratory.
 // The inside specimen is a separate mathematical object, not a transformation
@@ -30,7 +31,7 @@ export async function createLaboratory({ canvas, anchor, activate, motion }) {
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6));
   renderer.setClearColor(0x000000, 0);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1;
+  renderer.toneMappingExposure = 0.92;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene();
@@ -41,15 +42,15 @@ export async function createLaboratory({ canvas, anchor, activate, motion }) {
   environment.dispose();
   room.dispose?.();
   const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 45);
-  const hemi = new THREE.HemisphereLight('#d9e7ea', '#41443a', 1.3);
-  const key = new THREE.DirectionalLight('#eef2e6', 3);
+  const hemi = new THREE.HemisphereLight('#d9e7ea', '#34362e', 0.55);
+  const key = new THREE.DirectionalLight('#eef2e6', 2.5);
   key.position.set(-3.2, 5, 4.2);
   key.castShadow = true;
   key.shadow.mapSize.set(1024, 1024);
   Object.assign(key.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 0.5, far: 15 });
   key.shadow.bias = -0.0003;
   key.shadow.normalBias = 0.025;
-  const edge = new THREE.DirectionalLight('#9bbdc8', 1.8);
+  const edge = new THREE.DirectionalLight('#a6c0c7', 1.35);
   edge.position.set(2, 2, -3);
   scene.add(hemi, key, edge);
   const world = new THREE.Group(),
@@ -61,19 +62,43 @@ export async function createLaboratory({ canvas, anchor, activate, motion }) {
     frames = curve.computeFrenetFrames(count, true);
   const metal = new THREE.MeshPhysicalMaterial({
     color: '#e3e1d6',
-    metalness: 0.12,
-    roughness: 0.34,
-    clearcoat: 0.25,
+    metalness: 0.16,
+    roughness: 0.43,
+    clearcoat: 0.12,
     transparent: true,
   });
   const plates = new THREE.InstancedMesh(new THREE.BoxGeometry(0.5, 0.032, 0.012), metal, count);
   plates.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  plates.castShadow = plates.receiveShadow = true;
+  plates.castShadow = false;
+  plates.receiveShadow = true;
   plates.frustumCulled = false;
   ribbonGroup.add(plates);
   const frame = new THREE.Matrix4(),
     n = new THREE.Vector3(),
     b = new THREE.Vector3();
+  const restRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.42, 0.3, -0.18));
+  // Three folds keep their ordering and unwind into offset ribbons behind the specimen.
+  // Their different depths and open ends avoid turning the sculpture into a circular frame.
+  const folds = [
+    [
+      [-2.5, -0.6, -0.9],
+      [-2.45, 0.45, -1.3],
+      [-1.65, 1.2, -1.7],
+      [-0.55, 1.15, -1.9],
+    ],
+    [
+      [0.5, 1.15, -1.9],
+      [1.5, 1.05, -1.5],
+      [2.4, 0.4, -1.3],
+      [2.3, -0.65, -1],
+    ],
+    [
+      [1.9, -1.5, -1.5],
+      [0.6, -1.7, -1.8],
+      [-0.9, -1.55, -1.3],
+      [-2.1, -1.05, -0.9],
+    ],
+  ].map((points) => new THREE.CatmullRomCurve3(points.map((p) => new THREE.Vector3(...p))));
   const poses = Array.from({ length: count }, (_, i) => {
     const t = i / count,
       twist = t * Math.PI * 7;
@@ -83,18 +108,27 @@ export async function createLaboratory({ canvas, anchor, activate, motion }) {
     b.copy(frames.normals[i])
       .multiplyScalar(-Math.sin(twist))
       .addScaledVector(frames.binormals[i], Math.cos(twist));
-    const start = curve.getPointAt(t),
-      initial = new THREE.Quaternion().setFromRotationMatrix(
-        frame.makeBasis(n, b, frames.tangents[i]),
-      );
-    const sector = Math.floor(t * 6),
-      u = t * 6 - sector;
-    const angle = (sector * Math.PI) / 3 + (u - 0.5) * 0.8;
-    const end = new THREE.Vector3(Math.cos(angle) * 2.65, Math.sin(angle) * 1.72, -1.1 - u * 0.22);
-    const final = new THREE.Quaternion().setFromEuler(
-      new THREE.Euler(0.15, 0.35, angle + Math.PI / 2 + (u - 0.5) * 0.5),
+    const start = curve.getPointAt(t).applyQuaternion(restRotation),
+      initial = new THREE.Quaternion()
+        .setFromRotationMatrix(frame.makeBasis(n, b, frames.tangents[i]))
+        .premultiply(restRotation);
+    const sector = Math.min(2, Math.floor(t * 3)),
+      u = t * 3 - sector;
+    const end = folds[sector].getPointAt(u);
+    const endTangent = folds[sector].getTangentAt(u).normalize();
+    const cross = new THREE.Vector3(-endTangent.y, endTangent.x, 0).normalize();
+    cross.applyAxisAngle(endTangent, 1.02 + 0.28 * Math.sin(u * Math.PI * 1.5 + sector));
+    const normal = new THREE.Vector3().crossVectors(cross, endTangent).normalize();
+    const final = new THREE.Quaternion().setFromRotationMatrix(
+      frame.makeBasis(cross, endTangent, normal),
     );
-    return { start, initial, end, final, normal: n.clone(), t };
+    const startTangent = frames.tangents[i].clone().applyQuaternion(restRotation);
+    const lead = start
+      .clone()
+      .addScaledVector(startTangent, 0.34)
+      .addScaledVector(start.clone().normalize(), 0.18);
+    const settle = end.clone().addScaledVector(endTangent, -0.3);
+    return { start, initial, end, final, lead, settle, u, sector, t };
   });
   const specimen = createSpecimen(THREE);
   specimen.group.rotation.y = -0.25;
@@ -102,10 +136,10 @@ export async function createLaboratory({ canvas, anchor, activate, motion }) {
   world.add(specimen.group);
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(16, 16),
-    new THREE.ShadowMaterial({ opacity: 0.18 }),
+    new THREE.ShadowMaterial({ opacity: 0.15, depthWrite: false }),
   );
   ground.rotation.x = -Math.PI / 2;
-  ground.position.y = -1.5;
+  ground.position.y = -0.864;
   ground.receiveShadow = true;
   scene.add(ground);
   const matrix = new THREE.Matrix4(),
@@ -119,6 +153,7 @@ export async function createLaboratory({ canvas, anchor, activate, motion }) {
   let state = { stage: 'overview', mode: 'surface', probe: 0.35 };
   let focus = 0,
     spread = 0,
+    spreadVelocity = 0,
     target = sceneTargets('overview');
   let yaw = 0,
     pitch = 0,
@@ -133,28 +168,29 @@ export async function createLaboratory({ canvas, anchor, activate, motion }) {
   const project = new THREE.Vector3(),
     mathIndex = Math.floor(count * 0.24);
   function paint() {
-    ribbonGroup.rotation.set(0.42 * (1 - spread), 0.3 * (1 - spread), -0.18 * (1 - spread));
     world.rotation.set(pitch, yaw, 0);
     for (let i = 0; i < count; i++) {
       const pose = poses[i];
-      const localOpen = THREE.MathUtils.smoothstep(spread, pose.t * 0.08, 0.83 + pose.t * 0.17);
+      const localOpen = releasePhase(spread, pose.u, pose.sector),
+        closed = 1 - localOpen;
       p.copy(pose.start)
-        .multiplyScalar(1 + focus * 0.11)
-        .lerp(pose.end, localOpen);
+        .multiplyScalar(closed ** 3 * (1 + focus * 0.11))
+        .addScaledVector(pose.lead, 3 * closed * closed * localOpen)
+        .addScaledVector(pose.settle, 3 * closed * localOpen * localOpen)
+        .addScaledVector(pose.end, localOpen ** 3);
       q.copy(pose.initial).slerp(pose.final, localOpen);
-      scale.setScalar(1 - localOpen * 0.28);
+      scale.setScalar(1 - localOpen * 0.08);
       matrix.compose(p, q, scale);
       plates.setMatrixAt(i, matrix);
       const isNode = Math.abs(i - mathIndex) < 5;
       color.copy(isNode ? (focus > 0.1 ? accent : charcoal) : ivory);
+      if (isNode) color.lerp(ivory, spread);
       plates.setColorAt(i, color);
     }
     plates.instanceMatrix.needsUpdate = true;
     plates.instanceColor.needsUpdate = true;
-    metal.opacity = 1 - spread * 0.69;
-    metal.depthWrite = spread < 0.3;
-    plates.castShadow = spread < 0.55;
-    const reveal = THREE.MathUtils.smoothstep(spread, 0.25, 0.9);
+    metal.opacity = 1 - THREE.MathUtils.smoothstep(spread, 0.22, 1) * 0.58;
+    const reveal = THREE.MathUtils.smoothstep(spread, 0.43, 0.93);
     specimen.setReveal(reveal);
     const aspect = width / height;
     const fit = Math.max(1, 1.12 / aspect);
@@ -190,11 +226,12 @@ export async function createLaboratory({ canvas, anchor, activate, motion }) {
     if (!motion()) {
       focus = target.focus;
       spread = target.spread;
+      spreadVelocity = 0;
       yaw = targetYaw;
       pitch = targetPitch;
     } else {
       focus = approach(focus, target.focus, dt, 7);
-      spread = approach(spread, target.spread, dt, 5.8);
+      [spread, spreadVelocity] = advanceRelease(spread, spreadVelocity, target.spread, dt);
       yaw = approach(yaw, targetYaw, dt, 13);
       pitch = approach(pitch, targetPitch, dt, 13);
     }
@@ -202,6 +239,7 @@ export async function createLaboratory({ canvas, anchor, activate, motion }) {
     if (
       focus !== target.focus ||
       spread !== target.spread ||
+      spreadVelocity !== 0 ||
       yaw !== targetYaw ||
       pitch !== targetPitch
     )
@@ -320,8 +358,8 @@ export async function createLaboratory({ canvas, anchor, activate, motion }) {
     setMood(mood) {
       const light = mood === 'day' ? '#f0efe6' : mood === 'dusk' ? '#eed4b4' : '#c5dbe2';
       key.color.set(light);
-      key.intensity = mood === 'day' ? 3.1 : mood === 'dusk' ? 2.8 : 2.5;
-      scene.environmentIntensity = mood === 'day' ? 0.9 : 0.65;
+      key.intensity = mood === 'day' ? 2.7 : mood === 'dusk' ? 2.4 : 2.2;
+      scene.environmentIntensity = mood === 'day' ? 0.56 : 0.44;
       request();
     },
     refresh: request,
