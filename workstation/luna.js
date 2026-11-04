@@ -9,7 +9,7 @@ import {
   play,
   PASSAGE,
 } from '../sandbox/passage.js';
-import { createFlight } from './flight.js?v=29.1';
+import { createFlight } from './flight.js?v=29.2';
 import { createBoot } from './boot.js?v=26';
 import { createSeeko } from '../sandbox/seeko.js?v=28';
 

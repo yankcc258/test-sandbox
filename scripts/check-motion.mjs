@@ -19,7 +19,11 @@ assert.ok(arrive1.open.every((o) => o === 0) && arrive1.fall === 0, '到达时�
 assert.ok(FLOORS.workstation.level > FLOORS.lab.level && FLOORS.lab.level > FLOORS.review.level);
 
 // 纸飞机（flight.js 依赖 DOM，这里只检查纯函数部分）
-const { flightStage, FLIGHT } = await import('../workstation/flight.js');
+const { flightStage, FLIGHT, KARMAN } = await import('../workstation/flight.js');
+// 卡门线：越过 100 公里的那一刻落在航天飞机之前那一段里，前后都在飞行时间内
+assert.ok(KARMAN.t > 0 && KARMAN.t < FLIGHT.out, 'Kármán crossing inside the flight');
+assert.ok(Math.abs(flightStage(KARMAN.t).alt - 100000) < 50, 'Kármán crossing at 100 km');
+assert.ok(flightStage(KARMAN.t - 0.2).alt < 100000 && flightStage(KARMAN.t + 0.2).alt > 100000);
 assert.equal(flightStage(0).stage.id, 'paper');
 assert.equal(flightStage(FLIGHT.total).stage.id, 'cz2f');
 assert.equal(flightStage(0).stage.note, '从桌前出发');

@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="recall-workbench.css?v=17b" />
     <link rel="stylesheet" href="sandbox/passage.css?v=18" />
     <link rel="stylesheet" href="sandbox/seeko.css?v=27" />
+    <link rel="stylesheet" href="recall-anatomy.css?v=1" />
     <script>
       // 从工作台经竖井下来：页面先用井壁色盖住，等竖井挂上再揭开（sandbox/passage.js）
       try {
@@ -40,6 +41,15 @@
           <i></i><span id="specimen-state">待复习</span><span>生命体构建 / IN ASSEMBLY</span>
         </div>
         <button id="open-entry" type="button">进入当前系统 ↗</button>
+        <button
+          id="anatomy-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="anatomy"
+          aria-label="解剖与信号分子"
+        >
+          解剖 ↓
+        </button>
       </section>
       <aside class="life-readout" aria-label="本轮生命体状态">
         <small>VITAL STATE / 本轮示例</small>
@@ -47,6 +57,7 @@
         <span id="life-detail">8 个单词等待巩固</span>
         <div class="life-track" aria-hidden="true"><i id="life-progress"></i></div>
       </aside>
+      <aside class="anatomy" id="anatomy" aria-label="当前系统的解剖与信号分子"></aside>
       <div class="scene-handoff" id="scene-handoff" aria-hidden="true">
         <small>SYSTEM LINK</small><span id="handoff-name"></span><i></i>
       </div>
@@ -228,6 +239,6 @@
         }
       });
     </script>
-    <script type="module" src="recall-spine.js?v=27"></script>
+    <script type="module" src="recall-spine.js?v=28"></script>
   </body>
 </html>

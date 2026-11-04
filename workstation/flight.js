@@ -456,6 +456,17 @@ export function flightStage(t) {
       : prev.alt;
   return { i, stage: prev, morph, alt };
 }
+// 卡门线：海拔 100 公里，通常当作太空的起点。高度一路单调上升，按高度曲线反解出越过它的那一刻
+export const KARMAN = (() => {
+  let lo = 0,
+    hi = FLIGHT.total;
+  for (let k = 0; k < 40; k++) {
+    const mid = (lo + hi) / 2;
+    if (flightStage(mid).alt < 100000) lo = mid;
+    else hi = mid;
+  }
+  return { alt: 100000, t: hi };
+})();
 
 // Keep the moving canvas within a pixel budget. DOM text remains native-resolution.
 export function flightPixelRatio(width, height, pixelRatio) {
@@ -711,6 +722,29 @@ export function createFlight({ motion, station }) {
         rot = (1 - launch) * -1.1;
       const cur = STAGES[i].id,
         nxt = STAGES[i + 1]?.id;
+      // 卡门线：越过它前后约两秒可见，从上方落下、穿过飞行器，落到底部读数之前淡出。
+      // 标签放在左边：右边是年代列表和「跳过」
+      const kt = t - KARMAN.t,
+        kA = fade * smooth(seg(kt, -1.3, -0.6)) * (1 - smooth(seg(kt, 0.35, 1.0)));
+      if (kA > 0.01) {
+        const ky = cy + kt * h * 0.42;
+        ctx.globalAlpha = kA * 0.7;
+        ctx.strokeStyle = '#c9e755';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([6, 9]);
+        ctx.beginPath();
+        ctx.moveTo(0, ky);
+        ctx.lineTo(w, ky);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = kA;
+        ctx.fillStyle = '#dfe8c4';
+        ctx.font = `500 ${w < 700 ? 12 : 13}px Inter, 'PingFang SC', sans-serif`;
+        ctx.fillText('卡门线 · 100 KM', w < 700 ? 16 : 40, ky - 9);
+        ctx.fillStyle = 'rgba(223,232,196,0.66)';
+        ctx.font = `400 ${w < 700 ? 11 : 12}px Inter, 'PingFang SC', sans-serif`;
+        ctx.fillText('通常当作太空的起点', w < 700 ? 16 : 40, ky + 19);
+      }
       drawShape(cur, cx, cy, s * (1 + 0.08 * Math.sin(Math.PI * morph)), (1 - morph) * fade, rot);
       if (nxt && morph > 0) drawShape(nxt, cx, cy, s * (0.9 + 0.1 * morph), morph * fade, rot);
       if (morph > 0 && morph < 1) {

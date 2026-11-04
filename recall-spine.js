@@ -13,6 +13,7 @@ import { createReadingWorkbench } from './recall-reading.js?v=17';
 import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js?v=17';
 import { createDock } from './recall-dock.js?v=17';
 import { SYSTEMS, drawSpecimen } from './recall-specimen.js?v=17';
+import { createAnatomy } from './recall-anatomy.js?v=1';
 import { bindPulseInput } from './recall-pulse-input.js?v=17';
 import { createLifeState, createSignal } from './recall-life.js?v=17';
 import { createGateway } from './recall-gateway.js?v=18';
@@ -105,6 +106,14 @@ let motionPref = params.get('motion') !== '0',
 let testLive = false;
 const motion = () => testLive || (motionPref && !reduced.matches && !document.hidden);
 const life = createLifeState(SAMPLE_WORDS.length);
+// 露娜：七个系统各自的解剖结构和信号分子（recall-anatomy.js），左侧标本说明换系统时一起换
+const anatomy = createAnatomy({
+  root: document.getElementById('anatomy'),
+  toggle: document.getElementById('anatomy-toggle'),
+  organs: SYSTEMS,
+  entries: ENTRIES,
+  life: () => life.snapshot,
+});
 let pendingFeedback = false,
   feedbackTimer = 0;
 
@@ -150,6 +159,7 @@ function updateLife() {
     ENTRIES[Math.max(0, describedEntry)].id,
   );
   listButtons[1].dataset.life = state.phase;
+  anatomy.update();
   document.getElementById('open-entry').textContent =
     state.record && Math.round(target) === 1 ? '查看本轮成果 ↗' : '进入当前系统 ↗';
   scene?.refreshPanels();
@@ -177,6 +187,7 @@ function markList(i) {
     document.getElementById('open-entry').textContent =
       life.snapshot.record && i === 1 ? '查看本轮成果 ↗' : '进入当前系统 ↗';
     describedEntry = i;
+    anatomy.show(ENTRIES[i].id);
   }
 }
 const clock = () =>
@@ -1231,8 +1242,9 @@ function fillContent(i) {
           life.pause();
           updateLife();
         },
-        onProgress: ({ completedKeys }) => {
+        onProgress: ({ completedKeys, tally }) => {
           life.progress(completedKeys);
+          anatomy.grade({ completedKeys, tally });
           updateLife();
           setMeta(ENTRIES[Math.round(target)]);
         },
