@@ -107,13 +107,13 @@ button:disabled {
 }
 .brand-name > span {
   margin-left: 10px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 400;
   letter-spacing: 0.2em;
 }
 .brand-description {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.1em;
 }
 .header-tools {
@@ -124,10 +124,10 @@ button:disabled {
   gap: 8px 20px;
   padding-top: 3px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 #tokyo-time {
-  font: 10px/1.7 var(--mono);
+  font: 12px/1.7 var(--mono);
   letter-spacing: 0.03em;
   white-space: nowrap;
 }
@@ -176,7 +176,7 @@ button:disabled {
   border-left: 1px solid #c9e75590;
   background: linear-gradient(90deg, #15191bd9, #15191b90 75%, transparent);
   color: var(--ink);
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.08em;
   white-space: nowrap;
   pointer-events: auto;
@@ -201,7 +201,7 @@ button:disabled {
   align-items: center;
   gap: 12px;
   color: var(--dim);
-  font: 9px/1.4 var(--mono);
+  font: 11px/1.4 var(--mono);
   letter-spacing: 0.1em;
   pointer-events: none;
 }
@@ -255,7 +255,7 @@ button:disabled {
   margin: 0 0 20px;
   padding: 5px 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
 }
 .back-stage > span {
   margin-right: 9px;
@@ -263,7 +263,7 @@ button:disabled {
 .eyebrow {
   margin: 0;
   color: var(--accent);
-  font: 9px/1.6 var(--mono);
+  font: 11px/1.6 var(--mono);
   letter-spacing: 0.13em;
 }
 h1 span {
@@ -281,7 +281,7 @@ h1 {
   max-width: 29em;
   margin: 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.95;
 }
 .stage-actions {
@@ -301,7 +301,7 @@ h1 {
   padding: 11px 16px;
   border: 1px solid #c9e75880;
   background: #c9e75507;
-  font-size: 12px;
+  font-size: 13px;
 }
 .primary-action:hover {
   border-color: var(--accent);
@@ -317,7 +317,7 @@ h1 {
   min-height: 36px;
   padding: 5px 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
 }
 .study-panel,
 .lesson-panel {
@@ -333,19 +333,19 @@ h1 {
 }
 .section-heading h2 {
   margin: 0;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 400;
   letter-spacing: 0.08em;
 }
 .section-code {
   color: var(--dim);
-  font: 9px/1.6 var(--mono);
+  font: 11px/1.6 var(--mono);
   white-space: nowrap;
 }
 .specimen-copy {
   margin: 10px 0 20px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.9;
 }
 .observation-tabs {
@@ -359,7 +359,7 @@ h1 {
   min-height: 42px;
   padding: 7px 8px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
 }
 .observation-tabs button + button {
   border-left: 1px solid #e8ebe413;
@@ -390,11 +390,11 @@ h1 {
   justify-content: space-between;
   gap: 16px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
 }
 #probe-value {
   color: var(--ink);
-  font: 11px/1.5 var(--mono);
+  font: 13px/1.5 var(--mono);
 }
 #probe {
   display: block;
@@ -435,20 +435,20 @@ h1 {
   display: flex;
   justify-content: space-between;
   color: var(--dim);
-  font: 8px/1.5 var(--mono);
+  font: 11px/1.5 var(--mono);
 }
 .specimen-note {
   margin: 15px 0 0;
   min-height: 3.4em;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.8;
 }
 .chapter-heading {
   margin: 27px 0 10px;
 }
 .chapter-heading h2 {
-  font-size: 12px;
+  font-size: 13px;
 }
 .chapter-list {
   display: grid;
@@ -461,7 +461,7 @@ h1 {
   padding: 13px 0;
   border-bottom: 1px solid var(--line);
   text-align: left;
-  font-size: 12px;
+  font-size: 13px;
 }
 .chapter-list button:first-child,
 .chapter-list a:first-child {
@@ -477,7 +477,7 @@ h1 {
   display: block;
   margin-top: 3px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.7;
 }
 .chapter-list button:hover,
@@ -489,7 +489,7 @@ h1 {
 }
 .lesson-heading .eyebrow {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 11px;
 }
 #lesson-title {
   margin: 0 0 24px;
@@ -500,7 +500,7 @@ h1 {
 }
 .lesson-content {
   color: #c1c9c1;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 2;
   overflow-wrap: anywhere;
 }
@@ -541,7 +541,7 @@ h1 {
   padding: 13px 14px;
   border-left: 1px solid #c9e75590;
   background: #e8ebe405;
-  font-size: 12px;
+  font-size: 13px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -571,7 +571,7 @@ h1 {
   align-items: baseline;
   gap: 20px;
   color: var(--dim);
-  font-size: 9px;
+  font-size: 11px;
   pointer-events: none;
 }
 .lab-footer p {
@@ -592,7 +592,7 @@ h1 {
   margin: 0;
   color: var(--muted);
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.9;
 }
 body[data-stage='observe'] .content-column,
@@ -607,7 +607,7 @@ body[data-stage='lesson'] h1 {
 }
 body[data-stage='observe'] .stage-copy,
 body[data-stage='lesson'] .stage-copy {
-  font-size: 11px;
+  font-size: 13px;
 }
 body[data-stage='observe'] .stage-actions,
 body[data-stage='lesson'] .stage-actions {
@@ -623,7 +623,7 @@ body[data-stage='lesson'] #chapter-list {
 }
 body[data-stage='lesson'] .specimen-copy {
   margin-bottom: 15px;
-  font-size: 10px;
+  font-size: 12px;
 }
 body[data-stage='lesson'] .study-panel {
   margin-top: 22px;
@@ -688,18 +688,18 @@ body[data-mode='surface'] .probe-control {
   grid-row: 1;
   margin: 0;
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 11px;
 }
 .chapter-entry > strong {
   grid-column: 2;
   grid-row: 1;
-  font-size: 12px;
+  font-size: 13px;
 }
 .chapter-entry > span {
   grid-column: 2;
   grid-row: 2;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.7;
 }
 .chapter-entry > b {
@@ -746,7 +746,7 @@ body[data-mode='surface'] .probe-control {
   .lab-footer {
     left: 28px;
     right: 28px;
-    font-size: 8px;
+    font-size: 11px;
   }
 }
 @media (max-width: 900px) {
@@ -768,22 +768,22 @@ body[data-mode='surface'] .probe-control {
   }
   .brand-name > span {
     margin-left: 6px;
-    font-size: 9px;
+    font-size: 11px;
   }
   .brand-description {
-    font-size: 9px;
+    font-size: 11px;
     white-space: nowrap;
   }
   .header-tools {
     max-width: 240px;
     gap: 0 15px;
     padding: 0;
-    font-size: 9px;
+    font-size: 11px;
   }
   #tokyo-time {
     width: 100%;
     text-align: right;
-    font-size: 9px;
+    font-size: 11px;
   }
   .scene-viewport {
     position: relative;
@@ -795,7 +795,7 @@ body[data-mode='surface'] .probe-control {
     left: 24px;
     right: 24px;
     bottom: 24px;
-    font-size: 8px;
+    font-size: 11px;
   }
   .scene-scale {
     left: 24px;
@@ -879,21 +879,21 @@ body[data-mode='surface'] .probe-control {
   .header-tools {
     max-width: 145px;
     gap: 0 12px;
-    font-size: 8px;
+    font-size: 11px;
   }
   .brand-name {
-    font-size: 17px;
+    font-size: 19px;
   }
   .brand-name > span {
-    font-size: 8px;
+    font-size: 11px;
     margin-left: 4px;
   }
   .brand-description {
-    font-size: 8px;
+    font-size: 11px;
     letter-spacing: 0.05em;
   }
   #tokyo-time {
-    font-size: 8px;
+    font-size: 11px;
   }
   .catalog-link {
     gap: 4px;
@@ -915,7 +915,7 @@ body[data-mode='surface'] .probe-control {
     font-size: 26px;
   }
   .stage-copy {
-    font-size: 11px;
+    font-size: 13px;
   }
   .stage-actions {
     gap: 10px 18px;
@@ -925,13 +925,13 @@ body[data-mode='surface'] .probe-control {
     gap: 24px;
   }
   .text-action {
-    font-size: 10px;
+    font-size: 12px;
     gap: 8px;
   }
   .lab-footer {
     padding: 20px 24px;
     display: block;
-    font-size: 8px;
+    font-size: 11px;
     line-height: 1.8;
   }
   .lab-footer p + p {

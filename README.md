@@ -1,8 +1,10 @@
 # 知序 · 视觉沙盒
 
-[沙盒目录](https://yankcc258.github.io/test-sandbox/) · [螺旋课程目录](https://yankcc258.github.io/test-sandbox/laboratory/?v=35) · [工作台](https://yankcc258.github.io/test-sandbox/workstation/) · [历史原型](https://yankcc258.github.io/test-sandbox/preview/)
+[沙盒目录](https://yankcc258.github.io/test-sandbox/) · [螺旋课程目录](https://yankcc258.github.io/test-sandbox/laboratory/?v=36) · [工作台](https://yankcc258.github.io/test-sandbox/workstation/) · [历史原型](https://yankcc258.github.io/test-sandbox/preview/)
 
-独立的视觉与交互试验场，不连接正式站接口或学习记录。**当前重点：v35 测量环与流星组装整合**。比对露娜独立小样，把沿环流动与经同一入口组装的方式用于现有实验室，保留 v34 的连续运动和观察物质感。主站 `05be1e3` 的 17 章、85 题快照与页面会话不变；未接入主站。部分早期脊柱成果已接入正式站，本仓库不能当作正式站的当前副本。
+独立的视觉与交互试验场，不连接正式站接口或学习记录。**当前重点：v36 阅读与目录精修**。比对露娜独立小样，把沿环流动与经同一入口组装的方式用于现有实验室，保留 v34 的连续运动和观察物质感。主站 `05be1e3` 的 17 章、85 题快照与页面会话不变；未接入主站。部分早期脊柱成果已接入正式站，本仓库不能当作正式站的当前副本。
+
+v36 已按最新反馈放大文字与观察模型，调整目录间距，并加入静止的学习页测量纹理。详见 [v36 当前交接](docs/laboratory-observation.md)。
 
 露娜与其他协作者接手前，请先看 [2026-11-04 · v35 比对与整合同步](docs/laboratory-observation.md#luna-handoff-v35)，原方案见 [露娜的流星组装小样说明](docs/meteor-assembly.md)。本轮只在 `laboratory/` 整合所选行为，`preview/meteor/`、原小样文档及讨论稿保持原样；推送前再次同步远端，保留并行修改。
 
@@ -10,7 +12,7 @@
 
 | 入口                                         | 状态与范围                                                                                 |
 | -------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| [大螺旋 · 课程目录](laboratory/?v=35)        | 当前重点；测量环细针流、统一入口与顺序组装；保留 17 章／85 题，学习不等待动画。            |
+| [大螺旋 · 课程目录](laboratory/?v=36)        | 当前重点；测量环细针流、统一入口与顺序组装；保留 17 章／85 题，学习不等待动画。            |
 | [露娜 · 流星独立小样](preview/meteor/)       | 原方案保留供对照；五个数学模型与慢放工具，说明见 [流星组装小样](docs/meteor-assembly.md)。 |
 | [工作台](workstation/)                       | 已完成范本；原创三维桌面、六项工具截图与桌旁陪伴预览、专注试用、便笺、东京环境光。         |
 | [脊柱复习区](recall.html?i=1&workbench=1)    | v17 容量方案；200 条可浏览术语，只有 8 个示例单词可实际练习。                              |
@@ -81,7 +83,7 @@ npm run check
 
 工作台参数：`?motion=0` 关闭动效；`?light=day`、`dusk`、`night` 临时预览时段；`?view=fallback` 查看无 WebGL 回退。默认读取东京时间，始终保持深色外壳。
 
-学科观察入口：`laboratory/?v=35`；增加 `&motion=0` 关闭场景动效，增加 `&view=fallback` 查看无 WebGL 降级。当前开放主站课程的只读快照，沙盒作答不写入正式学习记录。
+学科观察入口：`laboratory/?v=36`；增加 `&motion=0` 关闭场景动效，增加 `&view=fallback` 查看无 WebGL 降级。当前开放主站课程的只读快照，沙盒作答不写入正式学习记录。
 
 ## 文件位置
 

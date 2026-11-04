@@ -1,4 +1,4 @@
-import { sampleLeg, soften } from './assembly-motion.js?v=35';
+import { sampleLeg, soften } from './assembly-motion.js?v=36';
 
 // All positions and velocities are in scene coordinates, independent of model rotation.
 export const ORBIT = Object.freeze({

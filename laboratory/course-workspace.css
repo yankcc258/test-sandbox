@@ -62,7 +62,7 @@ body[data-stage='lesson'] .catalog-link {
 
 .course-header .eyebrow {
   margin: 0 0 5px;
-  font-size: 8px;
+  font-size: 11px;
   line-height: 1.7;
   letter-spacing: 0.12em;
 }
@@ -79,7 +79,7 @@ body[data-stage='lesson'] .catalog-link {
 .course-meta {
   margin: 7px 0 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.7;
   overflow-wrap: anywhere;
 }
@@ -97,7 +97,7 @@ body[data-stage='lesson'] .catalog-link {
 .course-page-progress {
   margin: 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.8;
   overflow-wrap: anywhere;
 }
@@ -108,7 +108,7 @@ body[data-stage='lesson'] .catalog-link {
   padding: 8px 14px;
   border: 1px solid #e8ebe438;
   color: var(--ink);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.7;
 }
 
@@ -130,7 +130,7 @@ body[data-stage='lesson'] .catalog-link {
   padding: 8px 12px;
   border: 1px solid var(--line);
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.6;
 }
 
@@ -179,7 +179,7 @@ body[data-stage='lesson'] .catalog-link {
   grid-column: 1;
   padding: 4px 8px 24px 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .course-toc h2,
@@ -187,7 +187,7 @@ body[data-stage='lesson'] .catalog-link {
 .course-toc .toc-label {
   margin: 0 0 12px;
   color: var(--dim);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 400;
   letter-spacing: 0.12em;
 }
@@ -210,7 +210,7 @@ body[data-stage='lesson'] .catalog-link {
   padding: 9px 9px 9px 12px;
   border-left: 1px solid var(--line);
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.7;
   text-align: left;
   overflow-wrap: anywhere;
@@ -235,7 +235,7 @@ body[data-stage='lesson'] .catalog-link {
   margin: 0 auto;
   padding: 0 12px 44px 0;
   color: #cbd1c9;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 2;
   overflow-wrap: anywhere;
 }
@@ -259,7 +259,7 @@ body[data-stage='lesson'] .catalog-link {
   min-width: 64px;
   padding: 8px 3px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.05em;
 }
 
@@ -313,11 +313,11 @@ body[data-stage='lesson'] .catalog-link {
 }
 
 .course-reader h3 {
-  font-size: 17px;
+  font-size: 19px;
 }
 
 .course-reader h4 {
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .course-section > :first-child,
@@ -367,7 +367,7 @@ body[data-stage='lesson'] .catalog-link {
 .course-reader figcaption {
   margin-top: 10px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.8;
 }
 
@@ -409,7 +409,7 @@ body[data-stage='lesson'] .catalog-link {
   margin: 22px 0;
   overflow-x: auto;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 13px;
   white-space: nowrap;
 }
 
@@ -448,7 +448,7 @@ body[data-stage='lesson'] .catalog-link {
   min-height: 44px;
   padding: 10px 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.8;
   cursor: pointer;
 }
@@ -476,7 +476,7 @@ body[data-stage='lesson'] .catalog-link {
   margin: 2px 0 0;
   padding-left: 17px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 400;
   line-height: 1.8;
   letter-spacing: 0.08em;
@@ -488,7 +488,7 @@ body[data-stage='lesson'] .catalog-link {
 
 .observer-heading .eyebrow {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 11px;
 }
 
 .observer-heading h2 {
@@ -530,7 +530,7 @@ body[data-stage='lesson'] .course-observer #lab-canvas {
   top: 34%;
   right: 20px;
   left: 20px;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 #observer-controls,
@@ -542,7 +542,7 @@ body[data-stage='lesson'] .course-observer #lab-canvas {
 #observer-controls .observation-tabs button {
   min-height: 44px;
   padding: 7px 4px;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 #observer-controls .probe-control {
@@ -556,7 +556,7 @@ body[data-stage='lesson'] .course-observer #lab-canvas {
 #observer-controls .specimen-note {
   min-height: 0;
   margin: 11px 0 0;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.8;
 }
 
@@ -565,14 +565,14 @@ body[data-stage='lesson'] .course-observer #lab-canvas {
   padding-top: 19px;
   border-top: 1px solid var(--line);
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.8;
 }
 
 .case-observation h3 {
   margin: 0 0 10px;
   color: var(--ink);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
   line-height: 1.8;
 }
@@ -584,14 +584,14 @@ body[data-stage='lesson'] .course-observer #lab-canvas {
 .case-observation label {
   display: block;
   margin-top: 13px;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .case-observation label output {
   float: right;
   color: var(--ink);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .case-observation input[type='range'] {
@@ -611,7 +611,7 @@ body[data-stage='lesson'] .course-observer #lab-canvas {
   gap: 0;
   margin: 15px 0 0;
   padding: 0;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .case-observation dl > div,
@@ -635,7 +635,7 @@ body[data-stage='lesson'] .course-observer #lab-canvas {
   margin: 0;
   color: var(--ink);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
@@ -645,7 +645,7 @@ body[data-stage='lesson'] .course-observer #lab-canvas {
 .course-observer .observation-disclaimer {
   margin: 21px 0 0 17px;
   color: var(--dim);
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.8;
 }
 
@@ -660,7 +660,7 @@ body[data-stage='lesson'] .course-observer #lab-canvas {
   padding: 8px 12px;
   border: 1px solid var(--line);
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.8;
 }
 
@@ -672,7 +672,7 @@ body[data-stage='lesson'] .course-observer #lab-canvas {
 .case-observation .case-note,
 .course-reader .practice-scope {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.8;
 }
 
@@ -702,7 +702,7 @@ body[data-stage='lesson'] .course-observer #lab-canvas {
   margin: 0 0 17px;
   padding: 0;
   color: var(--ink);
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.9;
 }
 
@@ -788,7 +788,7 @@ body[data-stage='lesson'] .course-observer #lab-canvas {
   padding: 9px 17px;
   border: 1px solid #e8ebe438;
   color: var(--ink);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.7;
 }
 
@@ -841,7 +841,7 @@ body[data-stage='lesson'] .course-observer #lab-canvas {
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.9;
 }
 
@@ -854,7 +854,7 @@ body[data-stage='lesson'] .course-observer #lab-canvas {
   margin: 0;
   padding-top: 14px;
   color: var(--dim);
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.7;
 }
 
@@ -863,7 +863,7 @@ body[data-stage='lesson'] .course-observer #lab-canvas {
   padding: 0;
   border: 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .course-workspace button:focus-visible,
@@ -970,7 +970,7 @@ body[data-observer='collapsed'] .course-reader {
     border-left: 0;
     border-bottom: 1px solid var(--line);
     white-space: nowrap;
-    font-size: 10px;
+    font-size: 12px;
   }
   .course-toc [aria-current='true'],
   .course-toc [aria-current='location'],
@@ -1015,7 +1015,7 @@ body[data-observer='collapsed'] .course-reader {
     line-height: 1.5;
   }
   .course-meta {
-    font-size: 10px;
+    font-size: 12px;
   }
   .course-layout,
   body[data-observer='collapsed'] .course-layout {
@@ -1069,7 +1069,7 @@ body[data-observer='collapsed'] .course-reader {
     max-width: 740px;
     padding: 0 0 33px;
     overflow: visible;
-    font-size: 14px;
+    font-size: 16px;
     line-height: 1.95;
   }
   .course-tabs {
@@ -1083,7 +1083,7 @@ body[data-observer='collapsed'] .course-reader {
   #course-scope {
     padding: 19px 0 24px;
     border-top: 1px solid var(--line);
-    font-size: 9px;
+    font-size: 11px;
   }
 }
 
@@ -1095,12 +1095,12 @@ body[data-observer='collapsed'] .course-reader {
   }
   .course-page-progress {
     padding-top: 4px;
-    font-size: 9px;
+    font-size: 11px;
   }
   .course-read-toggle {
     max-width: 112px;
     padding: 8px 10px;
-    font-size: 10px;
+    font-size: 12px;
   }
   .course-workspace {
     margin: 22px 22px 0;
@@ -1109,7 +1109,7 @@ body[data-observer='collapsed'] .course-reader {
   #observer-toggle {
     padding-right: 9px;
     padding-left: 9px;
-    font-size: 10px;
+    font-size: 12px;
   }
   #course-return {
     padding-left: 0;
@@ -1119,7 +1119,7 @@ body[data-observer='collapsed'] .course-reader {
   }
   .course-reader,
   body[data-observer='collapsed'] .course-reader {
-    font-size: 14px;
+    font-size: 16px;
     line-height: 1.95;
   }
   .course-reader h2 {
@@ -1131,7 +1131,7 @@ body[data-observer='collapsed'] .course-reader {
   .course-reader .formula,
   .course-reader pre {
     padding: 13px;
-    font-size: 12px;
+    font-size: 13px;
   }
   .course-toc button,
   .course-toc a {
@@ -1149,7 +1149,7 @@ body[data-observer='collapsed'] .course-reader {
   .exercise-actions button {
     padding-right: 13px;
     padding-left: 13px;
-    font-size: 11px;
+    font-size: 13px;
   }
 }
 
@@ -1166,7 +1166,7 @@ body[data-observer='collapsed'] .course-reader {
   }
   #course-return,
   #observer-toggle {
-    font-size: 9px;
+    font-size: 11px;
   }
 }
 
@@ -1182,7 +1182,7 @@ body[data-observer='collapsed'] .course-reader {
     font-size: 23px;
   }
   .course-meta {
-    font-size: 9px;
+    font-size: 11px;
   }
   .course-layout {
     padding-top: 14px;
@@ -1201,5 +1201,121 @@ body[data-observer='collapsed'] .course-reader {
   .course-workspace *::after {
     scroll-behavior: auto !important;
     transition: none !important;
+  }
+}
+
+/* A still laboratory backdrop: no animation or extra rendering loop. */
+body[data-stage='lesson'] .laboratory {
+  background: radial-gradient(ellipse at 20% 28%, #25312f80, transparent 65%), var(--bg);
+}
+body[data-stage='lesson'] .laboratory::before {
+  content: '';
+  position: fixed;
+  pointer-events: none;
+  z-index: -1;
+  width: 680px;
+  height: 680px;
+  left: -285px;
+  top: 130px;
+  border: 1px solid #9cafa51f;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 12deg, #a2b9ae22 0deg 0.2deg, transparent 0.2deg 6deg);
+  mask-image: radial-gradient(
+    circle,
+    transparent 64%,
+    #000 64.2%,
+    #000 65.5%,
+    transparent 65.8%,
+    transparent 69%,
+    #000 69.2%
+  );
+}
+.course-workspace {
+  --course-gap: 24px;
+  --course-toc-width: 180px;
+  --course-observer-width: 310px;
+}
+.course-reader,
+body[data-observer='collapsed'] .course-reader {
+  max-width: 900px;
+  padding: 0 26px 36px;
+  border: 1px solid #a4b3a726;
+  background: linear-gradient(130deg, #202a28, #1b2222 65%);
+  font-size: 16px;
+  line-height: 1.85;
+}
+.course-tabs {
+  background: #202827;
+}
+.course-reader h3 {
+  font-size: 19px;
+}
+.course-reader .formula,
+.course-reader pre,
+.course-reader table {
+  font-size: 15px;
+}
+.course-reader summary,
+.course-reader blockquote,
+.course-reader .callout,
+.answer-feedback {
+  font-size: 14px;
+}
+.exercise-card legend,
+.exercise-card .exercise-prompt,
+.exercise-card .prompt,
+.exercise-card label {
+  font-size: 16px;
+}
+.exercise-card input:not([type='radio']):not([type='checkbox']):not([type='range']) {
+  font-size: 16px;
+}
+.observer-stage {
+  height: 300px;
+  background: transparent;
+}
+.observer-heading h2 {
+  font-size: 15px;
+}
+.course-observer {
+  border-left-color: #a5b7ab40;
+}
+.course-observer .observation-disclaimer,
+#observer-controls .specimen-note,
+.probe-limits,
+#probe-value {
+  font-size: 12px;
+}
+@media (max-width: 1280px) {
+  .course-workspace {
+    --course-gap: 18px;
+    --course-toc-width: 150px;
+    --course-observer-width: 280px;
+  }
+}
+@media (max-width: 1100px) {
+  .course-workspace {
+    --course-toc-width: auto;
+  }
+}
+@media (max-width: 900px) {
+  .course-workspace {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+  .course-reader,
+  body[data-observer='collapsed'] .course-reader {
+    padding: 0 16px 30px;
+    font-size: 16px;
+    line-height: 1.85;
+  }
+  .observer-stage {
+    height: 300px;
+  }
+  .course-session-bar {
+    flex-wrap: wrap;
+  }
+  .course-read-toggle {
+    max-width: none;
   }
 }

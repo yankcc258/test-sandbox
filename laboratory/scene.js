@@ -1,15 +1,15 @@
 import * as THREE from '../vendor/three/three.module.min.js';
 import { RoomEnvironment } from '../vendor/three/RoomEnvironment.js';
-import { createLabEnvironment } from './environment.js?v=35';
-import { createParticleField } from './particle-field.js?v=35';
+import { createLabEnvironment } from './environment.js?v=36';
+import { createParticleField } from './particle-field.js?v=36';
 import {
   surfaceFor,
   createSpecimenGeometry,
   createSpecimenMaterial,
   createSpecimenDepthMaterial,
-} from './specimen-materials.js?v=35';
-import { approach } from './state.js?v=35';
-import { DISCIPLINES } from './course-data.js?v=35';
+} from './specimen-materials.js?v=36';
+import { approach } from './state.js?v=36';
+import { DISCIPLINES } from './course-data.js?v=36';
 class TrefoilCurve extends THREE.Curve {
   getPoint(t, v = new THREE.Vector3()) {
     const a = t * Math.PI * 2;
@@ -236,7 +236,7 @@ export async function createLaboratory({
       (state.stage === 'focus'
         ? 5.8
         : state.chapter
-          ? 7.6 - viewLesson * 0.9
+          ? 7.6 - viewLesson * (state.chapter === 'math-partials' ? 2.35 : 2.7)
           : state.stage === 'observe'
             ? 7.4
             : 6.8) * fit;

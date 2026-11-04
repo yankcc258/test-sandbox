@@ -13,11 +13,11 @@
   text-align: left;
   padding: 12px 0;
   border-bottom: 1px solid var(--line);
-  font-size: 11px;
+  font-size: 13px;
   min-height: 54px;
 }
 .discipline-button small {
-  font: 8px/1.7 var(--mono);
+  font: 11px/1.7 var(--mono);
   color: var(--dim);
 }
 .discipline-button[aria-pressed='true'] {
@@ -43,7 +43,7 @@
   margin: 0 0 12px;
   padding-left: 17px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.08em;
 }
 .chapter-label {
@@ -64,7 +64,7 @@
 }
 .chapter-label strong {
   display: block;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 400;
   line-height: 1.65;
   white-space: normal;
@@ -73,7 +73,7 @@
 .chapter-label small {
   display: block;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
   margin: 3px 0;
 }
 .chapter-label .label-leader {
@@ -147,7 +147,7 @@
   border: 1px solid var(--line);
   border-radius: 0;
   font: inherit;
-  font-size: 11px;
+  font-size: 13px;
   padding: 9px;
   min-height: 38px;
 }
@@ -155,14 +155,14 @@
   background: var(--bg);
 }
 .archive-search button {
-  font-size: 10px;
+  font-size: 12px;
   padding: 8px 0;
   color: var(--muted);
 }
 .archive-legend,
 .archive-empty {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.9;
   margin: 16px 0;
 }
@@ -177,7 +177,7 @@
   align-self: center;
 }
 .chapter-list .archive-entry > span:not(.question-marks) {
-  font-size: 9px;
+  font-size: 11px;
 }
 .archive-entry[aria-pressed='true'] {
   border-bottom-color: var(--accent);
@@ -200,7 +200,7 @@
 }
 .archive-detail-tabs button {
   padding: 9px 0;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
   border-bottom: 1px solid transparent;
 }
@@ -209,7 +209,7 @@
   border-color: var(--accent);
 }
 .archive-detail-body {
-  font-size: 12px;
+  font-size: 13px;
   color: #bdc6c0;
   line-height: 1.9;
   padding: 6px 0;
@@ -219,7 +219,7 @@
 }
 .detail-meta {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.8;
 }
 .chapter-detail > .primary-action {
@@ -307,10 +307,10 @@ body[data-ready='fallback'] #observer-controls {
     top: 15px;
   }
   body[data-catalog-density='dense'] .chapter-label strong {
-    font-size: 10px;
+    font-size: 12px;
   }
   body[data-catalog-density='dense'] .chapter-label small {
-    font-size: 8px;
+    font-size: 11px;
     margin: 1px 0;
   }
   body[data-stage='observe'] .content-column {
@@ -329,10 +329,10 @@ body[data-ready='fallback'] #observer-controls {
     padding-left: 13px;
   }
   .chapter-label strong {
-    font-size: 10px;
+    font-size: 12px;
   }
   .chapter-label small {
-    font-size: 8px;
+    font-size: 11px;
   }
   body[data-stage='observe'] .content-column {
     right: 2%;
@@ -401,4 +401,80 @@ body[data-ready='fallback'] #observer-controls {
   .archive-legend {
     max-width: 40em;
   }
+}
+
+/* Give the chapter catalogue its own space beside the measuring ring. */
+.chapter-label strong,
+body[data-catalog-density='dense'] .chapter-label strong,
+.chapter-list .archive-entry strong {
+  font-size: 15px;
+}
+.chapter-label small,
+body[data-catalog-density='dense'] .chapter-label small {
+  font-size: 12px;
+}
+.chapter-label {
+  min-height: 94px;
+  padding: 13px 10px 13px 17px;
+}
+body[data-catalog-density='dense'] .chapter-label {
+  min-height: 86px;
+  padding-top: 11px;
+  padding-bottom: 11px;
+}
+.chapter-labels {
+  left: 4vw;
+  width: 250px;
+  top: 120px;
+}
+.archive-search {
+  grid-template-columns: minmax(0, 1fr) 115px auto;
+}
+.archive-legend {
+  font-size: 12px;
+}
+.catalog-invitation {
+  position: absolute;
+  inset: 44% 15% auto;
+  margin: 0;
+  text-align: center;
+  color: #a6b4aa;
+  font-size: 15px;
+  line-height: 1.9;
+  pointer-events: none;
+}
+.catalog-invitation small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+@media (min-width: 901px) {
+  body[data-stage='observe'] .scene-viewport {
+    left: calc(4vw + 270px);
+    width: calc(61% - 270px);
+  }
+}
+@media (min-width: 901px) and (max-width: 1200px) {
+  .chapter-labels {
+    left: 28px;
+    width: 220px;
+  }
+  body[data-stage='observe'] .scene-viewport {
+    left: 260px;
+    width: calc(64% - 260px);
+  }
+}
+@media (max-width: 900px) {
+  .catalog-invitation {
+    inset: 40% 15% auto;
+    font-size: 14px;
+  }
+  .archive-search {
+    grid-template-columns: minmax(0, 1fr) 110px auto;
+  }
+}
+
+body[data-ready='fallback'] .catalog-invitation {
+  display: none;
 }
