@@ -1,4 +1,4 @@
-import { COURSES, DISCIPLINES, TRACKS, getCourse } from './course-data.js?v=36';
+import { COURSES, DISCIPLINES, TRACKS, getCourse } from './course-data.js?v=36.1';
 const $ = (id) => document.getElementById(id);
 function el(tag, cls, text) {
   const n = document.createElement(tag);

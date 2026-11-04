@@ -1,6 +1,9 @@
 // Original, deterministic observation models for one reusable 288-box instance pool.
 // Scientific coordinates live in `data`; poses are their explicitly scaled display.
 import { createModelDetails } from './model-details.js';
+// 露娜：其他学科的观察模型用「积木 + 配方」生成，见 specimen-kit.js / specimen-recipes.js
+import { buildRecipe } from './specimen-kit.js';
+import { RECIPES } from './specimen-recipes.js';
 export const ASSEMBLY_COUNT = 288;
 export const MATH_MODEL_IDS = [
   'math',
@@ -544,7 +547,9 @@ export function buildModelPoses(id, probe) {
   };
   const result = Object.hasOwn(functions, id)
     ? functions[id](model, probe)
-    : archive(model, String(id ?? 'archive'));
+    : Object.hasOwn(RECIPES, id)
+      ? buildRecipe(model, RECIPES[id], probe)
+      : archive(model, String(id ?? 'archive'));
   if (model.poses.length > ASSEMBLY_COUNT)
     throw new Error(`Assembly exceeds ${ASSEMBLY_COUNT} instances: ${id}`);
   const activeCount = model.poses.filter((p) => p.scale.every((v) => v > 0)).length;

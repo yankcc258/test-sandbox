@@ -1,8 +1,8 @@
-import { initialState, reduceState, tokyoMood } from './state.js?v=36';
-import { DISCIPLINES, getCourse } from './course-data.js?v=36';
-import { mountCourseWorkspace } from './course-workspace.js?v=36';
-import { mountArchive, disciplineCourses } from './archive.js?v=36';
-import { buildModelPoses } from './assembly-models.js?v=36';
+import { initialState, reduceState, tokyoMood } from './state.js?v=36.1';
+import { DISCIPLINES, getCourse } from './course-data.js?v=36.1';
+import { mountCourseWorkspace } from './course-workspace.js?v=36.1';
+import { mountArchive, disciplineCourses } from './archive.js?v=36.1';
+import { buildModelPoses } from './assembly-models.js?v=36.1';
 const $ = (id) => document.getElementById(id);
 let state = initialState(),
   scene = null,
@@ -180,7 +180,7 @@ setInterval(() => {
   if (!document.hidden) atmosphere();
 }, 60000);
 try {
-  const { createLaboratory } = await import('./scene.js?v=36');
+  const { createLaboratory } = await import('./scene.js?v=36.1');
   scene = await createLaboratory({
     canvas: $('lab-canvas'),
     anchor,

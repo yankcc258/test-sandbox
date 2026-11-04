@@ -1,4 +1,4 @@
-import { COURSE_SNAPSHOT } from './course-snapshot.js?v=36';
+import { COURSE_SNAPSHOT } from './course-snapshot.js?v=36.1';
 
 // Presentation adapter over a pinned main-site snapshot. No account or storage.
 export const SOURCE_COMMIT = COURSE_SNAPSHOT.commit;
