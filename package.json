@@ -6,7 +6,7 @@
     "build:models": "node scripts/spine/build.mjs",
     "check:models": "node scripts/spine/check.mjs",
     "check:pulse": "node scripts/check-pulse.mjs",
-    "check:experience": "node scripts/check-experience.mjs",
+    "check:experience": "node scripts/check-experience.mjs && node scripts/check-anatomy.mjs",
     "check:terminal": "node scripts/check-terminal.mjs",
     "check:workstation": "node scripts/check-workstation.mjs",
     "check:links": "node scripts/check-links.mjs",

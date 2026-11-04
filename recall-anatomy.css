@@ -200,3 +200,9 @@
     transition: none;
   }
 }
+/* Content takes over the screen, including when the mobile panel was open.
+   Remove it from hit testing and accessibility navigation until returning. */
+.stage.entered .anatomy,
+.stage.entered #anatomy-toggle {
+  display: none;
+}

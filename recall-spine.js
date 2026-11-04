@@ -13,7 +13,7 @@ import { createReadingWorkbench } from './recall-reading.js?v=17';
 import { SAMPLE_WORDS, createVocabSession } from './recall-vocab.js?v=17';
 import { createDock } from './recall-dock.js?v=17';
 import { SYSTEMS, drawSpecimen } from './recall-specimen.js?v=17';
-import { createAnatomy } from './recall-anatomy.js?v=1';
+import { createAnatomy } from './recall-anatomy.js?v=2';
 import { bindPulseInput } from './recall-pulse-input.js?v=17';
 import { createLifeState, createSignal } from './recall-life.js?v=17';
 import { createGateway } from './recall-gateway.js?v=18';
@@ -1433,6 +1433,7 @@ document.getElementById('reset-round').onclick = () => {
   dock.setOpen(false);
   leave();
   life.reset();
+  anatomy.reset();
   vocabSession = vocabHost = session = null;
   pendingFeedback = false;
   clearTimeout(feedbackTimer);

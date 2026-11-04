@@ -243,6 +243,14 @@ export function createAnatomy({ root, toggle, organs, entries, life }) {
       render();
     },
     update: refresh,
+    reset() {
+      clearInterval(decay);
+      decay = 0;
+      tally = { again: 0, hard: 0, good: 0 };
+      lastDone = 0;
+      dopamine = 0.12;
+      refresh();
+    },
     // 背单词每次自评：首次回想的统计在 tally 里；答对（这个词完成了）时多巴胺跳一下，再慢慢回落
     grade({ completedKeys, tally: next }) {
       if (next) tally = { ...tally, ...next };
