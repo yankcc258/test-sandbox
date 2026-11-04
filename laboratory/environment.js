@@ -1,5 +1,9 @@
 // Sparse measuring references, not a room or a floating information display.
 // All geometry is created once; the scene's existing render requests own timing.
+import { ORBIT } from './orbital-motion.js?v=36';
+// 测量环跟着薄片的环走：原来按半径 2.11、深度 -2.4 画的，这里统一换算（露娜，2026-11-04）
+const K = ORBIT.radius / 2.11,
+  Z = (z) => z - -2.4 + ORBIT.center[2];
 export function createLabEnvironment(THREE) {
   const group = new THREE.Group();
   group.name = 'laboratory-measurement-field';
@@ -58,30 +62,30 @@ export function createLabEnvironment(THREE) {
     [3.15, 4.05],
     [4.52, 5.68],
   ]) {
-    arc(ring, 2.27, start, end, 24, -2.4);
+    arc(ring, 2.27 * K, start, end, 24, Z(-2.4));
   }
-  arc(ring, 2.11, 0.22, 0.65, 12, -2.42);
-  arc(ring, 2.11, 3.66, 4.04, 10, -2.42);
+  arc(ring, 2.11 * K, 0.22, 0.65, 12, Z(-2.42));
+  arc(ring, 2.11 * K, 3.66, 4.04, 10, Z(-2.42));
   const main = lines('broken-measurement-ring', ring, '#6f817b', 0.19, -30);
   const ticks = [];
   for (let i = 0; i < 40; i++) {
     if (i % 10 > 6) continue;
     const a = (i * Math.PI) / 20,
-      outer = 2.37 + (i % 5 === 0 ? 0.07 : 0);
+      outer = (2.37 + (i % 5 === 0 ? 0.07 : 0)) * K;
     ticks.push(
-      2.3 * Math.cos(a),
-      2.3 * Math.sin(a) - 0.03,
-      -2.39,
+      2.3 * K * Math.cos(a),
+      2.3 * K * Math.sin(a) - 0.03,
+      Z(-2.39),
       outer * Math.cos(a),
       outer * Math.sin(a) - 0.03,
-      -2.39,
+      Z(-2.39),
     );
   }
   lines('radial-calibration', ticks, '#8b9890', 0.2, -29);
   const cool = [];
-  arc(cool, 2.28, 1.0, 1.17, 6, -2.38);
-  arc(cool, 2.28, 4.77, 4.87, 4, -2.38);
-  cool.push(-2.66, -0.52, -2.46, -2.66, -0.18, -2.46);
+  arc(cool, 2.28 * K, 1.0, 1.17, 6, Z(-2.38));
+  arc(cool, 2.28 * K, 4.77, 4.87, 4, Z(-2.38));
+  cool.push(-2.66 * K, -0.52, Z(-2.46), -2.66 * K, -0.18, Z(-2.46));
   const accent = lines('quiet-cold-reference', cool, '#92aeb3', 0.23, -28);
   const footprint = [];
   arc(footprint, 2.23, 0.08, 1.35, 24, 0, 'xz');

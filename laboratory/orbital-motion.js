@@ -1,9 +1,11 @@
 import { sampleLeg, soften } from './assembly-motion.js?v=36';
 
 // All positions and velocities are in scene coordinates, independent of model rotation.
+// 露娜（2026-11-04）：Yank 希望环更大、模型落在环的正中心。环从 z=-2.4 挪到 -0.6（离模型近，
+// 镜头抬高时环心和模型中心不再因透视错开），半径 2.11 → 2.35，最大的模型四周也留得出空。
 export const ORBIT = Object.freeze({
-  radius: 2.11,
-  center: Object.freeze([0, -0.03, -2.4]),
+  radius: 2.35,
+  center: Object.freeze([0, -0.03, -0.6]),
   gate: Math.PI * 0.22,
 });
 const TAU = Math.PI * 2;

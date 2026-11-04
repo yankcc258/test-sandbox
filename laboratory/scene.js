@@ -195,7 +195,8 @@ export async function createLaboratory({
       : state.chapter
         ? 1
         : 0;
-    const modelX = state.stage === 'lesson' || width <= 600 ? 0 : 1.05 * viewModel;
+    // 露娜：模型放在环的正中心（原来向右偏 1.05，看起来没在环里）
+    const modelX = 0;
     modelRoot.position.x = motion() ? approach(modelRoot.position.x, modelX, dt, 10) : modelX;
     modelRoot.position.y = 0.15 * viewModel * (1 - viewLesson);
     modelRoot.scale.setScalar(1 - 0.14 * viewModel * (1 - viewLesson));
