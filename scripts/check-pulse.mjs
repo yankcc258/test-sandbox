@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { createHeart } from '../recall-backdrop.js';
-import { bindPulseInput } from '../recall-pulse-input.js';
+import { createHeart } from '../recall/recall-backdrop.js';
+import { bindPulseInput } from '../recall/recall-pulse-input.js';
 function advance(h, from, to) {
   for (let t = from; t < to - 1e-8; ) {
     const dt = Math.min(1 / 120, to - t);

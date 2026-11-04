@@ -1,7 +1,7 @@
 /* 复习脊柱原型：深石墨背景、象牙白文字、极少量黄绿强调，延续知序冷清、极简的气质。 */
 @font-face {
   font-family: 'Inter';
-  src: url('assets/fonts/inter-latin-wght.woff2') format('woff2');
+  src: url('../assets/fonts/inter-latin-wght.woff2') format('woff2');
   font-weight: 100 900;
   font-display: swap;
 }

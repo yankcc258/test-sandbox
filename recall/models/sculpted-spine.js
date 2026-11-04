@@ -1,9 +1,9 @@
-import * as THREE from '../vendor/three/three.module.min.js';
+import * as THREE from '../../vendor/three/three.module.min.js';
 
 // Purpose-built reader for our uncompressed GLB subset (positions, normals, uint32 indices).
 // The asset is original geometry. No external model, texture, decoder or CDN is used.
 export async function loadSculptedSpine() {
-  const url = new URL('../assets/models/organic-spine-scene-v3.glb', import.meta.url);
+  const url = new URL('../../assets/models/organic-spine-scene-v3.glb', import.meta.url);
   const response = await fetch(url, { signal: AbortSignal.timeout(30000) });
   if (!response.ok) throw new Error(`Spine model: HTTP ${response.status}`);
   const buffer = await response.arrayBuffer(),

@@ -23,7 +23,7 @@
 
 用户要求把原来的星空版放到沙盒，去掉功能，只保留内容，以便查看美术。
 
-入口：[`preview/starfield/`](https://yankcc258.github.io/test-sandbox/preview/starfield/)。独立于根目录的脊柱 v16，不改正式站。
+入口：[`preview/starfield/`](https://yankcc258.github.io/test-sandbox/preview/starfield)。独立于根目录的脊柱 v16，不改正式站。
 
 ## 保留的内容
 
@@ -42,8 +42,8 @@
 
 `starfield.js` 只管理只读天象内容、相机、轨道和文字避让。原模型贴图路径已改成相对模块路径，适配 GitHub Pages 的 `/test-sandbox/` 前缀。纹理随预览托管，不依赖 CDN。
 
-- [NASA 图像来源](../preview/starfield/NASA-imagery.md)
-- [astronomy-engine MIT 许可](../preview/starfield/vendor/astronomy/LICENSE)
+- [NASA 图像来源](../../preview/starfield/NASA-imagery.md)
+- [astronomy-engine MIT 许可](../../preview/starfield/vendor/astronomy/LICENSE)
 - Three.js 和 Inter 沿用沙盒本地文件及其许可证。
 
 后台页面暂停绘制，返回后接着运行，不追赶离开期间的轨道时间；无 WebGL 时保留天象与文字，并提示立体星图不可用。

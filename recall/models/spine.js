@@ -6,7 +6,7 @@
 // DNA（第二稿）：标准的双螺旋——两条骨架链 + 一格一格的碱基对横档（两半两种颜色）+ 大沟小沟，
 //   整条缓慢自转。左右各一条，相位错开半圈；跟着镜头转，始终在画面两侧，沿世界的 y 轴一直向下延续。
 // 纯几何工厂，不读 DOM。
-import * as THREE from '../vendor/three/three.module.min.js';
+import * as THREE from '../../vendor/three/three.module.min.js';
 import { loadSculptedSpine } from './sculpted-spine.js?v=15';
 
 export const SPINE = {

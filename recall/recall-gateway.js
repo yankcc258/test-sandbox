@@ -7,7 +7,7 @@
 //         缝最后闪一下合上，回到实验室。
 // 关闭动效或系统减少动画时直接切换。时间线是纯函数 frameAt(dir, t)，测试可以停在任意一刻截图。
 
-import { createPassage, passageFrame, savePassage, play, PASSAGE } from './sandbox/passage.js';
+import { createPassage, passageFrame, savePassage, play, PASSAGE } from '../sandbox/passage.js';
 
 export const GATE = { down: 3.2, up: 2.7, seam: 0.56, strips: 24, hold: 1.5 };
 const REGIONS = [

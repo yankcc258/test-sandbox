@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { createAnatomy } from '../recall-anatomy.js';
-import { createLifeState } from '../recall-life.js';
+import { createAnatomy } from '../recall/recall-anatomy.js';
+import { createLifeState } from '../recall/recall-life.js';
 
 // Exercise the public panel API with deterministic reward ticks. An empty DOM
 // adapter takes the normal render fallback and exposes the displayed readouts.

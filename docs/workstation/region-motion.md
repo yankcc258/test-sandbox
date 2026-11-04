@@ -151,4 +151,4 @@ Codex 的文件只加了钩子，清单见 [workstation-feedback.md](workstation
 
 Chrome 实测桌面完整飞行、跳过、浏览器后退后再次进入，窄屏完整飞行与关闭动效直达星图。到达后首帧状态为就绪、覆盖层已移除、天象正常，窄屏无横向溢出；控制台未见错误或警告。未在真实手机硬件测量帧率。
 
-入口：[沙盒 v28](https://yankcc258.github.io/test-sandbox/workstation/?v=28) · [到达星图截图](region-motion/starfield-v28.png)。
+入口：[沙盒 v28](https://yankcc258.github.io/test-sandbox/workstation?v=28) · [到达星图截图](region-motion/starfield-v28.png)。

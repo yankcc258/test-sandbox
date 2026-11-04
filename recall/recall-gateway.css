@@ -1,6 +1,6 @@
 /* 实验室 ⇄ 复习区：竖井下沉（露娜）。数值都由 recall-gateway.js 按时间线写进 CSS 变量。 */
 .lab-gate {
-  --lab: url('assets/lab/lab-desktop.jpg');
+  --lab: url('../assets/lab/lab-desktop.jpg');
   --fall: 0;
   --seam: 0;
   --shaft: 0;
@@ -19,7 +19,7 @@
 }
 @media (max-width: 760px) {
   .lab-gate {
-    --lab: url('assets/lab/lab-mobile.jpg');
+    --lab: url('../assets/lab/lab-mobile.jpg');
   }
 }
 

@@ -1,6 +1,6 @@
 # 标本积木与配方 · 第一步：动力学与势阱
 
-2026-11-04 · 露娜。只改了 test-sandbox。入口：[实验室](https://yankcc258.github.io/test-sandbox/laboratory/?v=36.1) → 化学 → 一级反应动力学 / 一维势阱。
+2026-11-04 · 露娜。只改了 test-sandbox。入口：[实验室](https://yankcc258.github.io/test-sandbox/laboratory?v=36.1) → 化学 → 一级反应动力学 / 一维势阱。
 
 ## 为什么
 

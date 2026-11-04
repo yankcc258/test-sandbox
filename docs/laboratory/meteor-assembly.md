@@ -1,6 +1,6 @@
 # 流星组装 · 小样
 
-2026-11-04 JST · 露娜。入口：[preview/meteor/](https://yankcc258.github.io/test-sandbox/preview/meteor/)。只改了 test-sandbox，`laboratory/` 和正式站都没动。
+2026-11-04 JST · 露娜。入口：[preview/meteor/](https://yankcc258.github.io/test-sandbox/preview/meteor)。只改了 test-sandbox，`laboratory/` 和正式站都没动。
 
 ## 为什么做
 

@@ -2,8 +2,8 @@
 
 本轮得到用户明确授权：在已确认的第二稿上加无机金属骨架装饰，推送独立 `test-sandbox` 并替换模型。未修改知序正式项目。
 
-![沙盒中的替换效果](spine-v3-scene.jpg)
-![金属装饰与关节细节](spine-v3-detail.jpg)
+![沙盒中的替换效果](shots/spine-v3-scene.jpg)
+![金属装饰与关节细节](shots/spine-v3-detail.jpg)
 
 ## 造型
 

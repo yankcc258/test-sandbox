@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { terminalFrame, terminalRect, quadMatrix } from '../recall-terminal.js';
+import { terminalFrame, terminalRect, quadMatrix } from '../recall/recall-terminal.js';
 
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-6, `${a} ≠ ${b}`);
 function transform(m, x, y) {

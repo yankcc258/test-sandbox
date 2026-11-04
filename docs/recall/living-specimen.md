@@ -14,7 +14,7 @@
 
 这些是界面叙事隐喻，结构图为原创示意，不是医学解剖模型。`recall-specimen.js` 统一保存设定与绘图；图案绘入现有玻璃屏幕，左侧说明和进入后的内容标题同步标注。
 
-![大脑与记忆皮层](living-specimen.jpg)
+![大脑与记忆皮层](shots/living-specimen.jpg)
 
 ## 点击与心电图
 

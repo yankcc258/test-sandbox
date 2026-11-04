@@ -19,7 +19,7 @@
 
 性能判断的范围：代码确认上述逐帧绘制和淡入遮挡发生在客户端，不能假定换成主站网址就会消失。本地首次／再次打开的 RAF 采样出现约 1 秒的浏览器调度间隔，不适合作为前台实际帧率对比；本轮不宣称固定 FPS 或百分比提速。仍需用户在日常浏览器中感受流畅度。
 
-入口：[沙盒 v26](https://yankcc258.github.io/test-sandbox/workstation/?v=26)。截图：[桌面全景](workstation/desktop-v26.jpg) · [桌旁对话](workstation/seeko-v26.jpg) · [手机对话](workstation/seeko-mobile-v26.jpg) · [深夜休息角](workstation/seeko-night-v26.jpg)。
+入口：[沙盒 v26](https://yankcc258.github.io/test-sandbox/workstation?v=26)。截图：[桌面全景](shots/desktop-v26.jpg) · [桌旁对话](shots/seeko-v26.jpg) · [手机对话](shots/seeko-mobile-v26.jpg) · [深夜休息角](shots/seeko-night-v26.jpg)。
 
 2026-11-02 · v18 基于 238a152 搭建，v19 基于 f3b52b0 精修，v20 基于 b058b50 调整器物形体并补上墙画。工作仅位于 test-sandbox，未改正式仓库。
 
@@ -38,7 +38,7 @@
 
 验证：`npm run check` 通过，新增东京全天数值边界及日光渐变检查；当前 63 个入口页面、样式和模块引用正常，包含露娜的 `check:motion`。Chrome 检查桌面日／夜、手机构图、鼠标标签出现与离开隐藏、物件点击、底部键盘 Enter／ESC、手机七项工具入口，未见控制台错误。同步 v23 后重新验证桌面／手机平板开机、手机飞行抵达星空及返回工作台，原动画接口继续可用。
 
-截图：[日间桌面](workstation/desktop-v24.jpg) · [深夜桌面](workstation/night-v24.jpg) · [手机桌面](workstation/mobile-v24.jpg)。
+截图：[日间桌面](shots/desktop-v24.jpg) · [深夜桌面](shots/night-v24.jpg) · [手机桌面](shots/mobile-v24.jpg)。
 
 ## v22 个人工具截图预览
 
@@ -50,13 +50,13 @@
 - 右侧原有希可休息位增加预览入口，打开平板中的 Seeko 截图；研究手记增加“每周论文”预览入口。没有新增人物模型或改变桌面布局、光影、天空和镜头转场。
 - 这批是依据正式仓库 `56c527d` 中现有工具结构重新排版的静态设计截图，**不是正式站实时数据截图，也不是已完成功能迁移**。课程、生活记录、论文标题及陪学段落均为展示内容。截图内按钮不可操作。
 - 番茄钟截图不启动计时；终端侧栏“专注试用”仍提供原有页面内 25 分钟计时。随手记仍仅存于页面内存。
-- 希可与特蕾莎使用用户正式仓库已有形象，来源及重现方式见 [预览资产说明](../workstation/previews/README.md)。未接入聊天、推荐、通知、上传、账户或数据保存。
+- 希可与特蕾莎使用用户正式仓库已有形象，来源及重现方式见 [预览资产说明](../../workstation/previews/README.md)。未接入聊天、推荐、通知、上传、账户或数据保存。
 
 验证：`npm run check` 全部通过，54 个入口页面、样式与模块的本地引用可解析。Chrome 已检查桌面七项入口与截图、前后切换、休息位与手记快捷入口、手机竖版日历及无横向溢出；便笺切换后保留，计时开始／暂停／重置、ESC 返回仍可用。
 
-入口：[沙盒 v22](https://yankcc258.github.io/test-sandbox/workstation/?v=22)。
+入口：[沙盒 v22](https://yankcc258.github.io/test-sandbox/workstation?v=22)。
 
-验收截图：[工具总览](workstation/tools-v22.jpg) · [桌面界面预览](workstation/tool-detail-v22.jpg) · [手机总览](workstation/tools-mobile-v22.jpg)。
+验收截图：[工具总览](shots/tools-v22.jpg) · [桌面界面预览](shots/tool-detail-v22.jpg) · [手机总览](shots/tools-mobile-v22.jpg)。
 
 ## v21 边缘、连接与云层窗景
 
@@ -70,7 +70,7 @@
 - 窗景用原创程序云场替换水平柔光条：疏薄高云、较近云层、低地平线与少量遥远建筑，东京时段改变天空、云光和星点。没有接入实时天气，也没有新增持续运动。
 - 云密度与接触贴图在初始化时生成；天空只在环境光改变时重着色并复用同一纹理。沿用按需渲染、固定阴影图与现有贴图尺寸限制，没有增加全屏后期处理或外部资源下载。
 
-截图：[日间](workstation/desktop-v21.jpg) · [黄昏](workstation/dusk-v21.jpg) · [深夜](workstation/night-v21.jpg) · [手机](workstation/mobile-v21.jpg)。v20 截图保留供对比。
+截图：[日间](shots/desktop-v21.jpg) · [黄昏](shots/dusk-v21.jpg) · [深夜](shots/night-v21.jpg) · [手机](shots/mobile-v21.jpg)。v20 截图保留供对比。
 
 ## v20 器物轮廓与原创墙画
 
@@ -82,7 +82,7 @@
 - 左右墙面新增《连续体》和《远场》两幅原创画，分别回应生命／材料和计算／天空。画框属于真实三维场景，图像只用于画面表面；点击画作或顶部“画作”可查看完整作品，小屏纵向阅读。
 - 新增形体模块与画作模块；纹理加载完成后触发按需绘制，原有静止休眠逻辑保留。没有新增区域转场或正式数据接线。
 
-截图：[日间全景](workstation/desktop-v20.jpg) · [夜间全景](workstation/night-v20.jpg) · [手机全景](workstation/mobile-v20.jpg) · [画作查看](workstation/art-v20.jpg) · [手机画作](workstation/art-mobile-v20.jpg)。原图与完整生成提示词见 [墙画资产说明](../workstation/art/README.md)。
+截图：[日间全景](shots/desktop-v20.jpg) · [夜间全景](shots/night-v20.jpg) · [手机全景](shots/mobile-v20.jpg) · [画作查看](shots/art-v20.jpg) · [手机画作](shots/art-mobile-v20.jpg)。原图与完整生成提示词见 [墙画资产说明](../../workstation/art/README.md)。
 
 ## v19 材质、光影与物件精修
 
@@ -95,7 +95,7 @@
 - 使用一次烘焙的原创柔光反射环境，结合侧向主光、冷色轮廓光、桌面接触阴影和台灯聚光。静止时仍按需绘制；固定灯位的阴影贴图在镜头移动时复用，WebGL 恢复时重建。
 - 窗框增加凹槽、密封边和窗台层次；窗外用柔和云层与远近建筑取代原来的硬线条。东京时段逻辑保持不变。
 
-截图：[日间全景](workstation/desktop-v19.jpg) · [夜间全景](workstation/night-v19.jpg) · [手机全景](workstation/mobile-v19.jpg)。[上一版全景](workstation/desktop.jpg) 保留供对比。
+截图：[日间全景](shots/desktop-v19.jpg) · [夜间全景](shots/night-v19.jpg) · [手机全景](shots/mobile-v19.jpg)。[上一版全景](shots/desktop.jpg) 保留供对比。
 
 ## 最新设计约束
 
@@ -106,11 +106,11 @@
 
 ## 打开与体验
 
-- 当前范本：[/workstation/](https://yankcc258.github.io/test-sandbox/workstation/)
+- 当前范本：[/workstation/](https://yankcc258.github.io/test-sandbox/workstation)
 - 整理后的首页：[/](https://yankcc258.github.io/test-sandbox/)
 - 完整复习范本：[/recall.html?workbench=1&i=1](https://yankcc258.github.io/test-sandbox/recall.html?workbench=1&i=1)
-- 历史轮次：[/preview/](https://yankcc258.github.io/test-sandbox/preview/)
-- 设计资料目录：[/docs/](https://yankcc258.github.io/test-sandbox/docs/)
+- 历史轮次：[/preview/](https://yankcc258.github.io/test-sandbox/preview)
+- 设计资料目录：[/docs/](https://yankcc258.github.io/test-sandbox/docs)
 
 工作台包含原创程序几何的桌面、薄边平板、台灯、杯子、莫比乌斯带材料试样、手记、窗台纸飞机和希可的休息位（毯子、软枕与夜灯）。希可本体未进入三维场景，休息位可打开其静态界面预览；正式工具逻辑未接入。
 
@@ -165,10 +165,10 @@
 
 `npm run check` 全部通过，包含 45 个当前入口页面、样式与模块的本地引用检查。未用旧 smoke 脚本作为新版验收结论。
 
-- [桌面全景](workstation/desktop.jpg)
-- [桌面终端](workstation/desktop-terminal.jpg)
-- [手机全景](workstation/mobile.jpg)
-- [手机终端](workstation/mobile-terminal.jpg)
+- [桌面全景](shots/desktop.jpg)
+- [桌面终端](shots/desktop-terminal.jpg)
+- [手机全景](shots/mobile.jpg)
+- [手机终端](shots/mobile-terminal.jpg)
 
 v19 追加检查：日间、夜间光照，390×844 手机布局无横向溢出，终端页签与便笺关闭后保留，关闭返回。工作台控制台无错误或警告。新增材料试样的封闭边、正体积、有限坐标和单位法线检查。
 

@@ -1,56 +1,35 @@
 # 知序 · 视觉沙盒
 
-[沙盒目录](https://yankcc258.github.io/test-sandbox/) · [螺旋课程目录](https://yankcc258.github.io/test-sandbox/laboratory/?v=36) · [工作台](https://yankcc258.github.io/test-sandbox/workstation/) · [历史原型](https://yankcc258.github.io/test-sandbox/preview/)
+[沙盒目录](https://yankcc258.github.io/test-sandbox/) · [实验室](https://yankcc258.github.io/test-sandbox/laboratory/?v=36.1) · [复习区](https://yankcc258.github.io/test-sandbox/recall.html?i=1&workbench=1) · [工作台](https://yankcc258.github.io/test-sandbox/workstation/) · [资料目录](https://yankcc258.github.io/test-sandbox/docs/)
 
-独立的视觉与交互试验场，不连接正式站接口或学习记录。**当前重点：v36 阅读与目录精修**。比对露娜独立小样，把沿环流动与经同一入口组装的方式用于现有实验室，保留 v34 的连续运动和观察物质感。主站 `05be1e3` 的 17 章、85 题快照与页面会话不变；未接入主站。部分早期脊柱成果已接入正式站，本仓库不能当作正式站的当前副本。
+知序的视觉与交互试验场。只有示例数据和课程快照，不连接正式站的账号、接口或学习记录；部分成果已接入正式站，但这里不是正式站的副本。
 
-v36 已按最新反馈放大文字与观察模型，调整目录间距，并加入静止的学习页测量纹理。详见 [v36 当前交接](docs/laboratory-observation.md)。
+**当前重点**：实验室 v36（阅读与目录精修）和标本积木与配方。正在进行的交接见 [实验室交接记录](docs/laboratory/laboratory-observation.md)。
 
-露娜与其他协作者接手前，请先看 [2026-11-04 · v35 比对与整合同步](docs/laboratory-observation.md#luna-handoff-v35)，原方案见 [露娜的流星组装小样说明](docs/meteor-assembly.md)。本轮只在 `laboratory/` 整合所选行为，`preview/meteor/`、原小样文档及讨论稿保持原样；推送前再次同步远端，保留并行修改。
+## 三个区域
 
-## 当前预览
+知序像一栋楼：2F 工作台、1F 实验室、B1 复习区，区域之间坐同一条竖井。
 
-| 入口                                         | 状态与范围                                                                                                                         |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| [大螺旋 · 课程目录](laboratory/?v=36)        | 当前重点；测量环细针流、统一入口与顺序组装；保留 17 章／85 题，学习不等待动画。                                                    |
-| [露娜 · 流星独立小样](preview/meteor/)       | 原方案保留供对照；五个数学模型与慢放工具，说明见 [流星组装小样](docs/meteor-assembly.md)。                                         |
-| [工作台](workstation/)                       | 已完成范本；原创三维桌面、六项工具截图与桌旁陪伴预览、专注试用、便笺、东京环境光。                                                 |
-| [脊柱复习区](recall.html?i=1&workbench=1)    | v17 容量方案；200 条可浏览术语，只有 8 个示例单词可实际练习。七个系统各有解剖结构与信号分子读数（[说明](docs/spine-anatomy.md)）。 |
-| [长笔记](recall.html?i=2&workbench=1)        | 目录、长文、公式与宽表格范本。                                                                                                     |
-| [实验室 ⇄ 脊柱](recall.html?region=lab)      | 原竖井过渡预览；实验室为旧版截图占位，正式站后来已有优化。                                                                         |
-| [星空](preview/starfield/?from=catalog&v=29) | 左右拖动、缩放、八个星体档案与东京实时观测，不含学习功能。                                                                         |
-| [历史与模型](preview/)                       | round-0、round-1、紧凑仪器屏与有机脊柱模型。                                                                                       |
+| 区域           | 入口                                                       | 代码                     | 说明                                   |
+| -------------- | ---------------------------------------------------------- | ------------------------ | -------------------------------------- |
+| 1F 实验室      | [laboratory/](laboratory/?v=36.1)                          | `laboratory/`            | [docs/laboratory/](docs/laboratory/)   |
+| B1 复习区      | [recall.html](recall.html?i=1&workbench=1)                 | `recall.html`、`recall/` | [docs/recall/](docs/recall/)           |
+| 2F 工作台      | [workstation/](workstation/)                               | `workstation/`           | [docs/workstation/](docs/workstation/) |
+| 星空           | [preview/starfield/](preview/starfield/?from=catalog&v=29) | `preview/starfield/`     | [docs/starfield/](docs/starfield/)     |
+| 小样与历史原型 | [preview/](preview/)                                       | `preview/`               | [docs/history/](docs/history/)         |
 
-工作台使用真实三维几何与 DOM 界面，没有把概念图作为整页背景。希可已有沙盒桌宠行为；个人工具正式接线留待后续。
+## 接手先读
 
-**v35**：采纳露娜小样的测量环细针流与右上方统一入口，按预计到达时间分派构件，让底座与坐标轴先搭；飞行时保持细针，最后 20% 落位过程再展开成目标形状，无用薄片回环。同章调参保留已有构件，仅对新增与移除部分补入、退回。保留 v34 速度连续的 Hermite 运动、材质与软阴影，开始学习不等待或重播组装，阅读停止持续绘制；不搬入小样工具条或无限动画循环。移除三维中重复的 85 块题目状态片，章节文字旁的 DOM 状态刻度保留，模型构件数量仍不代表学习成果。详见 [v35 比对与整合记录](docs/laboratory-observation.md#luna-handoff-v35)。
+| 在做什么                         | 先读                                                                                                                                                  |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 实验室（大螺旋、课程、观察模型） | [实验室交接记录](docs/laboratory/laboratory-observation.md)（特蕾莎，每轮更新）                                                                       |
+| 给其他学科加观察模型             | [标本积木与配方](docs/laboratory/specimen-kit.md)                                                                                                     |
+| 实验室的方向讨论                 | [学科空间与流星组装讨论稿](docs/laboratory/laboratory-proposal.md) · [流星组装小样](docs/laboratory/meteor-assembly.md)                               |
+| 复习区                           | [七个系统的解剖与信号](docs/recall/spine-anatomy.md) · [记忆生命体设定](docs/recall/living-specimen.md)                                               |
+| 工作台                           | [工作台范本](docs/workstation/workstation-prototype.md) · [竖井、纸飞机与平板](docs/workstation/region-motion.md) · [希可](docs/workstation/seeko.md) |
+| 以前每一版改了什么               | [更新记录 v23–v36](docs/history/changelog.md) · [v17 之前](docs/history/review-sandbox-v17.md)                                                        |
 
-**v34（历史，基础延续）**：展开与流星组装采用保留当前可见位置、速度的连续五次曲线，途中偏移连续过渡，快速反向或换章从当前状态衔接；进入正文和调整窗口仅改变画面布局，不重启组装。尾迹收短，观察物细化底座、支撑和紧固件，象牙材质与钛金属按构件角色分开，加入轻倒角与软阴影；数学面积仍保留精确边界。当时露娜另做的独立流星小样尚未整合，其独立页面在 v35 仍保留。历史验证见 [v34 记录](docs/laboratory-observation.md#validation-v34)，不代替 v35 验收。
-
-**v33（历史，功能延续）**：螺旋承载六学科目录，其中数学 5 章、物理 1 章、化学 11 章有真实内容；计算机科学、生命科学、地球与空间仍是规划入口。选章后构件沿流星轨迹组装观察对象，“开始学习”立即可用。数学五章各有专属互动，包括与偏导数原例题一致的 `f=x²y` 曲面；其余章节采用中性档案构件预览，不代表科学模型。目录题目状态片按原题计数，与模型组装构件分开。背景改为淡测量环与细刻度，去掉墙架；目录缓慢流动，阅读时静止。阅读完成由用户手动标记，题目只保留最近结果，草稿与访问日志仅存在当前页面；没有到期推断或正式进度同步。历史验证见 [v33 记录](docs/laboratory-observation.md#validation-v33)，不代替 v35 验收。
-
-**v32（历史）**：当时将主站 `math-partials`“偏导数与全微分”完整正文、4 道数值题和 1 道多选题放入独立沙盒。数学目录列出真实 5 单元，当时仅开放这一章。桌面采用左目录、宽正文、右侧可折叠观察区；手机默认收起观察区。草稿、最新判题结果和阅读位置只保留在本页，刷新清空。马鞍仅作几何示意，另有本章 `f=x²y` 的可调数值算例；当时的暗墙、测量架与底脚在 v33 已替换。未修改主站。历史范围和验证保留在 [交接记录](docs/laboratory-observation.md#luna-handoff-v32)。
-
-**v31（历史）**：螺旋沿切向弧线舒展为三条前后错落的连续薄片曲带，展开与收拢采用保留速度的可逆阻尼，章节入口不等待动画结束。观察物精修象牙白表面、钛金属边缘和固定件，降低填光以保留暗部与结构层次。当时的课程布局讨论在 v32 落地一章，v33 扩为 17 章快照；正式数据接线仍未实现。
-
-**v30（历史）**：新增独立的 `laboratory/` 学科观察入口，保留三叶结薄片主体。第一次点按聚焦数学，第二次展开观察对象；可切换曲面、切平面、水平截面，阅读同层的 3 篇原创数学示例讲义。手机阅读时保留模型，支持关闭动效与无 WebGL 降级。当时未接正式课程、学习数据或第四层 Agent，也未扩展生命科学课程。详见 [大螺旋学科观察](docs/laboratory-observation.md)。
-
-**v23 动画（露娜）**：
-
-- **区域竖井**：三个区域像一栋楼的三层（2F 工作台、1F 实验室、B1 复习区），从「前往区域」切换时坐同一条竖井，右侧有楼层表。
-- **纸飞机**：点窗台上的纸飞机，它一路换代飞进星空，这段飞行也是星空页的载入画面。
-- **平板**：点平板就像低头看着桌上的它。屏幕在真实的四个角里开机，个人终端就显示在屏幕里，带状态栏和玻璃反光；手机上竖着看。
-- **纸飞机的十代飞行器**（v25）：热气球、飞行者一号、圣路易斯精神号、DC-3、X-1、协和式、土星五号、航天飞机、长征二号F。
-
-说明见 [docs/region-motion.md](docs/region-motion.md)，给 Codex 的工作台修改清单见 [docs/workstation-feedback.md](docs/workstation-feedback.md)。
-
-**v28**：云层复用贴图，飞行时提前下载星图资源；天象计算移到 Worker，贴图分批上传，星图首帧就绪后接住飞行末帧再淡出。十代飞行器与整体画风不变，保留 v27 希可行为。详见 [加载优化与验证](docs/region-motion.md#v28-纸飞机与星图加载优化)。
-
-**v29**：星图支持左右拖动／方向键、滚轮／双指缩放和快捷按钮；点击星体、标签或底部入口打开档案，关闭时恢复原总览视角。东京观测沿用 Astronomy Engine，在共用 Worker 内计算真实时刻的方位、高度、地心距离与下一次升落；月球另含照亮比例。详情沿用星空银白淡金，手机上下分区。仅改沙盒，未修改正式站或大螺旋。详见 [星图探索](docs/starfield-preview.md)。
-
-**v27 希可（露娜）**：白天在工作台的桌上跳来跳去，偶尔在实验室、复习区「偶遇」；深夜睡在休息舱里。戳她有吐槽，连戳或把她戳醒会记进记仇本，摸头还账，长按或右键翻开本子。表情、台词和记仇本沿用正式站桌宠。说明见 [docs/seeko.md](docs/seeko.md)。
-
-**v26**：优化平板点亮与终端交接，希可的小窝改为弧形休息舱；点击小窝直接在桌旁交流，不经过平板。对话仍是预设台词预览，未接入 AI。
+协作方式：直接在 `main` 上迭代，推送前先同步远端，保留别人的并行修改。改了别人负责的文件，在对应交接里写一句改了什么。
 
 ## 最新决定
 
@@ -60,7 +39,22 @@ v36 已按最新反馈放大文字与观察模型，调整目录间距，并加�
 - 主站原电子环绕开场保留。沙盒新开场已移除，不重新接入。
 - 未经单独安排，不把整个沙盒搬进正式站。
 
-接手当前实验室工作先读 [大螺旋学科观察](docs/laboratory-observation.md)，工作台参见 [工作台范本与最新修正说明](docs/workstation-prototype.md)，资料目录见 [docs/](docs/)。v24 收起重复浮动入口，调整左侧物件间距，补上希可休息位的毯子、软枕和夜灯，加强日间桌面光斑与侧墙补光，手机改为向下的桌面取景。v22 七项工具截图继续保留，未接正式工具逻辑或数据。
+## 目录结构
+
+```
+index.html          沙盒目录
+recall.html         复习区页面（地址不变）
+recall/             复习区的脚本、样式和脊柱模型（原来散在根目录的 recall-*.js/css 和 models/）
+laboratory/         实验室：大螺旋、课程快照、观察模型、标本积木与配方
+workstation/        工作台：三维桌面、平板、纸飞机、希可的小窝
+preview/            星空、流星小样和冻结的历史原型
+sandbox/            几个区域共用的：竖井过渡、希可、目录样式、旧链接跳转
+assets/  vendor/    原创资源、字体、模型文件，以及带许可证的依赖（three.js）
+scripts/            检查脚本、模型构建；smoke/ 是早期调试脚本
+docs/               按区域分的说明和截图：laboratory/ recall/ workstation/ starfield/ history/
+```
+
+旧的 `/?i=1&v=13`、`/?workbench=1&i=1&v=17`、`/?region=lab`、`/?motion=0` 继续进入复习范本并保留参数。裸地址打开目录。冻结预览路径均保留。
 
 ## 本地运行与检查
 
@@ -77,28 +71,15 @@ npm run check
 - `check:links`：当前页面、样式与模块的本地资源链路。
 - `check:motion`：区域竖井三段时间线两端闭合、换页前竖井完全不透明，以及纸飞机的阶段与高度。
 - `check:starfield`：飞行像素预算、资源预取并发与失败处理、真实 Worker 天象结果、跨东京午夜一致性，以及入场就绪／超时／关闭动效。
-- `check:laboratory`：数学几何、运动与流程状态，包含 17 章快照、85 题判题、章节隔离、目录状态、组装与五个数学观察对象检查；v35 补查沿环到入口、按到达时间分派、落位展开与同章参数增减。本轮完整检查与浏览器验证已通过，结果见 [v35 验证记录](docs/laboratory-observation.md#validation-v35)，历史通过记录不代替本轮验收。
-- `check:pulse`、`check:experience`、`check:terminal`：已有脊柱交互与几何检查。
+- `check:laboratory`：数学几何、运动与流程状态，包含 17 章快照、85 题判题、章节隔离、目录状态、组装与五个数学观察对象检查；v35 补查沿环到入口、按到达时间分派、落位展开与同章参数增减。本轮完整检查与浏览器验证已通过，结果见 [v35 验证记录](docs/laboratory/laboratory-observation.md#validation-v35)，历史通过记录不代替本轮验收。
+- `check:pulse`、`check:experience`、`check:terminal`：已有脊柱交互与几何检查；`check-anatomy` 是复习区七个系统的解剖读数。
+- `check-specimen-kit`（在 `check:laboratory` 里）：标本积木的公式解析器，配方在滑杆全范围可生成，并用原题答案核对。
+- `check:docs`：所有 Markdown 和 HTML 里的相对链接、图片都指向真实存在的文件；挪动文件以后跑一遍就知道哪里断了。
 - `scripts/smoke/` 是早期调试脚本，部分断言过时，不作为当前验收结论。
 
 工作台参数：`?motion=0` 关闭动效；`?light=day`、`dusk`、`night` 临时预览时段；`?view=fallback` 查看无 WebGL 回退。默认读取东京时间，始终保持深色外壳。
 
 学科观察入口：`laboratory/?v=36`；增加 `&motion=0` 关闭场景动效，增加 `&view=fallback` 查看无 WebGL 降级。当前开放主站课程的只读快照，沙盒作答不写入正式学习记录。
-
-## 文件位置
-
-| 路径                             | 用途                                                                |
-| -------------------------------- | ------------------------------------------------------------------- |
-| `index.html`、`sandbox/`         | 目录与旧链接兼容，不启动三维场景                                    |
-| `laboratory/`                    | v35 测量环流星整合；六学科目录、17 章课程快照、数学观察与页面内练习 |
-| `workstation/`                   | 工作台场景、物件、界面与环境光                                      |
-| `recall.html`、`recall-*.js/css` | 已有复习区，保留脚本路径                                            |
-| `preview/`                       | 星空、模型与冻结预览                                                |
-| `docs/`                          | 说明、截图、历史记录；旧 README 在 `docs/history/`                  |
-| `assets/`、`models/`、`vendor/`  | 原创资源、模型与带许可的依赖                                        |
-| `scripts/`                       | 验证、模型构建与历史调试                                            |
-
-旧的 `/?i=1&v=13`、`/?workbench=1&i=1&v=17`、`/?region=lab`、`/?motion=0` 继续进入复习范本并保留参数。裸地址打开目录。冻结预览路径均保留。
 
 ## 来源与许可
 

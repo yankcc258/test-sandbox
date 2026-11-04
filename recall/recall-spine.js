@@ -3,8 +3,8 @@
 //   总览：镜头对着当前屏幕，脊柱在屏幕后方贯穿上下，DNA 光点链绕着脊柱向下流动，前后几块屏幕斜着露出。
 //   切换：滚轮、向上拖动（触屏习惯：往上推就往下走）、↑ ↓ 键，或点左侧列表 / 侧面的屏幕。屏幕从左往右下沉。
 //   进入：点当前屏幕或按 ENTER——镜头推近，屏幕放大，换成同样排版、可以操作的内容层；ESC 返回螺旋。
-import * as THREE from './vendor/three/three.module.min.js';
-import { RoomEnvironment } from './vendor/three/RoomEnvironment.js';
+import * as THREE from '../vendor/three/three.module.min.js';
+import { RoomEnvironment } from '../vendor/three/RoomEnvironment.js';
 // 版本号：更新时一起改，避免浏览器把新旧文件混在一起用
 import { PANEL, SPINE, createSpine, panelPose } from './models/spine.js?v=17';
 import { createBackdrop, createHeart } from './recall-backdrop.js?v=17';
@@ -17,8 +17,8 @@ import { createAnatomy } from './recall-anatomy.js?v=2';
 import { bindPulseInput } from './recall-pulse-input.js?v=17';
 import { createLifeState, createSignal } from './recall-life.js?v=17';
 import { createGateway } from './recall-gateway.js?v=18';
-import { takePassage } from './sandbox/passage.js';
-import { createSeeko } from './sandbox/seeko.js?v=27';
+import { takePassage } from '../sandbox/passage.js';
+import { createSeeko } from '../sandbox/seeko.js?v=27';
 import { terminalFrame, terminalRect, segment, clamp } from './recall-terminal.js?v=17';
 
 // 示例数据；images 留空。以后在 IMAGES 里登记图片路径，屏幕就会以那张图做底，没有图就只显示复习信息。

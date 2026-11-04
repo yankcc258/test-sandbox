@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { createLifeState, createSignal } from '../recall-life.js';
-import { createVocabSession, SAMPLE_WORDS } from '../recall-vocab.js';
+import { createLifeState, createSignal } from '../recall/recall-life.js';
+import { createVocabSession, SAMPLE_WORDS } from '../recall/recall-vocab.js';
 
 // Drive the same keyboard interface as the UI; verify the round, not just a counter.
 const life = createLifeState(8);
