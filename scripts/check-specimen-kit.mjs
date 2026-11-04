@@ -126,3 +126,77 @@ assert.throws(() => buildRecipe(stub, { ...nernst, view: { x: [0, 0], y: [0, 1] 
 console.log(
   'PASS: multi-parameter defaults/clamping, quantum width scaling, Nernst signs, equal-activity reference and invalid recipe bounds.',
 );
+
+// Wave probability is an area, not amplitude or density at a point.
+const wave = RECIPES['quantum-wave'];
+const close = (a, b, message, tol = 1e-9) =>
+  assert.ok(Math.abs(a - b) < tol, `${message}: ${a} vs ${b}`);
+for (let N = 1; N <= 4; N++) {
+  const env = scope(wave, { N });
+  const f = (name, u) => evaluate(`${name}(${u})`, env);
+  close(f('P', 0), 0, 'empty interval');
+  close(f('P', 1), 1, 'normalized whole box');
+  close(f('P', 0.5), 0.5, 'left half for every stationary state');
+  for (let j = 0; j <= N; j++) close(f('rho', j / N), 0, 'node density');
+  let previous = 0;
+  for (let i = 0; i <= 100; i++) {
+    const b = i / 100,
+      probability = f('P', b);
+    assert.ok(probability >= -1e-12 && probability <= 1 + 1e-12 && probability >= previous - 1e-12);
+    previous = probability;
+    close(f('rho', b), f('psi', b) ** 2, 'Born rule');
+    // Independent numerical integral, including both endpoints and partial cells.
+    const count = 512;
+    let area = 0;
+    for (let k = 0; k < count; k++)
+      area += (2 * Math.sin((N * Math.PI * b * (k + 0.5)) / count) ** 2 * b) / count;
+    close(probability, area, 'analytic interval agrees with numerical quadrature', 2e-5);
+  }
+}
+assert.ok(evaluate('psi(0.75)', scope(wave, { N: 2 })) < 0);
+const zeroY = -1 + (1.6 / 3.8) * 2.15;
+for (const b of [0, 0.01, 0.5, 0.99, 1]) {
+  const pieces = buildModelPoses('quantum-wave', { N: 2, b }).poses.filter(
+    (p) => p.role === 'probability-area',
+  );
+  assert.equal(pieces.length, 32, 'fixed slots during interval expansion');
+  const shown = pieces.filter((p) => p.scale.every((v) => v > 0));
+  if (!b) assert.equal(shown.length, 0, 'empty interval has no visible probability bars');
+  for (const p of shown) {
+    close(
+      p.position[1] - p.scale[1] / 2,
+      zeroY,
+      'probability bars start at zero, not chart minimum',
+    );
+    assert.ok(
+      p.position[0] + p.scale[0] / 2 <= -1.3 + 2.6 * b + 1e-10,
+      'no selected bar crosses b',
+    );
+  }
+}
+// Ideal A <-> B: G minimum, reaction derivative and conserved composition.
+const gibbs = RECIPES['physical-gibbs'];
+for (const K of [1, 1.25, 4, 10]) {
+  const env = scope(gibbs, { K });
+  const eq = evaluate('equilibriumB(1)', env);
+  const minimum = evaluate(`G(${eq})`, env);
+  close(evaluate(`reactionG(${eq})`, env), 0, 'reaction free energy vanishes at equilibrium');
+  assert.ok(minimum < 0, 'system G at its chosen reference is not forced to zero');
+  close(evaluate('G(0)', env), 0, 'pure A reference is finite');
+  close(evaluate('G(1)', env), evaluate('standardG(K)', env), 'pure B endpoint limit');
+  for (let i = 1; i < 100; i++) {
+    const y = i / 100,
+      h = 1e-5;
+    const g = evaluate(`G(${y})`, env),
+      dg = evaluate(`reactionG(${y})`, env);
+    assert.ok(g >= minimum - 1e-10, 'equilibrium is the global minimum');
+    const slope = (evaluate(`G(${y + h})`, env) - evaluate(`G(${y - h})`, env)) / (2 * h);
+    close(slope, dg, 'G composition derivative equals reaction free energy', 1e-6);
+    if (y < eq - 1e-10) assert.ok(dg < 0, 'forward direction');
+    if (y > eq + 1e-10) assert.ok(dg > 0, 'reverse direction');
+    close(1 - y + y, 1, 'material balance');
+  }
+}
+console.log(
+  'PASS: normalized wave density, exact interval probability, node/negative-amplitude distinction, clipped zero-based bars, Gibbs minimum, endpoint limits, dG/dy and mass balance.',
+);

@@ -1,15 +1,15 @@
 import * as THREE from '../vendor/three/three.module.min.js';
 import { RoomEnvironment } from '../vendor/three/RoomEnvironment.js';
-import { createLabEnvironment } from './environment.js?v=37';
-import { createParticleField } from './particle-field.js?v=37';
+import { createLabEnvironment } from './environment.js?v=38';
+import { createParticleField } from './particle-field.js?v=38';
 import {
   surfaceFor,
   createSpecimenGeometry,
   createSpecimenMaterial,
   createSpecimenDepthMaterial,
-} from './specimen-materials.js?v=37';
-import { approach } from './state.js?v=37';
-import { DISCIPLINES } from './course-data.js?v=37';
+} from './specimen-materials.js?v=38';
+import { approach } from './state.js?v=38';
+import { DISCIPLINES } from './course-data.js?v=38';
 class TrefoilCurve extends THREE.Curve {
   getPoint(t, v = new THREE.Vector3()) {
     const a = t * Math.PI * 2;

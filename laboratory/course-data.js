@@ -1,5 +1,5 @@
-import { RECIPES } from './specimen-recipes.js?v=37';
-import { COURSE_SNAPSHOT } from './course-snapshot.js?v=37';
+import { RECIPES } from './specimen-recipes.js?v=38';
+import { COURSE_SNAPSHOT } from './course-snapshot.js?v=38';
 
 // Presentation adapter over a pinned main-site snapshot. No account or storage.
 export const SOURCE_COMMIT = COURSE_SNAPSHOT.commit;

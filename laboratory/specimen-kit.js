@@ -311,15 +311,25 @@ const PARTS = {
       w = (to - from) / count;
     if (!Number.isFinite(count) || count < 1 || count > 288) throw new RangeError('薄片数超出范围');
     for (let k = 0; k < count; k++) {
-      const x = from + w * (k + 0.5),
+      const left = from + w * k,
+        right =
+          part.until === undefined
+            ? left + w
+            : Math.max(left, Math.min(left + w, evaluate(part.until, s, extra))),
+        x = (left + right) / 2,
         y = f({ ...s, vars: { ...s.vars, ...extra, [v]: x } }),
         top = m.Y(y),
-        bottom = m.Y(m.y0),
-        h = Math.max(0.004, Math.abs(top - bottom));
+        bottom = m.Y(evaluate(part.baseline ?? m.y0, s, extra)),
+        h =
+          part.until === undefined
+            ? Math.max(0.004, Math.abs(top - bottom))
+            : right > left
+              ? Math.abs(top - bottom)
+              : 0;
       model.box(
         [m.X(x), (top + bottom) / 2, 0.015],
-        [Math.abs(w * m.sx) * (part.fill ?? 0.82), h, 0.09],
-        k % 2 ? C.ceramic : C.titanium,
+        [Math.abs((right - left) * m.sx) * (part.fill ?? 0.82), h, 0.09],
+        part.color ? color(part.color) : k % 2 ? C.ceramic : C.titanium,
         [0, 0, 0],
         part.role || 'bar',
       );
@@ -353,7 +363,7 @@ const PARTS = {
   vline(model, part, s, m, extra) {
     const x = m.X(evaluate(part.at, s, extra)),
       y1 = m.Y(evaluate(part.to ?? m.y1, s, extra)),
-      y0 = m.Y(m.y0),
+      y0 = m.Y(evaluate(part.from ?? m.y0, s, extra)),
       n = part.dashes ?? 10;
     for (let k = 0; k < n; k++) {
       const a = y0 + ((y1 - y0) * k) / n,

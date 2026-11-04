@@ -220,6 +220,44 @@ assert.equal(tick(0.5), false);
 update({ stage: 'observe' });
 assert.equal(field.transition, recipeTransition, 'recipe reader return keeps assembled model');
 
+// New recipes: change partial area while assembling, including empty/full
+// intervals; then reverse the thermodynamic direction without teleporting.
+for (const [chapter, probes] of [
+  [
+    'quantum-wave',
+    [
+      { N: 1, b: 0.5 },
+      { N: 2, b: 0 },
+      { N: 4, b: 1 },
+      { N: 2, b: 0.5 },
+    ],
+  ],
+  [
+    'physical-gibbs',
+    [
+      { K: 4, y: 0.5 },
+      { K: 4, y: 0.99 },
+      { K: 4, y: 0.8 },
+      { K: 1, y: 0.01 },
+    ],
+  ],
+]) {
+  update({ stage: 'observe', chapter, probe: probes[0] });
+  tick(0.08);
+  for (const probe of probes.slice(1)) {
+    const visible = field.current.map((p) => p.p.toArray());
+    update({ probe });
+    field.current.forEach((p, i) => near(p.p.toArray(), visible[i]));
+    checkMapping(chapter, probe);
+    tick(0.12);
+    checkFinite();
+  }
+  tick(4);
+  checkMapping(chapter, state.probe, true);
+  update({ stage: 'lesson' });
+  assert.equal(tick(0.5), false, 'new recipe settles and stops drawing in reading');
+}
+
 // Reduced motion completes a pending command without another RAF, and empty
 // disciplines do not start a decorative ring clock or fabricate components.
 update({ chapter: 'math-integral', probe: 16 });
