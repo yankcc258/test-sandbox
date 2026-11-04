@@ -4,11 +4,16 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, normalize } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 
-const root = new URL('..', import.meta.url).pathname;
-const files = execFileSync('git', ['ls-files', '*.md', '*.html'], { cwd: root, encoding: 'utf8' })
-  .split('\n')
+const root = fileURLToPath(new URL('..', import.meta.url));
+const files = execFileSync(
+  'git',
+  ['ls-files', '-z', '--cached', '--others', '--exclude-standard', '*.md', '*.html'],
+  { cwd: root, encoding: 'utf8' },
+)
+  .split('\0')
   .filter(
     (f) =>
       f && !f.startsWith('vendor/') && !f.includes('/vendor/') && !f.startsWith('node_modules/'),

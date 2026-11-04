@@ -549,7 +549,7 @@ body[data-stage='lesson'] .course-observer #lab-canvas {
   margin-top: 19px;
 }
 
-#observer-controls #probe {
+#observer-controls .probe-input {
   min-height: 44px;
 }
 
@@ -1283,7 +1283,7 @@ body[data-observer='collapsed'] .course-reader {
 .course-observer .observation-disclaimer,
 #observer-controls .specimen-note,
 .probe-limits,
-#probe-value {
+.probe-value {
   font-size: 12px;
 }
 @media (max-width: 1280px) {

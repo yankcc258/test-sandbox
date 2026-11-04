@@ -193,6 +193,33 @@ tick(4);
 assert.equal(field.busy, false);
 checkMapping(state.chapter, state.probe, true);
 
+// Recipe parameters use named values. Updating either parameter retains the
+// current particle position, settles to the new geometry and pauses in reading.
+update({
+  stage: 'observe',
+  discipline: 'chemistry',
+  chapter: 'electro-nernst',
+  probe: { logZn: -1, logCu: -3 },
+});
+tick(4);
+for (const probe of [
+  { logZn: -2, logCu: -3 },
+  { logZn: -2, logCu: -2 },
+  { logZn: -2, logCu: -1 },
+]) {
+  const visible = field.current.map((p) => p.p.toArray());
+  update({ probe });
+  field.current.forEach((p, i) => near(p.p.toArray(), visible[i]));
+  tick(3);
+  checkMapping(state.chapter, state.probe, true);
+  checkFinite();
+}
+update({ stage: 'lesson' });
+const recipeTransition = field.transition;
+assert.equal(tick(0.5), false);
+update({ stage: 'observe' });
+assert.equal(field.transition, recipeTransition, 'recipe reader return keeps assembled model');
+
 // Reduced motion completes a pending command without another RAF, and empty
 // disciplines do not start a decorative ring clock or fabricate components.
 update({ chapter: 'math-integral', probe: 16 });

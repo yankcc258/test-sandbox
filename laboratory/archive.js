@@ -1,4 +1,4 @@
-import { COURSES, DISCIPLINES, TRACKS, getCourse } from './course-data.js?v=36.1';
+import { COURSES, DISCIPLINES, TRACKS, getCourse } from './course-data.js?v=37';
 const $ = (id) => document.getElementById(id);
 function el(tag, cls, text) {
   const n = document.createElement(tag);
@@ -38,8 +38,8 @@ export function mountArchive({ select, open, discipline, hover, progress, visits
     unknown: '未判定',
   };
   const resultText = (id) =>
-    progress(id).results
-      .map((status, i) => `第 ${i + 1} 题${resultNames[status] ?? '未判定'}`)
+    progress(id)
+      .results.map((status, i) => `第 ${i + 1} 题${resultNames[status] ?? '未判定'}`)
       .join('，');
   const describeChapter = (button, course) => {
     button.setAttribute(

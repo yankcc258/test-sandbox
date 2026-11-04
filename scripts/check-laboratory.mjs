@@ -95,3 +95,10 @@ for (let fold = 0; fold < 3; fold++)
 console.log(
   'PASS: two-click entry, reading/return state, frame-rate independent release, continuous reversal, fold endpoints, bounded controls and Tokyo mood boundaries.',
 );
+
+const named = { N: 3, L: 1.5 };
+const namedState = reduceState(state, { type: 'probe', value: named });
+assert.deepEqual(namedState.probe, named);
+assert.notEqual(namedState.probe, named, 'copy parameter object at state boundary');
+assert.equal(reduceState(namedState, { type: 'probe', value: { N: NaN } }), namedState);
+assert.equal(reduceState(namedState, { type: 'back' }).probe, namedState.probe);

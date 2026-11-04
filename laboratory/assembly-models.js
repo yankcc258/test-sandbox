@@ -2,8 +2,8 @@
 // Scientific coordinates live in `data`; poses are their explicitly scaled display.
 import { createModelDetails } from './model-details.js';
 // 露娜：其他学科的观察模型用「积木 + 配方」生成，见 specimen-kit.js / specimen-recipes.js
-import { buildRecipe } from './specimen-kit.js';
-import { RECIPES } from './specimen-recipes.js';
+import { buildRecipe } from './specimen-kit.js?v=37';
+import { RECIPES } from './specimen-recipes.js?v=37';
 export const ASSEMBLY_COUNT = 288;
 export const MATH_MODEL_IDS = [
   'math',

@@ -1,6 +1,6 @@
 // Sparse measuring references, not a room or a floating information display.
 // All geometry is created once; the scene's existing render requests own timing.
-import { ORBIT } from './orbital-motion.js?v=36.1';
+import { ORBIT } from './orbital-motion.js?v=37';
 // 测量环跟着薄片的环走：原来按半径 2.11、深度 -2.4 画的，这里统一换算（露娜，2026-11-04）
 const K = ORBIT.radius / 2.11,
   Z = (z) => z - -2.4 + ORBIT.center[2];

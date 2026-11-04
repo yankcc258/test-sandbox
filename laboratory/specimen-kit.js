@@ -154,13 +154,30 @@ export function compile(src) {
 }
 
 // 一个求值环境：常数、滑杆的量、配方里定义的函数，再加上临时变量（曲线自变量、重复序号）
+export const recipeControls = (recipe) => recipe.controls || [recipe.probe];
+export function normalizeParameters(recipe, input) {
+  const controls = recipeControls(recipe);
+  const supplied = input && typeof input === 'object' ? input : { [controls[0].name]: input };
+  return Object.fromEntries(
+    controls.map((p) => {
+      if (
+        !p ||
+        ![p.min, p.max, p.step, p.default].every(Number.isFinite) ||
+        p.max <= p.min ||
+        p.step <= 0
+      )
+        throw new RangeError(`${recipe.id}: 无效的参数范围`);
+      const raw = supplied[p.name];
+      const value =
+        raw !== null && raw !== '' && Number.isFinite(Number(raw)) ? Number(raw) : p.default;
+      const bounded = Math.min(p.max, Math.max(p.min, value));
+      const snapped = p.min + Math.round((bounded - p.min) / p.step) * p.step;
+      return [p.name, Number(Math.min(p.max, Math.max(p.min, snapped)).toPrecision(12))];
+    }),
+  );
+}
 export function scope(recipe, probe) {
-  const p = recipe.probe,
-    value = Number.isFinite(Number(probe)) ? Number(probe) : p.default;
-  const vars = {
-    ...recipe.constants,
-    [p.name]: Math.min(p.max, Math.max(p.min, p.step >= 1 ? Math.round(value) : value)),
-  };
+  const vars = { ...recipe.constants, ...normalizeParameters(recipe, probe) };
   const s = { vars, fn: {} };
   for (const [name, [params, body]] of Object.entries(recipe.functions || {})) {
     const f = compile(body);
@@ -197,6 +214,8 @@ const BOX = { x: [-1.3, 1.3], y: [-1, 1.15] };
 function mapper(view, s) {
   const [x0, x1] = view.x.map((v) => evaluate(v, s)),
     [y0, y1] = view.y.map((v) => evaluate(v, s));
+  if (![x0, x1, y0, y1].every(Number.isFinite) || x1 <= x0 || y1 <= y0)
+    throw new RangeError('标本坐标范围必须有限且递增');
   const X = (x) => BOX.x[0] + ((x - x0) / (x1 - x0)) * (BOX.x[1] - BOX.x[0]),
     Y = (y) => BOX.y[0] + ((y - y0) / (y1 - y0)) * (BOX.y[1] - BOX.y[0]);
   return { X, Y, x0, x1, y0, y1, sx: (BOX.x[1] - BOX.x[0]) / (x1 - x0) };
@@ -207,6 +226,8 @@ const range = (part, s) => {
     a = evaluate(from, s),
     b = evaluate(to, s),
     out = [];
+  if (![a, b, step].every(Number.isFinite) || step <= 0 || (b - a) / step > 288)
+    throw new RangeError('标本重复范围无效或超过构件预算');
   for (let k = a; k <= b + 1e-9; k += step) out.push({ [v]: k });
   return out;
 };
@@ -232,6 +253,11 @@ const PARTS = {
     );
     const tx = evaluate(part.ticks?.x ?? (m.x1 - m.x0) / 4, s),
       ty = evaluate(part.ticks?.y ?? (m.y1 - m.y0) / 4, s);
+    if (
+      ![tx, ty].every((v) => Number.isFinite(v) && v > 0) ||
+      (m.x1 - m.x0) / tx + (m.y1 - m.y0) / ty > 288
+    )
+      throw new RangeError('标本刻度间隔无效或超过构件预算');
     for (let x = m.x0 + tx; x <= m.x1 + 1e-9; x += tx)
       model.line(
         [m.X(x), m.Y(m.y0) - 0.032, z],
@@ -256,9 +282,10 @@ const PARTS = {
     const v = part.var || 'x',
       from = evaluate(part.from ?? m.x0, s, extra),
       to = evaluate(part.to ?? m.x1, s, extra),
-      n = part.segments || 72,
+      n = part.segments ?? 72,
       f = compile(part.fn),
       z = part.z ?? 0.12;
+    if (!Number.isInteger(n) || n < 1 || n > 288) throw new RangeError('曲线段数超出范围');
     const at = (x) => {
       const local = { ...s, vars: { ...s.vars, ...extra, [v]: x } };
       return [m.X(x), m.Y(f(local)), z];
@@ -282,20 +309,45 @@ const PARTS = {
       to = evaluate(part.to ?? m.x1, s, extra),
       f = compile(part.fn),
       w = (to - from) / count;
+    if (!Number.isFinite(count) || count < 1 || count > 288) throw new RangeError('薄片数超出范围');
     for (let k = 0; k < count; k++) {
       const x = from + w * (k + 0.5),
         y = f({ ...s, vars: { ...s.vars, ...extra, [v]: x } }),
         top = m.Y(y),
         bottom = m.Y(m.y0),
-        h = Math.max(0.004, top - bottom);
+        h = Math.max(0.004, Math.abs(top - bottom));
       model.box(
-        [m.X(x), bottom + h / 2, 0.015],
+        [m.X(x), (top + bottom) / 2, 0.015],
         [Math.abs(w * m.sx) * (part.fill ?? 0.82), h, 0.09],
         k % 2 ? C.ceramic : C.titanium,
         [0, 0, 0],
         part.role || 'bar',
       );
     }
+  },
+  // 科学坐标中的有向线段，头部尺寸固定，参数变化不改变构件顺序。
+  arrow(model, part, s, m, extra) {
+    const a = [m.X(evaluate(part.from[0], s, extra)), m.Y(evaluate(part.from[1], s, extra)), 0.24];
+    const b = [m.X(evaluate(part.to[0], s, extra)), m.Y(evaluate(part.to[1], s, extra)), 0.24];
+    const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const dx = length ? (b[0] - a[0]) / length : 0;
+    const dy = length ? (b[1] - a[1]) / length : 0;
+    const head = Math.min(0.09, length * 0.3),
+      c = color(part.color || 'lime');
+    model.line(a, b, 0.018, c, 0.03, 'vector');
+    for (const sign of [-1, 1])
+      model.line(
+        b,
+        [
+          b[0] - dx * head - sign * dy * head * 0.45,
+          b[1] - dy * head + sign * dx * head * 0.45,
+          b[2],
+        ],
+        0.018,
+        c,
+        0.03,
+        'vector',
+      );
   },
   // 竖直参考线 x = at（虚线），可选从 y0 画到 to
   vline(model, part, s, m, extra) {
@@ -386,7 +438,8 @@ export function buildRecipe(model, recipe, probe) {
       make(model, part, s, m, extra);
     }
   }
-  const p = recipe.probe;
+  const controls = recipeControls(recipe),
+    p = controls[0];
   return {
     metadata: {
       title: recipe.title,
@@ -396,9 +449,15 @@ export function buildRecipe(model, recipe, probe) {
       probeMax: p.max,
       probeStep: p.step,
       probeDefault: p.default,
+      controls: controls.map((control) => ({ ...control, value: s.vars[control.name] })),
+      legend: recipe.legend || '',
       readout: format(recipe.readout, s),
     },
-    data: { recipe: recipe.id, probe: s.vars[p.name] },
+    data: {
+      recipe: recipe.id,
+      probe: s.vars[p.name],
+      parameters: normalizeParameters(recipe, probe),
+    },
   };
 }
 export const PART_TYPES = Object.keys(PARTS);

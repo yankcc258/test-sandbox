@@ -53,7 +53,14 @@ export function reduceState(state, action) {
         ? { ...state, mode: action.mode }
         : state;
     case 'probe':
-      return Number.isFinite(action.value) ? { ...state, probe: action.value } : state;
+      return Number.isFinite(action.value) ||
+        (action.value &&
+          typeof action.value === 'object' &&
+          !Array.isArray(action.value) &&
+          Object.keys(action.value).length > 0 &&
+          Object.values(action.value).every(Number.isFinite))
+        ? { ...state, probe: typeof action.value === 'object' ? { ...action.value } : action.value }
+        : state;
     default:
       return state;
   }

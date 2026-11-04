@@ -12,6 +12,7 @@ const queue = [
   'docs/index.html',
   'preview/starfield/index.html',
   'laboratory/index.html',
+  'laboratory/specimens/index.html',
 ];
 const visited = new Set(),
   failures = [];

@@ -1,8 +1,8 @@
-# 大螺旋 · 阅读与目录精修 v36
+# 大螺旋 · 标本公共基础与章节验证 v37
 
-入口：[沙盒 v36](https://yankcc258.github.io/test-sandbox/laboratory?v=36)。仅更新沙盒，主站未改。
+入口：[沙盒 v37](https://yankcc258.github.io/test-sandbox/laboratory/?v=37)。仅更新沙盒，主站未改。
 
-## 当前交接：v36（2026-11-04 JST）
+## 目录搬迁说明（2026-11-04 JST）
 
 > **2026-11-04 · 露娜：目录整理（Yank 要求）**。文件搬了家，内容没改：
 >
@@ -10,6 +10,33 @@
 > - 文档：`docs/` 按区域分成 `laboratory/`、`recall/`、`workstation/`、`starfield/`、`history/`，截图放进各自的 `shots/`。**这份交接现在在 `docs/laboratory/laboratory-observation.md`**，以后的截图请放 `docs/laboratory/shots/`。
 > - README 改成导航页，原来逐版的说明原样移到 [docs/history/changelog.md](../history/changelog.md)；以后 README 只需要更新「当前重点」一行。
 > - 新增 `npm run check:docs`（已在 `npm run check` 里）：所有 Markdown / HTML 的相对链接和图片必须存在，挪文件以后跑一遍就知道哪里断了。
+
+<a id="v37"></a>
+
+## 当前交接：v37（2026-11-04 JST）
+
+特蕾莎按 Yank 确认的第一、二阶段推进，并以能斯特一章验证。基于露娜 `a2e2fae`，目录搬迁、放大的居中测量环和已有两份配方均保留。仅沙盒；主站未改。
+
+- 入口：[标本工作台](../../laboratory/specimens/?v=37) · [能斯特观察与课程](../../laboratory/?v=37&chapter=electro-nernst)。[阶段目标与当前状态](next-steps.md)取代历史段落中的未完成清单。
+- `check-doc-links.mjs` 改用 `fileURLToPath`，修复 Windows 将 `/C:/…` 当成工作目录导致的 `spawnSync git ENOENT`；用 NUL 分隔文件名，并覆盖未忽略的新文档。
+- `specimen-kit.js` 保留旧 `probe` 写法，新增 `controls` 参数数组、命名参数对象与统一默认/范围/步长处理；元信息提供每个控件和当前值。加入箭头积木及重复/刻度/采样范围保护；固定坐标映射不随取样点重缩放。
+- `probe-controls.js` 为课程与预览共用，调参时复用 DOM 输入节点，避免拖动中丢焦点。各章参数继续只存在页面内，换章、进入阅读与返回时保留；不计入作答成果。
+- 势阱保留 n，再增加 L=1–2 nm：箱壁位移，能级按 1/L² 变化；图例明确驻波振幅仅为示意。旧数值参数仍对应第一根滑杆。
+- 新章 `electro-nernst`：沿用原课温度、电子数、电势和浓度范围。两根对数浓度滑杆驱动 Q、E、ΔG，取样环沿 E–lg Q 直线移动；冷色虚线表示 E°，箭头显示升降。默认 Q=100、E=1.04084 V；Q=1 时 E=1.10 V，不误标为平衡。没有改原课正文、ID、题目或判题。
+- 标本工作台并排展示三份配方，采用相同象牙白/钛金属材质与光照。共用一个 WebGL 渲染器，结果绘入各卡片；仅初始化和调参时绘制，无常驻动画。恢复原例与进入课程可用，预览参数不带入课程或学习记录。
+- `?chapter=` 深链仅选章并进入观察目录，不自动学习；课程模型说明区标明配方重建与原图例的区别。
+
+**共用文件影响（给露娜）**：改了 `specimen-kit.js`、`specimen-recipes.js`、`assembly-models.js` 的配方缓存引用；课程 `state.js`/`app.js` 接受数值或命名参数对象；滑杆样式由 ID 改为 class。实验室模块缓存统一 `v37`，含原来未带版本的配方 import，避免旧配方缓存。新入口 `laboratory/specimens/`，不改 `preview/meteor/`。
+
+**验证**：`npm run check` 整套通过；三份配方的参数边界与组合、9 个原题数值、箱宽平方反比、能斯特符号与 Q=1、无效配方范围、多参数组装连续性及阅读停绘均通过。实际浏览器检查 1440×1000、390×844、320×568：双参数可键盘操作、能斯特五道原题全部回答正确并返回显示 5/5、换章参数隔离、返回保留作答与参数；手机首次阅读默认收起观察区，展开后两个滑杆均为 44px 高，无横向溢出。实体手机帧率未测试。
+
+![标本工作台 v37](shots/specimens-v37-desktop.png)
+
+![能斯特阅读与观察 v37](shots/nernst-v37-reading.png)
+
+---
+
+## 历史：阅读与目录精修 v36
 
 按 `bf7db51` 的待改清单落实五处调整：
 
@@ -43,7 +70,9 @@
 
 <a id="todo-after-v35"></a>
 
-### 待改：Yank 看过 v35 之后（2026-11-04，露娜整理）
+### 历史待改：v35（五项已在 v36 落实）
+
+当前目标见 [阶段计划](next-steps.md)，以下保留原始反馈。
 
 Yank 的总体意见：**整合后的效果符合预期**。下面是要改的地方。前两条是 Yank 提的；Yank 说「详细的还得再看看」，之后还会补充。第 3 条起是露娜在 v35 上实际走了一遍以后看到的（电脑 1440×900、手机 390×844，Chromium，没有脚本错误）。具体怎么改由特蕾莎来定。
 

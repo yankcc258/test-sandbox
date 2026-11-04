@@ -1,4 +1,5 @@
-import { COURSE_SNAPSHOT } from './course-snapshot.js?v=36.1';
+import { RECIPES } from './specimen-recipes.js?v=37';
+import { COURSE_SNAPSHOT } from './course-snapshot.js?v=37';
 
 // Presentation adapter over a pinned main-site snapshot. No account or storage.
 export const SOURCE_COMMIT = COURSE_SNAPSHOT.commit;
@@ -141,7 +142,9 @@ function sectionsFor(course) {
       id: 'model-reference',
       title: '原课程模型说明',
       html:
-        '<p class="reading-note">以下为原课程配套模型的说明；本范本保留文字，尚未接入该模型。</p>' +
+        (RECIPES[course.id]
+          ? '<p class="reading-note">以下保留原课程模型说明。侧边观察区已用沙盒配方重建本章模型，颜色与操作以观察区图例为准。</p>'
+          : '<p class="reading-note">以下为原课程配套模型的说明；本范本保留文字，尚未接入该模型。</p>') +
         paragraph(course.modelLegend),
     });
   const references = [

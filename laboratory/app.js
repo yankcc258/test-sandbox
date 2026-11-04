@@ -1,8 +1,9 @@
-import { initialState, reduceState, tokyoMood } from './state.js?v=36.1';
-import { DISCIPLINES, getCourse } from './course-data.js?v=36.1';
-import { mountCourseWorkspace } from './course-workspace.js?v=36.1';
-import { mountArchive, disciplineCourses } from './archive.js?v=36.1';
-import { buildModelPoses } from './assembly-models.js?v=36.1';
+import { mountProbeControls } from './probe-controls.js?v=37';
+import { initialState, reduceState, tokyoMood } from './state.js?v=37';
+import { DISCIPLINES, getCourse } from './course-data.js?v=37';
+import { mountCourseWorkspace } from './course-workspace.js?v=37';
+import { mountArchive, disciplineCourses } from './archive.js?v=37';
+import { buildModelPoses } from './assembly-models.js?v=37';
 const $ = (id) => document.getElementById(id);
 let state = initialState(),
   scene = null,
@@ -11,7 +12,14 @@ let userMotion = new URLSearchParams(location.search).get('motion') !== '0';
 const reduced = matchMedia('(prefers-reduced-motion: reduce)'),
   motion = () => userMotion && !reduced.matches;
 const parameters = new Map();
-const defaultProbe = (id) => parameters.get(id) ?? buildModelPoses(id).metadata.probeDefault;
+const defaultProbe = (id) => {
+  const model = buildModelPoses(id);
+  return parameters.get(id) ?? model.data.parameters ?? model.metadata.probeDefault;
+};
+const probeControls = mountProbeControls($('probe-controls'), (value) => {
+  parameters.set(state.chapter, value);
+  dispatch({ type: 'probe', value });
+});
 const anchor = document.createElement('button');
 anchor.type = 'button';
 anchor.id = 'math-anchor';
@@ -102,20 +110,8 @@ function render() {
   if (state.chapter) {
     const model = buildModelPoses(state.chapter, state.probe),
       m = model.metadata;
-    $('probe').min = m.probeMin;
-    $('probe').max = m.probeMax;
-    $('probe').step = m.probeStep;
-    $('probe').value = state.probe;
-    $('probe').disabled = !m.interactive;
-    document.querySelector('.probe-control').hidden = !m.interactive;
-    $('probe-label').textContent = m.probeLabel;
-    $('probe-value').textContent = Number(state.probe.toFixed(3));
-    $('probe').setAttribute('aria-valuetext', `${m.probeLabel} ${state.probe}`);
-    const limits = document.querySelector('.probe-limits');
-    limits.firstElementChild.textContent = m.probeMin;
-    limits.lastElementChild.textContent = m.probeMax;
-    limits.children[1].textContent = '';
-    $('specimen-note').textContent = m.readout || m.description;
+    probeControls.update(model, state.probe);
+    $('specimen-note').textContent = [m.readout, m.legend].filter(Boolean).join('。');
     document.querySelector('.observer-heading h2').textContent = m.title;
     document.querySelector('.observation-disclaimer').textContent = m.description;
   }
@@ -150,11 +146,6 @@ function dispatch(action) {
 $('primary-action').onclick = () => dispatch({ type: 'activate' });
 $('skip-study').onclick = () => dispatch({ type: 'observe' });
 $('back-stage').onclick = () => dispatch({ type: 'back' });
-$('probe').oninput = (e) => {
-  const v = Number(e.target.value);
-  parameters.set(state.chapter, v);
-  dispatch({ type: 'probe', value: v });
-};
 $('motion-toggle').onclick = () => {
   userMotion = !motion();
   render();
@@ -174,13 +165,16 @@ function atmosphere() {
     `${new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(now)} JST`;
   scene?.setMood(mood);
 }
-render();
+const linkedChapter = getCourse(new URLSearchParams(location.search).get('chapter'));
+if (linkedChapter)
+  dispatch({ type: 'select', chapter: linkedChapter, probe: defaultProbe(linkedChapter.id) });
+else render();
 atmosphere();
 setInterval(() => {
   if (!document.hidden) atmosphere();
 }, 60000);
 try {
-  const { createLaboratory } = await import('./scene.js?v=36.1');
+  const { createLaboratory } = await import('./scene.js?v=37');
   scene = await createLaboratory({
     canvas: $('lab-canvas'),
     anchor,

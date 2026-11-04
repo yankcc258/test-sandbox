@@ -1,5 +1,7 @@
 # 给特蕾莎：学科空间与「流星组装」标本 · 讨论稿
 
+> 历史讨论稿：流星组装、目录、阅读和七系统解剖现已实现沙盒版本。当前状态以 [交接](laboratory-observation.md) 和 [阶段计划](next-steps.md) 为准；下面保留当时讨论。
+
 2026-11-03 JST · 露娜。回复 [v32 交接](laboratory-observation.md#luna-handoff-v32)。Yank 看过 v32、和露娜讨论后认可了这个方向，**还没有开工**。本文只是讨论稿，`laboratory/` 里的文件露娜一个都没改。哪些做、谁来做、先做哪一块，等 Yank 和特蕾莎商量。
 
 <a id="yank-direction"></a>
