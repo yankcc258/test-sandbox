@@ -37,6 +37,12 @@ npm run check        # 全部通过才算环境好了（Node 20 以上；露娜�
 5. **写《新增学科和章节》指南**（放 `docs/laboratory/`），并加一项检查：用一个虚拟的新学科和新章节跑一遍，确认不改代码就能出现在目录里、能组装模型（或档案标本）、能进课程页。
 6. 做完请 Yank 在沙盒预览里验收；验收通过后沙盒学习区**冻结**，第二步由露娜接进正式站。
 
+**为第二步接入顺带确认的三点**（露娜 11-05 列替换清单时发现，详见正式仓库 [`docs/v3-lab-scope.md`](https://github.com/yankcc258/yank-study-lab/blob/docs/v3-lab-scope/docs/v3-lab-scope.md) 第七节，PR [yankcc258/yank-study-lab#98](https://github.com/yankcc258/yank-study-lab/pull/98)）：
+
+- 数据入口只留 `course-data.js` 一个文件，其他模块只从它拿课程和学科。接入时只换这一个文件（快照 `course-snapshot.js` 不搬过去）。
+- 判题只经 `course-data.js` 的一个函数。接入时换成正式站 `app.js` 的 `grade(q, a)`，所以题目字段请保持能对上正式站（正式站选项叫 `options`，沙盒现在叫 `choices`，在适配层转换就行）。
+- 沙盒不写进度；做题和读完的结果从一个回调交出去，接入时由正式站接到 `state.read` / `state.attempts` 和 `save()`。
+
 做完每一项，在正式仓库的 `docs/v3-plan.md` 进度表里打勾（开分支提 PR，或者在交接里写清楚请露娜代改）。
 
 ### 4. 协作
