@@ -4,7 +4,7 @@
 
 知序的视觉与交互试验场。只有示例数据和课程快照，不连接正式站的账号、接口或学习记录；部分成果已接入正式站，但这里不是正式站的副本。
 
-**当前重点**：实验室 v39，除有机 3 章外的 14 章都有专属观察模型（露娜写完剩下四份配方）；特蕾莎做有机三章的设计小样。Yank 重装系统后，特蕾莎先看 [重新开工说明](docs/laboratory/next-steps.md#restart-2026-11-05)。[九份配方预览](laboratory/specimens/?v=39) · [当前交接](docs/laboratory/laboratory-observation.md#v39)。
+**当前重点**：知序 3.0 收尾，计划和进度表在正式仓库 [`docs/v3-plan.md`](https://github.com/yankcc258/yank-study-lab/blob/main/docs/v3-plan.md)。第一步「沙盒学习区定稿」由特蕾莎负责，开工先看 [重新开工说明](docs/laboratory/next-steps.md#restart-2026-11-05)。新的视觉和艺术实验以后放到新网站，不再加进沙盒。
 
 ## 三个区域
 
