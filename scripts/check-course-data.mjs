@@ -3,10 +3,8 @@ import { createHash } from 'node:crypto';
 import { COURSE_SNAPSHOT } from '../laboratory/course-snapshot.js';
 import {
   COURSES,
-  COURSE,
   DISCIPLINES,
   TRACKS,
-  MATH_CATALOG,
   SOURCE_COMMIT,
   getCourse,
   gradeAnswer,
@@ -27,7 +25,11 @@ assert.equal(
 assert.equal(DISCIPLINES.length, 6);
 assert.equal(TRACKS.length, 5);
 assert.equal(getCourse('missing'), undefined);
-assert.equal(COURSE, getCourse('math-partials'));
+const COURSE = getCourse('math-partials');
+const MATH_CATALOG = TRACKS.find((t) => t.id === 'math').units.map((id) => ({
+  id,
+  available: !!getCourse(id),
+}));
 assert.deepEqual(
   MATH_CATALOG.map((c) => c.id),
   ['math', 'math-integral', 'math-explog', 'math-partials', 'math-complex'],

@@ -1,4 +1,4 @@
-import { sampleLeg, soften } from './assembly-motion.js?v=39';
+import { sampleLeg, soften } from './assembly-motion.js?v=40';
 
 // All positions and velocities are in scene coordinates, independent of model rotation.
 // 露娜（2026-11-04）：Yank 希望环更大、模型落在环的正中心。环从 z=-2.4 挪到 -0.6（离模型近，

@@ -1,4 +1,4 @@
-import { COURSES, DISCIPLINES, TRACKS, getCourse } from './course-data.js?v=39';
+import { courseData } from './course-data.js?v=40';
 const $ = (id) => document.getElementById(id);
 function el(tag, cls, text) {
   const n = document.createElement(tag);
@@ -6,13 +6,16 @@ function el(tag, cls, text) {
   if (text !== undefined) n.textContent = text;
   return n;
 }
-export function disciplineCourses(id) {
-  const d = DISCIPLINES.find((d) => d.id === id);
-  return (d?.tracks ?? []).flatMap((t) =>
-    (TRACKS.find((x) => x.id === t)?.units ?? []).map(getCourse).filter(Boolean),
-  );
-}
-export function mountArchive({ select, open, discipline, hover, progress, visits }) {
+export function mountArchive({
+  select,
+  open,
+  discipline,
+  hover,
+  progress,
+  visits,
+  data = courseData,
+}) {
+  const { COURSES, DISCIPLINES, TRACKS, getCourse, disciplineCourses } = data;
   let state = null,
     query = '',
     track = '',
@@ -351,3 +354,5 @@ export function mountArchive({ select, open, discipline, hover, progress, visits
     },
   };
 }
+
+export { disciplineCourses } from './course-data.js?v=40';

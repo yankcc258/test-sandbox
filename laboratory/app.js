@@ -1,9 +1,9 @@
-import { mountProbeControls } from './probe-controls.js?v=39';
-import { initialState, reduceState, tokyoMood } from './state.js?v=39';
-import { DISCIPLINES, getCourse } from './course-data.js?v=39';
-import { mountCourseWorkspace } from './course-workspace.js?v=39';
-import { mountArchive, disciplineCourses } from './archive.js?v=39';
-import { buildModelPoses } from './assembly-models.js?v=39';
+import { mountProbeControls } from './probe-controls.js?v=40';
+import { initialState, reduceState, tokyoMood } from './state.js?v=40';
+import { DISCIPLINES, getCourse } from './course-data.js?v=40';
+import { mountCourseWorkspace } from './course-workspace.js?v=40';
+import { mountArchive, disciplineCourses } from './archive.js?v=40';
+import { buildModelPoses } from './assembly-models.js?v=40';
 const $ = (id) => document.getElementById(id);
 let state = initialState(),
   scene = null,
@@ -174,7 +174,7 @@ setInterval(() => {
   if (!document.hidden) atmosphere();
 }, 60000);
 try {
-  const { createLaboratory } = await import('./scene.js?v=39');
+  const { createLaboratory } = await import('./scene.js?v=40');
   scene = await createLaboratory({
     canvas: $('lab-canvas'),
     anchor,

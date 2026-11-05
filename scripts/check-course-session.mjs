@@ -1,12 +1,11 @@
 import assert from 'node:assert/strict';
-import { COURSE, COURSES, getCourse } from '../laboratory/course-data.js';
-import {
-  createCourseSession,
-  createCourseSessions,
-  compareExample,
-} from '../laboratory/course-session.js';
+import { COURSES, getCourse } from '../laboratory/course-data.js';
+import { createCourseSession, createCourseSessions } from '../laboratory/course-session.js';
 
-const session = createCourseSession();
+import { evaluateCaseStudy } from '../laboratory/specimen-kit.js';
+const COURSE = getCourse('math-partials');
+const compareExample = (dx, dy) => evaluateCaseStudy(COURSE.observation.caseStudy, { dx, dy });
+const session = createCourseSession(COURSE.id);
 const first = COURSE.questions[0];
 assert.equal(session.check(first).status, 'invalid');
 assert.deepEqual(session.summary(), { checked: 0, correct: 0, total: 5 });

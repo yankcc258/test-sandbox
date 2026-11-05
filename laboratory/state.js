@@ -1,6 +1,7 @@
-export const initialState = () => ({
+import { DISCIPLINES } from './course-data.js?v=40';
+export const initialState = (disciplines = DISCIPLINES) => ({
   stage: 'overview',
-  discipline: 'mathematics',
+  discipline: disciplines[0]?.id ?? null,
   mode: 'surface',
   probe: 0.35,
   chapter: null,

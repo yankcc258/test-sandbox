@@ -1,15 +1,16 @@
+import { sectorAt, sectorCenter } from './layout.js?v=40';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { RoomEnvironment } from '../vendor/three/RoomEnvironment.js';
-import { createLabEnvironment } from './environment.js?v=39';
-import { createParticleField } from './particle-field.js?v=39';
+import { createLabEnvironment } from './environment.js?v=40';
+import { createParticleField } from './particle-field.js?v=40';
 import {
   surfaceFor,
   createSpecimenGeometry,
   createSpecimenMaterial,
   createSpecimenDepthMaterial,
-} from './specimen-materials.js?v=39';
-import { approach } from './state.js?v=39';
-import { DISCIPLINES } from './course-data.js?v=39';
+} from './specimen-materials.js?v=40';
+import { approach, initialState } from './state.js?v=40';
+import { courseData } from './course-data.js?v=40';
 class TrefoilCurve extends THREE.Curve {
   getPoint(t, v = new THREE.Vector3()) {
     const a = t * Math.PI * 2;
@@ -23,6 +24,7 @@ class TrefoilCurve extends THREE.Curve {
   }
 }
 export async function createLaboratory({
+  data = courseData,
   canvas,
   anchor,
   activate,
@@ -32,6 +34,7 @@ export async function createLaboratory({
   progress,
   select,
 }) {
+  const { DISCIPLINES, getCourse } = data;
   if (new URLSearchParams(location.search).get('view') === 'fallback')
     throw new Error('Static preview');
   const renderer = new THREE.WebGLRenderer({
@@ -68,7 +71,7 @@ export async function createLaboratory({
   const fill = new THREE.DirectionalLight('#c2cecc', 0.8);
   fill.position.set(4, 1, 3);
   scene.add(new THREE.HemisphereLight('#d3ddd6', '#222a28', 0.22), key, rim, fill);
-  const bay = createLabEnvironment(THREE);
+  const bay = createLabEnvironment(THREE, DISCIPLINES);
   scene.add(bay.group);
   const world = new THREE.Group();
   scene.add(world);
@@ -128,7 +131,7 @@ export async function createLaboratory({
       finish: surfaceFor(),
     };
   });
-  let state = { stage: 'overview', discipline: 'mathematics', chapter: null, probe: 0.35 };
+  let state = initialState(DISCIPLINES);
   let yaw = 0,
     pitch = 0,
     targetYaw = 0,
@@ -151,6 +154,7 @@ export async function createLaboratory({
     velocity = new THREE.Vector3(),
     yAxis = new THREE.Vector3(0, 1, 0);
   const field = createParticleField(initial, {
+    data,
     modelTransform(source, out) {
       out.p.copy(source.p).applyMatrix4(modelRoot.matrixWorld);
       out.q.copy(world.quaternion).multiply(source.q);
@@ -160,7 +164,7 @@ export async function createLaboratory({
     },
     knotTransform(source, i, out, next) {
       const sector = DISCIPLINES.findIndex((d) => d.id === next.discipline),
-        active = Math.floor((i / count) * 6) === sector;
+        active = sectorAt(i, count, DISCIPLINES.length) === sector;
       out.p
         .copy(source.p)
         .multiplyScalar(next.stage === 'focus' && active ? 1.16 : 1)
@@ -237,7 +241,7 @@ export async function createLaboratory({
       (state.stage === 'focus'
         ? 5.8
         : state.chapter
-          ? 7.6 - viewLesson * (state.chapter === 'math-partials' ? 2.35 : 2.7)
+          ? 7.6 - viewLesson * (getCourse(state.chapter)?.observation?.camera?.lessonPull ?? 2.7)
           : state.stage === 'observe'
             ? 7.4
             : 6.8) * fit;
@@ -245,7 +249,9 @@ export async function createLaboratory({
     const targetElevation =
       0.35 +
       viewLesson * 1.8 +
-      viewModel * (1 - viewLesson) * (state.chapter === 'math-partials' ? 1.4 : 0.4);
+      viewModel *
+        (1 - viewLesson) *
+        (getCourse(state.chapter)?.observation?.camera?.elevation ?? 0.4);
     cameraElevation = motion()
       ? approach(cameraElevation, targetElevation, dt, 9)
       : targetElevation;
@@ -263,7 +269,7 @@ export async function createLaboratory({
     anchor.hidden = ['observe', 'lesson'].includes(state.stage);
     if (!anchor.hidden) {
       const sector = DISCIPLINES.findIndex((d) => d.id === state.discipline),
-        i = Math.min(count - 1, Math.round(((sector + 0.5) / 6) * count));
+        i = Math.min(count - 1, Math.round(sectorCenter(sector, DISCIPLINES.length) * count));
       point.copy(field.current[i].p).project(camera);
       anchor.style.transform = `translate(${Math.max(20, Math.min(width - 160, (point.x * 0.5 + 0.5) * width + 16))}px,${Math.max(70, Math.min(height - 70, (-point.y * 0.5 + 0.5) * height))}px)`;
     }
@@ -406,9 +412,11 @@ export async function createLaboratory({
       if (changed) {
         if (state.stage === 'focus') {
           const sector = DISCIPLINES.findIndex((d) => d.id === state.discipline),
-            p = initial[Math.round(((sector + 0.5) / 6) * (count - 1))].p;
+            p = initial[Math.round(sectorCenter(sector, DISCIPLINES.length) * (count - 1))].p;
           targetYaw = -Math.atan2(p.x, p.z);
-        } else targetYaw = state.chapter === 'math-partials' ? -0.38 : state.chapter ? 0.12 : 0;
+        } else
+          targetYaw =
+            getCourse(state.chapter)?.observation?.camera?.yaw ?? (state.chapter ? 0.12 : 0);
         targetPitch = 0;
       }
       field.update({ ...state, hasCourses: courses(state.discipline).length > 0 });

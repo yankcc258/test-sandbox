@@ -1,6 +1,7 @@
-import { COURSES, getCourse } from './course-data.js?v=39';
-import { createCourseSessions, compareExample } from './course-session.js?v=39';
+import { courseData } from './course-data.js?v=40';
+import { createCourseSessions } from './course-session.js?v=40';
 
+import { evaluateCaseStudy, format } from './specimen-kit.js?v=40';
 const $ = (id) => document.getElementById(id);
 const chapterId = (state) =>
   typeof state.chapter === 'string' ? state.chapter : state.chapter?.id;
@@ -17,8 +18,15 @@ function button(text, action, className = '') {
   return node;
 }
 
-export function mountCourseWorkspace({ open, back, onProgress: initialListener }) {
-  const sessions = createCourseSessions();
+export function mountCourseWorkspace({
+  open,
+  back,
+  onProgress: initialListener,
+  onResult,
+  data = courseData,
+}) {
+  const { COURSES, getCourse } = data;
+  const sessions = createCourseSessions({ onResult, data });
   const views = new Map();
   const listeners = new Set();
   if (typeof initialListener === 'function') listeners.add(initialListener);
@@ -62,8 +70,6 @@ export function mountCourseWorkspace({ open, back, onProgress: initialListener }
   let forms = [];
   let entrance = null;
   let restoreVersion = 0;
-  let dx = 0.1;
-  let dy = -0.2;
 
   function viewFor(id) {
     if (!views.has(id)) {
@@ -235,7 +241,7 @@ export function mountCourseWorkspace({ open, back, onProgress: initialListener }
     restorePosition();
   }
   function openCase() {
-    if (course?.id !== 'math-partials') return;
+    if (!course?.observation?.caseStudy) return;
     rememberPosition();
     applyCollapsed(false);
     $('case-observation').focus({ preventScroll: true });
@@ -387,7 +393,7 @@ export function mountCourseWorkspace({ open, back, onProgress: initialListener }
       const submit = element('button', 'check-answer', '核对答案');
       submit.type = 'submit';
       actions.append(submit);
-      if (ownerId === 'math-partials' && [1, 2].includes(question.index)) {
+      if (course.observation?.caseStudy?.questions?.includes(question.index)) {
         actions.append(button('对照本章算例 ↗', openCase));
       }
       form.append(actions);
@@ -433,7 +439,7 @@ export function mountCourseWorkspace({ open, back, onProgress: initialListener }
       ' · ' +
       course.subject;
     $('course-scope').textContent = '主站课程快照 · 阅读与作答仅本页有效，刷新清空';
-    $('case-observation').hidden = course.id !== 'math-partials';
+    buildCase();
     reading.replaceChildren();
     $('course-toc').replaceChildren(element('p', 'eyebrow', 'CONTENTS / 本章目录'));
     const introduction = element('div', 'course-lead');
@@ -464,7 +470,7 @@ export function mountCourseWorkspace({ open, back, onProgress: initialListener }
         tagDetail(node, section.id + ':reading:' + detailIndex);
       });
       block.append(prose);
-      if (course.id === 'math-partials' && section.id === 'example') {
+      if (section.id === course.observation?.caseStudy?.section) {
         block.append(button('在侧边对照这个例题 ↗', openCase, 'observation-link'));
       }
       if (section.id === 'concept') {
@@ -515,47 +521,89 @@ export function mountCourseWorkspace({ open, back, onProgress: initialListener }
     notify(course.id);
   };
 
-  const formatted = (value) =>
-    (Math.abs(value) < 0.0000005 ? 0 : value).toFixed(6).replace(/\.?0+$/, '') || '0';
-  function renderCase() {
-    const result = compareExample(dx, dy);
-    $('case-dx').value = String(dx);
-    $('case-dy').value = String(dy);
-    $('case-dx-value').textContent = formatted(dx);
-    $('case-dy-value').textContent = formatted(dy);
-    $('case-differential').textContent = formatted(result.differential);
-    $('case-exact').textContent = formatted(result.exact);
-    $('case-error').textContent = formatted(result.error);
-    $('case-explanation').textContent =
-      'df = 12 × ' +
-      formatted(dx) +
-      ' + 4 × (' +
-      formatted(dy) +
-      ')；精确值由两个状态的函数值相减。';
+  function buildCase() {
+    const panel = $('case-observation'),
+      config = course.observation?.caseStudy;
+    panel.replaceChildren();
+    panel.hidden = !config;
+    if (!config) return;
+    view.caseParameters ||= Object.fromEntries(config.controls.map((c) => [c.name, c.default]));
+    const values = view.caseParameters;
+    panel.append(element('p', 'eyebrow', 'WORKED EXAMPLE / 本章算例'));
+    const title = element('h3', '', config.title);
+    title.id = 'case-title';
+    panel.append(title);
+    const inputs = [],
+      outputs = [];
+    for (const c of config.controls) {
+      const label = element('label', '', c.label + ' '),
+        output = element('output');
+      const input = element('input');
+      input.type = 'range';
+      input.id = 'case-' + c.name;
+      input.min = c.min;
+      input.max = c.max;
+      input.step = 'any';
+      label.htmlFor = input.id;
+      output.id = input.id + '-value';
+      label.append(output);
+      panel.append(label, input);
+      input.oninput = () => {
+        values[c.name] = Number(input.value);
+        refresh();
+      };
+      inputs.push({ c, input, output });
+    }
+    const dl = element('dl', 'case-values');
+    for (const key of Object.keys(config.values)) {
+      const row = element('div'),
+        value = element('dd');
+      value.id = 'case-' + key;
+      row.append(element('dt', '', config.labels[key] || key), value);
+      dl.append(row);
+      outputs.push({ key, value });
+    }
+    const explanation = element('p');
+    explanation.id = 'case-explanation';
+    panel.append(dl, explanation);
+    const actions = element('div', 'case-actions');
+    if (config.scaleAction)
+      actions.append(
+        button(config.scaleAction.label, () => {
+          for (const c of config.controls)
+            values[c.name] = Math.max(
+              c.min,
+              Math.min(c.max, values[c.name] * config.scaleAction.factor),
+            );
+          refresh();
+        }),
+      );
+    actions.append(
+      button('回到原例', () => {
+        for (const c of config.controls) values[c.name] = c.default;
+        refresh();
+      }),
+    );
+    panel.append(
+      actions,
+      button('返回刚才的阅读或练习位置 →', () => {
+        restorePosition();
+        reader.focus({ preventScroll: true });
+      }),
+      element('p', 'case-note', config.note || ''),
+    );
+    function refresh() {
+      const result = evaluateCaseStudy(config, values);
+      const show = (v) => Number(v.toFixed(6)).toString();
+      for (const { c, input, output } of inputs) {
+        input.value = values[c.name];
+        output.textContent = show(values[c.name]);
+      }
+      for (const { key, value } of outputs) value.textContent = show(result[key]);
+      explanation.textContent = format(config.explanation || '', { vars: values, fn: {} });
+    }
+    refresh();
   }
-  $('case-dx').oninput = (event) => {
-    dx = Number(event.target.value);
-    renderCase();
-  };
-  $('case-dy').oninput = (event) => {
-    dy = Number(event.target.value);
-    renderCase();
-  };
-  $('case-half').onclick = () => {
-    dx /= 2;
-    dy /= 2;
-    renderCase();
-  };
-  $('case-reset').onclick = () => {
-    dx = 0.1;
-    dy = -0.2;
-    renderCase();
-  };
-  $('case-return').onclick = () => {
-    restorePosition();
-    reader.focus({ preventScroll: true });
-  };
-  renderCase();
 
   return {
     beforeChange(next) {

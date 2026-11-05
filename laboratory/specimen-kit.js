@@ -9,6 +9,7 @@
 // 支持：数字、变量、+ - * / ^、括号、比较（< > <= >= == !=，结果 1 / 0）、条件 a ? b : c，
 // 函数 exp ln log10 sqrt abs sin cos tan min max floor round，常数 pi、e，以及配方里定义的函数。
 const FUNCS = {
+  atan2: Math.atan2,
   exp: Math.exp,
   ln: Math.log,
   log10: Math.log10,
@@ -184,6 +185,7 @@ export function scope(recipe, probe) {
     s.fn[name] = (...args) =>
       f({ vars: { ...vars, ...Object.fromEntries(params.map((k, j) => [k, args[j]])) }, fn: s.fn });
   }
+  for (const [name, expr] of Object.entries(recipe.derived || {})) vars[name] = evaluate(expr, s);
   return s;
 }
 export const evaluate = (src, s, extra) =>
@@ -220,7 +222,7 @@ function mapper(view, s) {
     Y = (y) => BOX.y[0] + ((y - y0) / (y1 - y0)) * (BOX.y[1] - BOX.y[0]);
   return { X, Y, x0, x1, y0, y1, sx: (BOX.x[1] - BOX.x[0]) / (x1 - x0) };
 }
-const range = (part, s) => {
+export const range = (part, s) => {
   if (!part.repeat) return [{}];
   const { var: v, from, to, step = 1 } = part.repeat,
     a = evaluate(from, s),
@@ -231,7 +233,82 @@ const range = (part, s) => {
   for (let k = a; k <= b + 1e-9; k += step) out.push({ [v]: k });
   return out;
 };
+// Spatial primitives use explicit display coordinates; formulas remain recipe data.
+// This is an allowlist, never dynamic execution of arbitrary object methods.
+const SPATIAL = new Set([
+  'foot',
+  'axes',
+  'box',
+  'line',
+  'ring',
+  'arrow',
+  'rearSupport',
+  'depthRail',
+  'surfaceSupport',
+  'probabilityChannel',
+]);
+export function evaluateTree(value, s) {
+  if (Array.isArray(value)) return value.map((v) => evaluateTree(v, s));
+  if (value && typeof value === 'object') {
+    if (Object.hasOwn(value, 'literal')) return value.literal;
+    if (value.sample) {
+      const values = range({ repeat: value.sample }, s).map((extra) =>
+        evaluateTree(value.value, { ...s, vars: { ...s.vars, ...extra } }),
+      );
+      return value.flat ? values.flat() : values;
+    }
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, evaluateTree(v, s)]));
+  }
+  return evaluate(value, s);
+}
+function renderParts(model, parts, s, m) {
+  for (const part of parts) {
+    for (const extra of range(part, s)) {
+      const local = { ...s, vars: { ...s.vars, ...extra, baseTop: model.base?.top ?? 0 } };
+      for (const [name, expr] of Object.entries(part.let || {}))
+        local.vars[name] = evaluate(expr, local);
+      if (part.when && !evaluate(part.when, local)) continue;
+      if (part.part === 'group') {
+        renderParts(model, part.parts, local, m);
+        continue;
+      }
+      const make = PARTS[part.part];
+      if (!make) throw new Error(`Unknown recipe part: ${part.part}`);
+      const start = model.poses?.length ?? 0;
+      const selected = part.colors ? part.colors[evaluate(part.colorIndex, local)] : null;
+      make(model, selected ? { ...part, color: selected } : part, local, m);
+      if (selected) for (const pose of model.poses.slice(start)) pose.color = color(selected);
+      if (part.show !== undefined && !evaluate(part.show, local))
+        for (const pose of model.poses.slice(start)) {
+          pose.scale = [0, 0, 0];
+          pose.role = 'unused';
+        }
+      if (model.poses?.length > 288) throw new RangeError('Recipe exceeds instance budget');
+    }
+  }
+}
 const PARTS = {
+  group() {},
+  spatial(model, part, s) {
+    if (!SPATIAL.has(part.op)) throw new RangeError('Unknown spatial primitive');
+    const args = evaluateTree(part.args, s).map((v) => (typeof v === 'string' ? color(v) : v));
+    const target = Object.hasOwn(model, part.op) ? model : model.details;
+    target[part.op](...args);
+  },
+  path(model, part, s) {
+    const n = part.segments;
+    if (!Number.isInteger(n) || n < 1 || n > 288) throw new RangeError('Invalid path samples');
+    model.curve(
+      (x) => evaluateTree(part.point, { ...s, vars: { ...s.vars, [part.var || 'x']: x } }),
+      evaluate(part.from, s),
+      evaluate(part.to, s),
+      n,
+      part.width,
+      color(part.color),
+      part.depth,
+      part.role,
+    );
+  },
   // 坐标轴和刻度（刻度按科学单位的间隔）
   axes(model, part, s, m) {
     const z = -0.06;
@@ -494,24 +571,19 @@ const PARTS = {
 export function buildRecipe(model, recipe, probe) {
   const s = scope(recipe, probe),
     m = mapper(recipe.view, s);
-  const base = model.foot();
-  model.box(
-    [0, BOX.y[0] - 0.012, 0.015],
-    [2.65, 0.024, 0.115],
-    '#b9c0c2',
-    [0, 0, 0],
-    'hardware-metal',
-  );
-  for (const x of [-1.12, 1.12])
-    model.details.rearSupport([x, BOX.y[0] - 0.024, 0.015], -0.0425, base.top);
-  for (const part of recipe.parts) {
-    const make = PARTS[part.part];
-    if (!make) throw new Error(`没有「${part.part}」这种积木`);
-    for (const extra of range(part, s)) {
-      if (part.when && !evaluate(part.when, s, extra)) continue;
-      make(model, part, s, m, extra);
-    }
+  if (recipe.frame !== false) {
+    const base = model.foot();
+    model.box(
+      [0, BOX.y[0] - 0.012, 0.015],
+      [2.65, 0.024, 0.115],
+      '#b9c0c2',
+      [0, 0, 0],
+      'hardware-metal',
+    );
+    for (const x of [-1.12, 1.12])
+      model.details.rearSupport([x, BOX.y[0] - 0.024, 0.015], -0.0425, base.top);
   }
+  renderParts(model, recipe.parts, s, m);
   const controls = recipeControls(recipe),
     p = controls[0];
   return {
@@ -528,6 +600,7 @@ export function buildRecipe(model, recipe, probe) {
       readout: format(recipe.readout, s),
     },
     data: {
+      ...evaluateTree(recipe.outputs || {}, s),
       recipe: recipe.id,
       probe: s.vars[p.name],
       parameters: normalizeParameters(recipe, probe),
@@ -535,3 +608,10 @@ export function buildRecipe(model, recipe, probe) {
   };
 }
 export const PART_TYPES = Object.keys(PARTS);
+
+// Case values are independent of model controls and never answer questions.
+export function evaluateCaseStudy(config, parameters) {
+  if (!Object.values(parameters).every(Number.isFinite))
+    throw new TypeError('Finite case parameters required');
+  return evaluateTree(config.values, { vars: parameters, fn: {} });
+}

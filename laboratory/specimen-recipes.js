@@ -1,3 +1,4 @@
+import { MATH_RECIPES } from './math-recipes.js?v=40';
 // 观察模型的「配方」（露娜，2026-11-04）。一章一份，纯数据，积木和公式写法见 specimen-kit.js。
 // 每份配方的 checks 会由 scripts/check-specimen-kit.mjs 拿这一章的原题答案核对：
 //   question：原题 id；expr：用配方里的常数和公式算出来的值；probe：核对时滑杆停在哪里。
@@ -98,6 +99,7 @@ function electronRecipe() {
   };
 }
 export const RECIPES = {
+  ...MATH_RECIPES,
   kinetics: {
     id: 'kinetics',
     title: '一级反应动力学',

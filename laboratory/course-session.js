@@ -1,11 +1,14 @@
-import { getCourse, gradeAnswer } from './course-data.js?v=39';
+import { COURSES, courseData } from './course-data.js?v=40';
 
 const copyDraft = (value) => (Array.isArray(value) ? [...value] : value);
 
 // Each instance belongs to one pinned course. Reading is an explicit action,
 // independent of grading. Everything is discarded when the page is reloaded.
-export function createCourseSession(courseId = 'math-partials') {
-  const course = getCourse(typeof courseId === 'string' ? courseId : courseId?.id);
+export function createCourseSession(
+  courseId = COURSES[0]?.id,
+  { data = courseData, onResult, now = () => Date.now() } = {},
+) {
+  const course = data.getCourse(typeof courseId === 'string' ? courseId : courseId?.id);
   if (!course) throw new RangeError('Unknown course');
   const questions = new Map(course.questions.map((question) => [question.id, question]));
   const drafts = new Map();
@@ -37,8 +40,19 @@ export function createCourseSession(courseId = 'math-partials') {
     check(question) {
       const id = typeof question === 'string' ? question : question?.id;
       const canonical = questions.get(id);
-      const result = gradeAnswer(canonical, copyDraft(drafts.get(id) ?? ''));
-      if (canonical && result.status !== 'invalid') results.set(id, { ...result });
+      const result = data.gradeAnswer(canonical, copyDraft(drafts.get(id) ?? ''));
+      if (canonical && result.status !== 'invalid') {
+        results.set(id, { ...result });
+        onResult?.({
+          type: 'answer',
+          courseId: course.id,
+          questionId: id,
+          index: canonical.index,
+          input: copyDraft(drafts.get(id) ?? ''),
+          result: { ...result },
+          time: now(),
+        });
+      }
       return { ...result };
     },
     summary,
@@ -55,6 +69,7 @@ export function createCourseSession(courseId = 'math-partials') {
       const next = Boolean(value);
       const changed = next !== read;
       read = next;
+      if (changed) onResult?.({ type: 'read', courseId: course.id, read, time: now() });
       return changed;
     },
     reset() {
@@ -67,12 +82,12 @@ export function createCourseSession(courseId = 'math-partials') {
 
 // Directory and workspace share this page-local registry. Returning snapshots
 // prevents a consumer from changing another course's progress or visit history.
-export function createCourseSessions({ now = () => Date.now() } = {}) {
+export function createCourseSessions({ now = () => Date.now(), onResult, data = courseData } = {}) {
   const sessions = new Map();
   const visits = [];
   function get(id) {
-    if (!getCourse(id)) return null;
-    if (!sessions.has(id)) sessions.set(id, createCourseSession(id));
+    if (!data.getCourse(id)) return null;
+    if (!sessions.has(id)) sessions.set(id, createCourseSession(id, { data, onResult, now }));
     return sessions.get(id);
   }
   return {
@@ -87,17 +102,10 @@ export function createCourseSessions({ now = () => Date.now() } = {}) {
         .reverse();
     },
     recordVisit(id, action) {
-      if (!getCourse(id) || !['details', 'study'].includes(action)) return null;
+      if (!data.getCourse(id) || !['details', 'study'].includes(action)) return null;
       const visit = { id, action, time: now() };
       visits.push(visit);
       return { ...visit };
     },
   };
-}
-
-export function compareExample(dx, dy) {
-  if (![dx, dy].every(Number.isFinite)) throw new TypeError('Finite increments required');
-  const differential = 12 * dx + 4 * dy;
-  const exact = (2 + dx) ** 2 * (3 + dy) - 12;
-  return { differential, exact, error: differential - exact };
 }

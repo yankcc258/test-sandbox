@@ -35,6 +35,7 @@ assert.throws(() => compile('y + 1')(env({})), /没有定义/);
 let checked = 0;
 for (const [id, recipe] of Object.entries(RECIPES)) {
   assert.equal(recipe.id, id);
+  assert(recipe.checks?.length > 0, `${id}: recipe must check original questions`);
   const course = getCourse(id);
   assert.ok(course, `${id}：课程快照里没有这一章`);
   for (const part of recipe.parts)

@@ -1,6 +1,8 @@
+import { courseData } from './course-data.js?v=40';
+import { initialState } from './state.js?v=40';
 import * as THREE from '../vendor/three/three.module.min.js';
-import { buildModelPoses } from './assembly-models.js?v=39';
-import { createFlight, sampleFlight, soften } from './assembly-motion.js?v=39';
+import { buildModelPoses } from './assembly-models.js?v=40';
+import { createFlight, sampleFlight, soften } from './assembly-motion.js?v=40';
 import {
   orbitPose,
   gateETA,
@@ -8,8 +10,8 @@ import {
   sampleGateRoute,
   createReleaseRoute,
   sampleReleaseRoute,
-} from './orbital-motion.js?v=39';
-import { surfaceFor } from './specimen-materials.js?v=39';
+} from './orbital-motion.js?v=40';
+import { surfaceFor } from './specimen-materials.js?v=40';
 
 const X = new THREE.Vector3(1, 0, 0),
   zero = new THREE.Vector3();
@@ -31,7 +33,7 @@ const blend = (out, a, b, t) => {
 
 // Physical particles and scientific component IDs are separate. A component
 // keeps its particle during parameter changes; the course progress is DOM-only.
-export function createParticleField(initial, { modelTransform, knotTransform }) {
+export function createParticleField(initial, { modelTransform, knotTransform, data = courseData }) {
   const count = initial.length,
     current = initial.map(clone),
     goals = initial.map(clone),
@@ -55,7 +57,7 @@ export function createParticleField(initial, { modelTransform, knotTransform }) 
     qFlight = new THREE.Quaternion();
   const needle = new THREE.Vector3(),
     bright = new THREE.Color('#cad5cd');
-  let state = { stage: 'overview', discipline: 'mathematics', chapter: null, probe: 0.35 },
+  let state = initialState(),
     clock = 0,
     transition = 0,
     busy = false;
@@ -66,9 +68,9 @@ export function createParticleField(initial, { modelTransform, knotTransform }) 
     metadata = null;
 
   function load(id, probe, interpolate = false) {
-    const data = buildModelPoses(id, probe);
-    metadata = data.metadata;
-    const next = data.poses.map((p) => ({
+    const model = buildModelPoses(id, probe, data.getCourse(id)?.observation);
+    metadata = model.metadata;
+    const next = model.poses.map((p) => ({
       p: new THREE.Vector3(...p.position),
       q: new THREE.Quaternion().setFromEuler(new THREE.Euler(...p.rotation)),
       s: new THREE.Vector3(...p.scale),

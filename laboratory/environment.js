@@ -1,10 +1,12 @@
+import { DISCIPLINES } from './course-data.js?v=40';
+import { layoutSectors } from './layout.js?v=40';
 // Sparse measuring references, not a room or a floating information display.
 // All geometry is created once; the scene's existing render requests own timing.
-import { ORBIT } from './orbital-motion.js?v=39';
+import { ORBIT } from './orbital-motion.js?v=40';
 // 测量环跟着薄片的环走：原来按半径 2.11、深度 -2.4 画的，这里统一换算（露娜，2026-11-04）
 const K = ORBIT.radius / 2.11,
   Z = (z) => z - -2.4 + ORBIT.center[2];
-export function createLabEnvironment(THREE) {
+export function createLabEnvironment(THREE, disciplines = DISCIPLINES) {
   const group = new THREE.Group();
   group.name = 'laboratory-measurement-field';
   const materials = [];
@@ -56,18 +58,25 @@ export function createLabEnvironment(THREE) {
   }
   const ring = [];
   // Open sectors preserve negative space and avoid a target surrounding the knot.
-  for (const [start, end] of [
-    [0.2, 1.25],
-    [1.57, 2.78],
-    [3.15, 4.05],
-    [4.52, 5.68],
-  ]) {
-    arc(ring, 2.27 * K, start, end, 24, Z(-2.4));
+  const sectors = layoutSectors(disciplines);
+  for (const { start, end } of sectors) {
+    arc(ring, 2.27 * K, start, end, Math.max(4, Math.ceil(144 / sectors.length)), Z(-2.4));
   }
   arc(ring, 2.11 * K, 0.22, 0.65, 12, Z(-2.42));
   arc(ring, 2.11 * K, 3.66, 4.04, 10, Z(-2.42));
   const main = lines('broken-measurement-ring', ring, '#6f817b', 0.19, -30);
   const ticks = [];
+  for (const sector of sectors)
+    for (const a of sector.directions) {
+      ticks.push(
+        2.3 * K * Math.cos(a),
+        2.3 * K * Math.sin(a) - 0.03,
+        Z(-2.39),
+        2.44 * K * Math.cos(a),
+        2.44 * K * Math.sin(a) - 0.03,
+        Z(-2.39),
+      );
+    }
   for (let i = 0; i < 40; i++) {
     if (i % 10 > 6) continue;
     const a = (i * Math.PI) / 20,

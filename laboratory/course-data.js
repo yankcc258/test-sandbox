@@ -1,261 +1,277 @@
-import { RECIPES } from './specimen-recipes.js?v=39';
-import { COURSE_SNAPSHOT } from './course-snapshot.js?v=39';
+import { RECIPES as DEFAULT_RECIPES } from './specimen-recipes.js?v=40';
+import { COURSE_SNAPSHOT } from './course-snapshot.js?v=40';
 
 // Presentation adapter over a pinned main-site snapshot. No account or storage.
-export const SOURCE_COMMIT = COURSE_SNAPSHOT.commit;
-export const DISCIPLINES = COURSE_SNAPSHOT.disciplines;
-export const TRACKS = COURSE_SNAPSHOT.tracks;
-const esc = (value) =>
-  String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;');
-const inline = (value) => esc(value).replace(/&lt;(\/?(?:sub|sup))&gt;/g, '<$1>');
-const paragraph = (value) => '<p>' + inline(value) + '</p>';
-const list = (items, tag = 'ol') =>
-  '<' +
-  tag +
-  '>' +
-  items.map((item) => '<li>' + inline(item) + '</li>').join('') +
-  '</' +
-  tag +
-  '>';
-const sourceUrl = (path) =>
-  'https://github.com/yankcc258/yank-study-lab/blob/' + SOURCE_COMMIT + '/' + path;
-function sectionsFor(course) {
-  const sections = [
-    {
-      id: 'prerequisites',
-      title: '学习目标与先修',
-      html:
-        '<h3>本章目标</h3>' +
-        paragraph(course.goal) +
-        '<h3>先修知识</h3>' +
-        list(course.prereq, 'ul') +
-        '<h3>先修检查</h3>' +
-        paragraph(course.check) +
-        '<details><summary>查看答案</summary>' +
-        paragraph(course.checkAnswer) +
-        (course.checkExplain ? paragraph(course.checkExplain) : '') +
-        '</details>',
-    },
-    {
-      id: 'concept',
-      title: '概念、公式与适用条件',
-      html:
-        paragraph(course.intro) +
-        paragraph(course.definition) +
-        '<p class="formula">' +
-        inline(course.formula) +
-        '</p>' +
-        paragraph(course.units),
-    },
-    { id: 'steps', title: '逐步推导', html: list(course.steps) },
-    { id: 'example', title: '完整例题', html: list(course.example) },
-  ];
-  if (course.id === 'math-partials')
-    sections.find((s) => s.id === 'example').html +=
-      '<p class="reading-note">阅读注：这里的“原点处”指本例起始点 (2,3)，并非坐标原点。</p>';
-  const depth = COURSE_SNAPSHOT.depth[course.id];
-  if (depth)
+export function createCourseData(COURSE_SNAPSHOT, RECIPES = DEFAULT_RECIPES) {
+  const SOURCE_COMMIT = COURSE_SNAPSHOT.commit;
+  const DISCIPLINES = COURSE_SNAPSHOT.disciplines;
+  const TRACKS = COURSE_SNAPSHOT.tracks;
+  const esc = (value) =>
+    String(value)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;');
+  const inline = (value) => esc(value).replace(/&lt;(\/?(?:sub|sup))&gt;/g, '<$1>');
+  const paragraph = (value) => '<p>' + inline(value) + '</p>';
+  const list = (items, tag = 'ol') =>
+    '<' +
+    tag +
+    '>' +
+    items.map((item) => '<li>' + inline(item) + '</li>').join('') +
+    '</' +
+    tag +
+    '>';
+  const sourceUrl = (path) =>
+    'https://github.com/yankcc258/yank-study-lab/blob/' + SOURCE_COMMIT + '/' + path;
+  function sectionsFor(course) {
+    const sections = [
+      {
+        id: 'prerequisites',
+        title: '学习目标与先修',
+        html:
+          '<h3>本章目标</h3>' +
+          paragraph(course.goal) +
+          '<h3>先修知识</h3>' +
+          list(course.prereq, 'ul') +
+          '<h3>先修检查</h3>' +
+          paragraph(course.check) +
+          '<details><summary>查看答案</summary>' +
+          paragraph(course.checkAnswer) +
+          (course.checkExplain ? paragraph(course.checkExplain) : '') +
+          '</details>',
+      },
+      {
+        id: 'concept',
+        title: '概念、公式与适用条件',
+        html:
+          paragraph(course.intro) +
+          paragraph(course.definition) +
+          '<p class="formula">' +
+          inline(course.formula) +
+          '</p>' +
+          paragraph(course.units),
+      },
+      { id: 'steps', title: '逐步推导', html: list(course.steps) },
+      { id: 'example', title: '完整例题', html: list(course.example) },
+    ];
+    for (const [id, note] of Object.entries(RECIPES[course.id]?.readingNotes || {})) {
+      const section = sections.find((s) => s.id === id);
+      if (section) section.html += '<p class="reading-note">' + inline(note) + '</p>';
+    }
+    const depth = COURSE_SNAPSHOT.depth[course.id];
+    if (depth)
+      sections.push(
+        {
+          id: 'derivation',
+          title: '推导讲义',
+          html:
+            '<h3>' +
+            inline(depth.question) +
+            '</h3>' +
+            paragraph(depth.setup) +
+            '<ol>' +
+            depth.steps
+              .map(
+                ([title, formula, why]) =>
+                  '<li><h4>' +
+                  inline(title) +
+                  '</h4><p class="formula">' +
+                  inline(formula) +
+                  '</p>' +
+                  paragraph(why) +
+                  '</li>',
+              )
+              .join('') +
+            '</ol><h3>把这个难点说清楚</h3>' +
+            paragraph(depth.why),
+        },
+        {
+          id: 'worked',
+          title: '推导应用',
+          html: '<h3>' + inline(depth.worked.title) + '</h3>' + list(depth.worked.lines),
+        },
+        {
+          id: 'checks',
+          title: '停下来，自己推一步',
+          html: depth.checks
+            .map(
+              ([question, answer]) =>
+                paragraph(question) +
+                '<details><summary>对照推理</summary>' +
+                paragraph(answer) +
+                '</details>',
+            )
+            .join(''),
+        },
+      );
     sections.push(
       {
-        id: 'derivation',
-        title: '推导讲义',
+        id: 'extension',
+        title: '理解与拓展',
         html:
-          '<h3>' +
-          inline(depth.question) +
-          '</h3>' +
-          paragraph(depth.setup) +
-          '<ol>' +
-          depth.steps
+          '<h3>从基础理解</h3>' +
+          paragraph(course.basic) +
+          '<h3>进一步思考</h3>' +
+          paragraph(course.extra),
+      },
+      {
+        id: 'review',
+        title: '易错点与小结',
+        html:
+          '<h3>易错点</h3>' +
+          paragraph(course.mis) +
+          '<h3>本章小结</h3>' +
+          paragraph(course.summary) +
+          '<h3>观察与练习</h3>' +
+          paragraph(course.task),
+      },
+      {
+        id: 'terms',
+        title: '术语对照',
+        html:
+          '<table class="course-terms"><thead><tr><th scope="col">中文</th><th scope="col">日文</th><th scope="col">英文</th></tr></thead><tbody>' +
+          course.terms
             .map(
-              ([title, formula, why]) =>
-                '<li><h4>' +
-                inline(title) +
-                '</h4><p class="formula">' +
-                inline(formula) +
-                '</p>' +
-                paragraph(why) +
-                '</li>',
+              (row) =>
+                '<tr>' + row.map((term) => '<td>' + inline(term) + '</td>').join('') + '</tr>',
             )
             .join('') +
-          '</ol><h3>把这个难点说清楚</h3>' +
-          paragraph(depth.why),
-      },
-      {
-        id: 'worked',
-        title: '推导应用',
-        html: '<h3>' + inline(depth.worked.title) + '</h3>' + list(depth.worked.lines),
-      },
-      {
-        id: 'checks',
-        title: '停下来，自己推一步',
-        html: depth.checks
-          .map(
-            ([question, answer]) =>
-              paragraph(question) +
-              '<details><summary>对照推理</summary>' +
-              paragraph(answer) +
-              '</details>',
-          )
-          .join(''),
+          '</tbody></table>',
       },
     );
-  sections.push(
-    {
-      id: 'extension',
-      title: '理解与拓展',
-      html:
-        '<h3>从基础理解</h3>' +
-        paragraph(course.basic) +
-        '<h3>进一步思考</h3>' +
-        paragraph(course.extra),
-    },
-    {
-      id: 'review',
-      title: '易错点与小结',
-      html:
-        '<h3>易错点</h3>' +
-        paragraph(course.mis) +
-        '<h3>本章小结</h3>' +
-        paragraph(course.summary) +
-        '<h3>观察与练习</h3>' +
-        paragraph(course.task),
-    },
-    {
-      id: 'terms',
-      title: '术语对照',
-      html:
-        '<table class="course-terms"><thead><tr><th scope="col">中文</th><th scope="col">日文</th><th scope="col">英文</th></tr></thead><tbody>' +
-        course.terms
-          .map(
-            (row) => '<tr>' + row.map((term) => '<td>' + inline(term) + '</td>').join('') + '</tr>',
-          )
-          .join('') +
-        '</tbody></table>',
-    },
-  );
-  if (course.modelLegend)
-    sections.push({
-      id: 'model-reference',
-      title: '原课程模型说明',
-      html:
-        (RECIPES[course.id]
-          ? '<p class="reading-note">以下保留原课程模型说明。侧边观察区已用沙盒配方重建本章模型，颜色与操作以观察区图例为准。</p>'
-          : '<p class="reading-note">以下为原课程配套模型的说明；本范本保留文字，尚未接入该模型。</p>') +
-        paragraph(course.modelLegend),
-    });
-  const references = [
-    '<p>本章正文与 ' +
-      course.questions.length +
-      ' 道题保留自主站同名课程。本页为沙盒范本，练习结果仅保留在当前页面，不写入正式学习记录。</p>',
-  ];
-  if (course.source)
+    if (course.modelLegend)
+      sections.push({
+        id: 'model-reference',
+        title: '原课程模型说明',
+        html:
+          (RECIPES[course.id]
+            ? '<p class="reading-note">以下保留原课程模型说明。侧边观察区已用沙盒配方重建本章模型，颜色与操作以观察区图例为准。</p>'
+            : '<p class="reading-note">以下为原课程配套模型的说明；本范本保留文字，尚未接入该模型。</p>') +
+          paragraph(course.modelLegend),
+      });
+    const references = [
+      '<p>本章正文与 ' +
+        course.questions.length +
+        ' 道题保留自主站同名课程。本页为沙盒范本，练习结果仅保留在当前页面，不写入正式学习记录。</p>',
+    ];
+    if (course.source)
+      references.push(
+        '<p><a href="' +
+          esc(course.source) +
+          '" target="_blank" rel="noopener noreferrer">原课程参考资料</a></p>',
+      );
     references.push(
       '<p><a href="' +
-        esc(course.source) +
-        '" target="_blank" rel="noopener noreferrer">原课程参考资料</a></p>',
+        sourceUrl(COURSE_SNAPSHOT.courseFiles[course.id]) +
+        '" target="_blank" rel="noopener noreferrer">查看主站课程来源 · ' +
+        SOURCE_COMMIT.slice(0, 7) +
+        '</a></p>',
     );
-  references.push(
-    '<p><a href="' +
-      sourceUrl(COURSE_SNAPSHOT.courseFiles[course.id]) +
-      '" target="_blank" rel="noopener noreferrer">查看主站课程来源 · ' +
-      SOURCE_COMMIT.slice(0, 7) +
-      '</a></p>',
-  );
-  if (depth)
-    references.push(
-      '<p>补充推导来源：<a href="' +
-        sourceUrl('src/depth.js') +
-        '" target="_blank" rel="noopener noreferrer">推导讲义</a> · <a href="' +
-        sourceUrl('src/depth-science.js') +
-        '" target="_blank" rel="noopener noreferrer">科学推导讲义</a></p>',
-    );
-  sections.push({ id: 'references', title: '来源与范本说明', html: references.join('') });
-  return sections;
-}
-export const COURSES = COURSE_SNAPSHOT.courses.map((course) => ({
-  id: course.id,
-  title: course.title,
-  subtitle: course.desc,
-  subject: course.subject,
-  duration: course.time,
-  track: course.track,
-  discipline: DISCIPLINES.find((d) => d.tracks.includes(course.track)).id,
-  mode: course.id === 'math-partials' ? 'tangent' : 'surface',
-  noModel: !!course.noModel,
-  modelLegend: course.modelLegend || '',
-  source: {
-    commit: SOURCE_COMMIT,
-    path: COURSE_SNAPSHOT.courseFiles[course.id],
-    url: sourceUrl(COURSE_SNAPSHOT.courseFiles[course.id]),
-  },
-  reference: course.source || '',
-  prerequisites: course.prereq,
-  prerequisiteIds: course.prerequisiteIds,
-  goal: course.goal,
-  terms: course.terms,
-  precheck: {
-    prompt: course.check,
-    answer: course.checkAnswer,
-    ...(course.checkExplain ? { explanation: course.checkExplain } : {}),
-  },
-  sections: sectionsFor(course),
-  questions: course.questions.map((q, index) => ({
-    id: course.id + ':' + index,
-    index,
-    type: q.type,
-    prompt: q.text,
-    ...(q.options ? { choices: q.options } : {}),
-    answer: q.answer,
-    explanation: q.solution,
-    ...(q.explain ? { choiceExplanations: q.explain } : {}),
-    hints: q.hint,
-    unit: q.unit || '',
-    skill: q.skill,
-    reinforce: q.reinforce,
-    reinforceAnswer: q.reinforceAnswer,
-  })),
-}));
-const courseById = new Map(COURSES.map((course) => [course.id, course]));
-export function getCourse(id) {
-  return courseById.get(id);
-}
-export const COURSE = getCourse('math-partials');
-export const MATH_CATALOG = TRACKS.find((track) => track.id === 'math').units.map((id) => ({
-  id,
-  title: getCourse(id).title,
-  available: true,
-}));
-const knownQuestions = new Set(COURSES.flatMap((course) => course.questions));
-export function gradeAnswer(question, input) {
-  const invalid = (reason) => ({ status: 'invalid', correct: false, reason });
-  if (!knownQuestions.has(question)) return invalid('找不到本章题目。');
-  if (question.type === 'single' || question.type === 'multi') {
-    if (!Array.isArray(input) || !input.length) return invalid('请先选择答案。');
-    if (
-      input.some(
-        (choice) => !Number.isInteger(choice) || choice < 0 || choice >= question.choices.length,
-      )
-    )
-      return invalid('选项无效，请重新选择。');
-    input = [...new Set(input)];
-    if (question.type === 'single' && input.length !== 1)
-      return invalid('这道题只需选择一个选项。');
-  } else {
-    if (typeof input !== 'string' && typeof input !== 'number') return invalid('请先填写答案。');
-    if (!String(input).trim()) return invalid('请先填写答案。');
+    if (depth)
+      references.push(
+        '<p>补充推导来源：<a href="' +
+          sourceUrl('src/depth.js') +
+          '" target="_blank" rel="noopener noreferrer">推导讲义</a> · <a href="' +
+          sourceUrl('src/depth-science.js') +
+          '" target="_blank" rel="noopener noreferrer">科学推导讲义</a></p>',
+      );
+    sections.push({ id: 'references', title: '来源与范本说明', html: references.join('') });
+    return sections;
   }
-  const result = grade(question, input);
-  return { ...result, correct: result.status === 'correct' };
+  const COURSES = COURSE_SNAPSHOT.courses.map((course) => ({
+    id: course.id,
+    title: course.title,
+    subtitle: course.desc,
+    subject: course.subject,
+    duration: course.time,
+    track: course.track,
+    discipline: DISCIPLINES.find((d) => d.tracks.includes(course.track)).id,
+    mode: RECIPES[course.id]?.mode || 'surface',
+    observation: RECIPES[course.id] || null,
+    noModel: !!course.noModel,
+    modelLegend: course.modelLegend || '',
+    source: {
+      commit: SOURCE_COMMIT,
+      path: COURSE_SNAPSHOT.courseFiles[course.id],
+      url: sourceUrl(COURSE_SNAPSHOT.courseFiles[course.id]),
+    },
+    reference: course.source || '',
+    prerequisites: course.prereq,
+    prerequisiteIds: course.prerequisiteIds,
+    goal: course.goal,
+    terms: course.terms,
+    precheck: {
+      prompt: course.check,
+      answer: course.checkAnswer,
+      ...(course.checkExplain ? { explanation: course.checkExplain } : {}),
+    },
+    sections: sectionsFor(course),
+    questions: course.questions.map((q, index) => ({
+      id: course.id + ':' + index,
+      index,
+      type: q.type,
+      prompt: q.text,
+      ...(q.options ? { options: q.options, choices: q.options } : {}),
+      answer: q.answer,
+      explanation: q.solution,
+      ...(q.explain ? { choiceExplanations: q.explain } : {}),
+      hints: q.hint,
+      unit: q.unit || '',
+      skill: q.skill,
+      reinforce: q.reinforce,
+      reinforceAnswer: q.reinforceAnswer,
+    })),
+  }));
+  const courseById = new Map(COURSES.map((course) => [course.id, course]));
+  function getCourse(id) {
+    return courseById.get(id);
+  }
+  const knownQuestions = new Set(COURSES.flatMap((course) => course.questions));
+  function gradeAnswer(question, input) {
+    const invalid = (reason) => ({ status: 'invalid', correct: false, reason });
+    if (!knownQuestions.has(question)) return invalid('找不到本章题目。');
+    if (question.type === 'single' || question.type === 'multi') {
+      if (!Array.isArray(input) || !input.length) return invalid('请先选择答案。');
+      if (
+        input.some(
+          (choice) => !Number.isInteger(choice) || choice < 0 || choice >= question.choices.length,
+        )
+      )
+        return invalid('选项无效，请重新选择。');
+      input = [...new Set(input)];
+      if (question.type === 'single' && input.length !== 1)
+        return invalid('这道题只需选择一个选项。');
+    } else {
+      if (typeof input !== 'string' && typeof input !== 'number') return invalid('请先填写答案。');
+      if (!String(input).trim()) return invalid('请先填写答案。');
+    }
+    const result = grade(question, input);
+    return { ...result, correct: result.status === 'correct' };
+  }
+
+  // The pure norm/numeric/polynomial/grade functions below are copied unchanged
+  // from src/app.js at SOURCE_COMMIT. They preserve unit conversions, tolerance,
+  // fill variants and symbolic polynomial comparison, with no account state.
+
+  function disciplineCourses(id) {
+    const d = DISCIPLINES.find((d) => d.id === id);
+    return (d?.tracks || []).flatMap((id) =>
+      (TRACKS.find((t) => t.id === id)?.units || []).map(getCourse).filter(Boolean),
+    );
+  }
+  return { SOURCE_COMMIT, DISCIPLINES, TRACKS, COURSES, getCourse, gradeAnswer, disciplineCourses };
 }
-
-// The pure norm/numeric/polynomial/grade functions below are copied unchanged
-// from src/app.js at SOURCE_COMMIT. They preserve unit conversions, tolerance,
-// fill variants and symbolic polynomial comparison, with no account state.
-
+export const courseData = createCourseData(COURSE_SNAPSHOT);
+export const {
+  SOURCE_COMMIT,
+  DISCIPLINES,
+  TRACKS,
+  COURSES,
+  getCourse,
+  gradeAnswer,
+  disciplineCourses,
+} = courseData;
 function norm(v) {
   return String(v).normalize('NFKC').trim().replace(/\s+/g, '').replace(/−/g, '-');
 }

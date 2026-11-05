@@ -10,10 +10,10 @@
     />
     <title>知序 ZHIXU · 学科观察</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="./laboratory.css?v=39" />
-    <link rel="stylesheet" href="./course-workspace.css?v=39" />
-    <link rel="stylesheet" href="./archive.css?v=39" />
-    <script type="module" src="./app.js?v=39"></script>
+    <link rel="stylesheet" href="./laboratory.css?v=40" />
+    <link rel="stylesheet" href="./course-workspace.css?v=40" />
+    <link rel="stylesheet" href="./archive.css?v=40" />
+    <script type="module" src="./app.js?v=40"></script>
   </head>
   <body data-stage="overview">
     <div class="laboratory">
@@ -193,46 +193,14 @@
               <div class="observer-stage"></div>
               <div id="observer-controls-home"></div>
               <p class="observation-disclaimer">
-                上方马鞍曲面用于观察局部与切平面的关系；本章算例 f = x²y 的数值在下方对照。
+                观察模型与读数按当前章节的配方生成；没有专属配方时显示课程档案。
               </p>
               <section
                 class="case-observation"
                 id="case-observation"
                 tabindex="-1"
                 aria-labelledby="case-title"
-              >
-                <p class="eyebrow">WORKED EXAMPLE / 本章算例</p>
-                <h3 id="case-title">f = x²y · 从 (2, 3) 出发</h3>
-                <label for="case-dx"
-                  >x 的改变量 dx <output id="case-dx-value" for="case-dx">0.10</output></label
-                >
-                <input type="range" id="case-dx" min="-0.3" max="0.3" step="any" value="0.1" />
-                <label for="case-dy"
-                  >y 的改变量 dy <output id="case-dy-value" for="case-dy">−0.20</output></label
-                >
-                <input type="range" id="case-dy" min="-0.3" max="0.3" step="any" value="-0.2" />
-                <dl class="case-values">
-                  <div>
-                    <dt>一阶估计 df</dt>
-                    <dd id="case-differential"></dd>
-                  </div>
-                  <div>
-                    <dt>精确变化 Δf</dt>
-                    <dd id="case-exact"></dd>
-                  </div>
-                  <div>
-                    <dt>估计 − 精确</dt>
-                    <dd id="case-error"></dd>
-                  </div>
-                </dl>
-                <p id="case-explanation"></p>
-                <div class="case-actions">
-                  <button type="button" id="case-half">步长减半</button
-                  ><button type="button" id="case-reset">回到原例</button>
-                </div>
-                <button type="button" id="case-return">返回刚才的阅读或练习位置 →</button>
-                <p class="case-note">移动数值不会改变上方几何示意，也不会替你填写答案。</p>
-              </section>
+              ></section>
             </aside>
           </div>
         </section>
