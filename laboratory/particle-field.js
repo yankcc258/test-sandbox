@@ -1,6 +1,6 @@
 import * as THREE from '../vendor/three/three.module.min.js';
-import { buildModelPoses } from './assembly-models.js?v=38';
-import { createFlight, sampleFlight, soften } from './assembly-motion.js?v=38';
+import { buildModelPoses } from './assembly-models.js?v=39';
+import { createFlight, sampleFlight, soften } from './assembly-motion.js?v=39';
 import {
   orbitPose,
   gateETA,
@@ -8,8 +8,8 @@ import {
   sampleGateRoute,
   createReleaseRoute,
   sampleReleaseRoute,
-} from './orbital-motion.js?v=38';
-import { surfaceFor } from './specimen-materials.js?v=38';
+} from './orbital-motion.js?v=39';
+import { surfaceFor } from './specimen-materials.js?v=39';
 
 const X = new THREE.Vector3(1, 0, 0),
   zero = new THREE.Vector3();

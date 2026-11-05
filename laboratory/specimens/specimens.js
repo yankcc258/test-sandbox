@@ -1,14 +1,14 @@
 import * as THREE from '../../vendor/three/three.module.min.js';
 import { RoomEnvironment } from '../../vendor/three/RoomEnvironment.js';
-import { RECIPES } from '../specimen-recipes.js?v=38';
-import { buildModelPoses, ASSEMBLY_COUNT } from '../assembly-models.js?v=38';
-import { mountProbeControls } from '../probe-controls.js?v=38';
+import { RECIPES } from '../specimen-recipes.js?v=39';
+import { buildModelPoses, ASSEMBLY_COUNT } from '../assembly-models.js?v=39';
+import { mountProbeControls } from '../probe-controls.js?v=39';
 import {
   createSpecimenGeometry,
   createSpecimenMaterial,
   createSpecimenDepthMaterial,
   surfaceFor,
-} from '../specimen-materials.js?v=38';
+} from '../specimen-materials.js?v=39';
 
 // One renderer, no permanent animation loop. Copy each completed render into
 // its card; changing one recipe redraws only that card with the shared materials.
@@ -105,7 +105,7 @@ Object.values(RECIPES).forEach((recipe, index) => {
   const reset = make('button', '', '恢复原例');
   reset.type = 'button';
   const enter = make('a', '', '进入本章 →');
-  enter.href = `../?v=38&chapter=${encodeURIComponent(recipe.id)}`;
+  enter.href = `../?v=39&chapter=${encodeURIComponent(recipe.id)}`;
   footer.append(reset, enter);
   card.append(
     make('p', 'eyebrow', `SPECIMEN / 0${index + 1}`),

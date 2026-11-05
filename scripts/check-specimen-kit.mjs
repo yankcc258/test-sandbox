@@ -200,3 +200,102 @@ for (const K of [1, 1.25, 4, 10]) {
 console.log(
   'PASS: normalized wave density, exact interval probability, node/negative-amplitude distinction, clipped zero-based bars, Gibbs minimum, endpoint limits, dG/dy and mass balance.',
 );
+
+// ---------- 露娜 v39：浓度、原电池与电解、电子排布、受力与功 ----------
+{
+  const atom = RECIPES['inorganic-periodicity'];
+  const conf = (Z, q) => {
+    const s = scope(atom, { Z, q }),
+      o = (k) => evaluate(`o${k}(Z, q)`, s);
+    return {
+      s1: o('s1'),
+      s2: o('s2'),
+      p2: o('p2'),
+      s3: o('s3'),
+      p3: o('p3'),
+      s4: o('s4'),
+      d3: o('d3'),
+      p4: o('p4'),
+    };
+  };
+  const total = (c) => Object.values(c).reduce((a, b) => a + b, 0);
+  assert.deepEqual(conf(26, 0), { s1: 2, s2: 2, p2: 6, s3: 2, p3: 6, s4: 2, d3: 6, p4: 0 }, 'Fe');
+  assert.deepEqual([conf(26, 2).s4, conf(26, 2).d3], [0, 6], 'Fe²⁺ 是 [Ar]3d⁶，4s 先空');
+  assert.deepEqual([conf(26, 3).s4, conf(26, 3).d3], [0, 5], 'Fe³⁺ 是 [Ar]3d⁵');
+  assert.deepEqual([conf(24, 0).s4, conf(24, 0).d3], [1, 5], 'Cr 是 3d⁵4s¹');
+  assert.deepEqual([conf(29, 0).s4, conf(29, 0).d3], [1, 10], 'Cu 是 3d¹⁰4s¹');
+  assert.deepEqual([conf(29, 1).s4, conf(29, 1).d3], [0, 10], 'Cu⁺ 是 3d¹⁰');
+  assert.deepEqual([conf(8, -2).p2, total(conf(8, -2))], [6, 10], 'O²⁻ 有 10 个电子');
+  assert.deepEqual([conf(11, 1).s3, total(conf(11, 1))], [0, 10], 'Na⁺ 失去 3s');
+  assert.deepEqual([conf(30, 0).s4, conf(30, 0).d3, conf(31, 0).p4], [2, 10, 1], 'Zn、Ga');
+  let poses = null;
+  for (let Z = 1; Z <= 36; Z++)
+    for (let q = -2; q <= 3; q++) {
+      const c = conf(Z, q),
+        want = Math.max(0, Z - q);
+      if (want <= 36) assert.equal(total(c), want, `Z=${Z} q=${q} 电子总数`);
+      for (const [k, cap] of Object.entries({
+        s1: 2,
+        s2: 2,
+        p2: 6,
+        s3: 2,
+        p3: 6,
+        s4: 2,
+        d3: 10,
+        p4: 6,
+      }))
+        assert.ok(c[k] >= 0 && c[k] <= cap, `Z=${Z} q=${q} ${k}=${c[k]}`);
+      const model = buildModelPoses('inorganic-periodicity', { Z, q });
+      poses ??=
+        model.data.activeCount + model.poses.filter((p) => !p.scale.every((v) => v > 0)).length;
+      // 箭头不画时也占住槽位：构件总顺序不随 Z、q 变化
+      assert.equal(model.poses.length, ASSEMBLY_COUNT);
+    }
+  const fe2 = buildModelPoses('inorganic-periodicity', { Z: 26, q: 2 }).poses.filter(
+    (p) => p.role === 'vector' && p.scale.every((v) => v > 0),
+  ).length;
+  assert.equal(fe2, (24 + 1) * 3, 'Fe²⁺：24 个电子箭头 + 能量轴，每支箭头 3 段');
+
+  const chem = RECIPES.chem;
+  for (const [n, V] of [
+    [0.025, 0.25],
+    [0.1, 0.05],
+    [0.005, 0.5],
+  ]) {
+    const model = buildModelPoses('chem', { n, V });
+    const shown = model.poses.filter(
+      (p) => p.role === 'particle' && p.scale.every((v) => v > 0),
+    ).length;
+    assert.equal(shown, Math.round(n / 0.001), `浓度：n=${n} 时粒子数`);
+    assert.equal(
+      model.poses.filter((p) => p.role === 'particle').length,
+      100,
+      '粒子槽位固定 100 个',
+    );
+  }
+  assert.ok(
+    Math.abs(evaluate('n * M', scope(chem, { n: 0.025, V: 0.25 })) - 1.461) < 1e-3,
+    '例题 1.461 g',
+  );
+
+  const cell = RECIPES['electro-cell'];
+  assert.ok(
+    Math.abs(evaluate('mass(I, t)', scope(cell, { I: 1, t: 1930 })) - 0.6356) < 1e-3,
+    '例题 0.6356 g',
+  );
+  assert.equal(evaluate('mass(I, t)', scope(cell, { I: 2, t: 0 })), 0);
+
+  const work = RECIPES['physics-energy'];
+  const w = (F, x) => scope(work, { F, s: x });
+  assert.equal(evaluate('v(4)', w(6, 4)), 4);
+  assert.equal(evaluate('K(s)', w(2, 5)), 0, 'F=f 时物块不动');
+  assert.equal(evaluate('K(s)', w(1, 5)), 0, 'F<f 时动能不会变成负的');
+  assert.equal(
+    evaluate('F * s + -f * s', w(7, 3)),
+    evaluate('K(s)', w(7, 3)),
+    '功能定理：W拉 + W摩 = ΔK',
+  );
+  console.log(
+    'PASS: electron filling (Hund, 4s-first cations, Cr/Cu exceptions, totals for every Z and charge), stable slots, particle counts, deposition and work–energy balance.',
+  );
+}

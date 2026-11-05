@@ -1,10 +1,10 @@
 # 知序 · 视觉沙盒
 
-[沙盒目录](https://yankcc258.github.io/test-sandbox/) · [实验室](https://yankcc258.github.io/test-sandbox/laboratory/?v=38) · [复习区](https://yankcc258.github.io/test-sandbox/recall.html?i=1&workbench=1) · [工作台](https://yankcc258.github.io/test-sandbox/workstation/) · [资料目录](https://yankcc258.github.io/test-sandbox/docs/)
+[沙盒目录](https://yankcc258.github.io/test-sandbox/) · [实验室](https://yankcc258.github.io/test-sandbox/laboratory/?v=39) · [复习区](https://yankcc258.github.io/test-sandbox/recall.html?i=1&workbench=1) · [工作台](https://yankcc258.github.io/test-sandbox/workstation/) · [资料目录](https://yankcc258.github.io/test-sandbox/docs/)
 
 知序的视觉与交互试验场。只有示例数据和课程快照，不连接正式站的账号、接口或学习记录；部分成果已接入正式站，但这里不是正式站的副本。
 
-**当前重点**：实验室剩下 4 份非有机配方（露娜）与有机三章小样（特蕾莎）。Yank 重装系统后，特蕾莎先看 [重新开工说明](docs/laboratory/next-steps.md#restart-2026-11-05)。[五份配方预览](laboratory/specimens/?v=38#quantum-wave) · [当前交接](docs/laboratory/laboratory-observation.md#v38)。
+**当前重点**：实验室 v39，除有机 3 章外的 14 章都有专属观察模型（露娜写完剩下四份配方）；特蕾莎做有机三章的设计小样。Yank 重装系统后，特蕾莎先看 [重新开工说明](docs/laboratory/next-steps.md#restart-2026-11-05)。[九份配方预览](laboratory/specimens/?v=39) · [当前交接](docs/laboratory/laboratory-observation.md#v39)。
 
 ## 三个区域
 
@@ -12,7 +12,7 @@
 
 | 区域           | 入口                                                       | 代码                     | 说明                                   |
 | -------------- | ---------------------------------------------------------- | ------------------------ | -------------------------------------- |
-| 1F 实验室      | [laboratory/](laboratory/?v=38)                            | `laboratory/`            | [docs/laboratory/](docs/laboratory/)   |
+| 1F 实验室      | [laboratory/](laboratory/?v=39)                            | `laboratory/`            | [docs/laboratory/](docs/laboratory/)   |
 | B1 复习区      | [recall.html](recall.html?i=1&workbench=1)                 | `recall.html`、`recall/` | [docs/recall/](docs/recall/)           |
 | 2F 工作台      | [workstation/](workstation/)                               | `workstation/`           | [docs/workstation/](docs/workstation/) |
 | 星空           | [preview/starfield/](preview/starfield/?from=catalog&v=29) | `preview/starfield/`     | [docs/starfield/](docs/starfield/)     |
@@ -79,7 +79,7 @@ npm run check
 
 工作台参数：`?motion=0` 关闭动效；`?light=day`、`dusk`、`night` 临时预览时段；`?view=fallback` 查看无 WebGL 回退。默认读取东京时间，始终保持深色外壳。
 
-学科观察入口：`laboratory/?v=36`；增加 `&motion=0` 关闭场景动效，增加 `&view=fallback` 查看无 WebGL 降级。当前开放主站课程的只读快照，沙盒作答不写入正式学习记录。
+学科观察入口：`laboratory/?v=39`；增加 `&motion=0` 关闭场景动效，增加 `&view=fallback` 查看无 WebGL 降级。当前开放主站课程的只读快照，沙盒作答不写入正式学习记录。
 
 ## 来源与许可
 

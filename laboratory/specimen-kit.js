@@ -337,6 +337,11 @@ const PARTS = {
   },
   // 科学坐标中的有向线段，头部尺寸固定，参数变化不改变构件顺序。
   arrow(model, part, s, m, extra) {
+    // show 为 0 时仍占住三个槽位（零长度会变成隐藏构件），参数变化时构件顺序不变（露娜，v39）
+    if (part.show !== undefined && !evaluate(part.show, s, extra)) {
+      for (let k = 0; k < 3; k++) model.line([0, 0, 0], [0, 0, 0]);
+      return;
+    }
     const a = [m.X(evaluate(part.from[0], s, extra)), m.Y(evaluate(part.from[1], s, extra)), 0.24];
     const b = [m.X(evaluate(part.to[0], s, extra)), m.Y(evaluate(part.to[1], s, extra)), 0.24];
     const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
@@ -358,6 +363,65 @@ const PARTS = {
         0.03,
         'vector',
       );
+  },
+  // 线段：科学坐标里两点之间的一根实线（容器壁、轨道、坐标外的刻度），没有箭头（露娜，v39）
+  segment(model, part, s, m, extra) {
+    const a = [
+      m.X(evaluate(part.from[0], s, extra)),
+      m.Y(evaluate(part.from[1], s, extra)),
+      part.z ?? 0.1,
+    ];
+    const b = [
+      m.X(evaluate(part.to[0], s, extra)),
+      m.Y(evaluate(part.to[1], s, extra)),
+      part.z ?? 0.1,
+    ];
+    model.line(
+      a,
+      b,
+      part.width ?? 0.02,
+      color(part.color || 'titanium'),
+      part.depth ?? 0.04,
+      part.role || 'frame',
+    );
+  },
+  // 粒子：在一块区域里撒 count 个小方块（最多 max 个）。位置用低差异序列，每个序号的相对位置固定，
+  // 区域变大变小时粒子跟着伸缩，数量变化时只增减最后几个；没用到的槽位是零尺寸（隐藏），构件顺序不变。
+  particles(model, part, s, m, extra) {
+    const max = part.max;
+    if (!Number.isInteger(max) || max < 1 || max > 200) throw new RangeError('粒子上限超出范围');
+    const count = Math.max(0, Math.min(max, Math.round(evaluate(part.count, s, extra))));
+    const [x0, x1] = part.region.x.map((v) => evaluate(v, s, extra)),
+      [y0, y1] = part.region.y.map((v) => evaluate(v, s, extra)),
+      size = part.size ?? 0.034;
+    for (let k = 0; k < max; k++) {
+      const u = (0.5 + k * 0.7548776662466927) % 1,
+        v = (0.5 + k * 0.5698402909980532) % 1,
+        x = x0 + (x1 - x0) * (0.06 + 0.88 * u),
+        y = y0 + (y1 - y0) * (0.06 + 0.88 * v),
+        on = k < count;
+      model.box(
+        [m.X(x), m.Y(y), 0.1 + (k % 3) * 0.035],
+        on ? [size, size, size] : [0, 0, 0],
+        color(part.color || 'ivory'),
+        [0.4 * (k % 5), 0.3 * (k % 7), 0],
+        part.role || 'particle',
+      );
+    }
+  },
+  // 物块：中心在 (x, y)、宽 w 高 h（科学单位）的一块方块，比如斜面上、桌面上的物体
+  block(model, part, s, m, extra) {
+    const x = m.X(evaluate(part.x, s, extra)),
+      y = m.Y(evaluate(part.y, s, extra)),
+      w = Math.abs(evaluate(part.w, s, extra) * m.sx),
+      h = Math.abs(m.Y(evaluate(part.h, s, extra)) - m.Y(0));
+    model.box(
+      [x, y, 0.08],
+      [Math.max(0.004, w), Math.max(0.004, h), 0.22],
+      color(part.color || 'ivory'),
+      [0, 0, 0],
+      part.role || 'block',
+    );
   },
   // 竖直参考线 x = at（虚线），可选从 y0 画到 to
   vline(model, part, s, m, extra) {
