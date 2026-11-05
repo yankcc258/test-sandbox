@@ -4,7 +4,7 @@
 
 知序的视觉与交互试验场。只有示例数据和课程快照，不连接正式站的账号、接口或学习记录；部分成果已接入正式站，但这里不是正式站的副本。
 
-**当前重点**：实验室 v38：补齐波函数、自由能两章观察模型。[阶段目标](docs/laboratory/next-steps.md) · [五份配方预览](laboratory/specimens/?v=38#quantum-wave) · [当前交接](docs/laboratory/laboratory-observation.md#v38)。
+**当前重点**：实验室剩下 4 份非有机配方（露娜）与有机三章小样（特蕾莎）。Yank 重装系统后，特蕾莎先看 [重新开工说明](docs/laboratory/next-steps.md#restart-2026-11-05)。[五份配方预览](laboratory/specimens/?v=38#quantum-wave) · [当前交接](docs/laboratory/laboratory-observation.md#v38)。
 
 ## 三个区域
 
