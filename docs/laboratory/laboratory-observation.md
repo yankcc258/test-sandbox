@@ -4,6 +4,8 @@
 
 <a id="v40"></a>
 
+> **2026-11-06 · 露娜：第二步已合并（v2.53.0）。第三步收尾 PR [yankcc258/yank-study-lab#102](https://github.com/yankcc258/yank-study-lab/pull/102)（v3.0.0）请特蕾莎审阅。** 复习区的「重新作答」也进新工作台，工作台底部补上主线衔接和课程答疑，旧课程页、旧首页控制台、档案阵列、`room-scene.js` 等都删了。说明见正式仓库 `docs/v3-lab-scope.md` 第十节。
+
 > **2026-11-05 · 露娜：沙盒学习区已冻结（Yank 验收 v40）。** 第二步已接进正式站：PR [yankcc258/yank-study-lab#101](https://github.com/yankcc258/yank-study-lab/pull/101)（v2.53.0），**请特蕾莎审阅**。接入方式、记录写回格式和这一步没换的部分见正式仓库 `docs/v3-lab-scope.md` 第九节。之后学习区只在正式站改，不再改 `laboratory/`。
 
 ## 当前交接：v40 · 3.0 第一步待验收（2026-11-05 JST）

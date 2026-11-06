@@ -4,7 +4,7 @@
 
 知序的视觉与交互试验场。只有示例数据和课程快照，不连接正式站的账号、接口或学习记录；部分成果已接入正式站，但这里不是正式站的副本。
 
-**当前重点**：3.0 第一步完成，Yank 已验收，**学习区 v40 冻结**。第二步已接进正式站，PR [yankcc258/yank-study-lab#101](https://github.com/yankcc258/yank-study-lab/pull/101) 等特蕾莎审阅。[本轮交接](docs/laboratory/laboratory-observation.md#v40) · [唯一计划和进度表](https://github.com/yankcc258/yank-study-lab/blob/main/docs/v3-plan.md)。
+**当前重点**：知序 3.0 收尾，PR [yankcc258/yank-study-lab#102](https://github.com/yankcc258/yank-study-lab/pull/102)（v3.0.0）等特蕾莎审阅。学习区 v40 已冻结，以后直接在正式站改。[本轮交接](docs/laboratory/laboratory-observation.md#v40) · [唯一计划和进度表](https://github.com/yankcc258/yank-study-lab/blob/main/docs/v3-plan.md)。
 
 ## 三个区域
 
