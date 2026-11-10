@@ -1,5 +1,5 @@
 // 每个像素在自己的轨道平面内求解史瓦西零测地线；颜色最后才做曝光映射。
-import { ORBIT_STEP, ORBIT_MAX_STEPS, ORBIT_GLSL, DISK_TIME_SCALE } from './orbit.js';
+import { ORBIT_STEP, ORBIT_MAX_STEPS, ORBIT_GLSL, DISK_TIME_SCALE } from './orbit.js?v=2';
 export const VERTEX = `#version 300 es
 in vec2 p;
 out vec2 uv;
