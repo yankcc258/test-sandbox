@@ -1,5 +1,5 @@
 // 史瓦西黑洞展品的页面逻辑（露娜）：WebGL 画面、拖动 / 缩放、读数，以及下面那张「光线怎么弯」的二维示意图。
-// 物理都在 geodesic.js（JS，示意图和检查脚本用）和 shader.js（GLSL，三维画面用），两边是同一个方程。
+// geodesic.js 是笛卡尔参考积分；orbit.js / shader.js 用等价的轨道平面方程。
 import { VERTEX, FRAGMENT } from './shader.js';
 import {
   RS,
@@ -14,7 +14,9 @@ import {
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-const still = () => reduced.matches || params.get('motion') === '0';
+let paused = false,
+  reduceMotion = reduced.matches;
+const still = () => paused || reduceMotion || params.get('motion') === '0';
 const deg = (x) => (x * 180) / Math.PI;
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 
@@ -28,16 +30,22 @@ const R_MIN = 1.6,
 
 // ---------- WebGL ----------
 const canvas = $('hole');
-const gl = canvas.getContext('webgl2', { antialias: false, powerPreference: 'high-performance' });
+const gl = (() => {
+  try {
+    return canvas.getContext('webgl2', { antialias: false, powerPreference: 'high-performance' });
+  } catch {
+    return null;
+  }
+})();
+let rendererState = 'loading';
 let program = null,
   uniforms = {},
   dirty = true,
   frame = 0,
   scale = innerWidth < 700 ? 0.55 : 0.75, // 画布像素占屏幕像素的比例，按帧时间自动调
-  steps = innerWidth < 700 ? 260 : 420,
   slow = 0,
   fast = 0,
-  aa = 1; // 每个像素每边取几条光线：画面静止时 2，连续画的时候够快才升到 2
+  aa = 2; // 优先保留 2×2 空间采样；慢时先降分辨率，不降低轨道精度
 function compile(type, source) {
   const s = gl.createShader(type);
   gl.shaderSource(s, source);
@@ -47,9 +55,13 @@ function compile(type, source) {
 }
 function setup() {
   program = gl.createProgram();
-  gl.attachShader(program, compile(gl.VERTEX_SHADER, VERTEX));
-  gl.attachShader(program, compile(gl.FRAGMENT_SHADER, FRAGMENT));
+  const vertex = compile(gl.VERTEX_SHADER, VERTEX),
+    fragment = compile(gl.FRAGMENT_SHADER, FRAGMENT);
+  gl.attachShader(program, vertex);
+  gl.attachShader(program, fragment);
   gl.linkProgram(program);
+  gl.deleteShader(vertex);
+  gl.deleteShader(fragment);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS))
     throw new Error(gl.getProgramInfoLog(program));
   gl.useProgram(program);
@@ -71,16 +83,17 @@ function setup() {
     'u_disk',
     'u_shift',
     'u_stars',
-    'u_steps',
     'u_aa',
+    'u_debug',
     'u_res',
   ])
     uniforms[name] = gl.getUniformLocation(program, name);
 }
 function resize() {
+  const renderScale = still() || !view.disk ? Math.max(scale, innerWidth < 700 ? 0.85 : 1) : scale;
   const dpr = Math.min(devicePixelRatio || 1, 1.5),
-    w = Math.max(2, Math.round(canvas.clientWidth * dpr * scale)),
-    h = Math.max(2, Math.round(canvas.clientHeight * dpr * scale));
+    w = Math.max(2, Math.round(canvas.clientWidth * dpr * renderScale)),
+    h = Math.max(2, Math.round(canvas.clientHeight * dpr * renderScale));
   if (canvas.width !== w || canvas.height !== h) {
     canvas.width = w;
     canvas.height = h;
@@ -96,7 +109,8 @@ const norm = (a) => {
   const l = Math.hypot(...a);
   return a.map((x) => x / l);
 };
-function draw(time) {
+function draw(time, diagnostic = false) {
+  if (rendererState !== 'ready') return;
   resize();
   const { r, incl, az } = view;
   // 盘的轴是 +y；incl 是视线和轴的夹角（90° = 正侧面）
@@ -124,8 +138,8 @@ function draw(time) {
   gl.uniform1f(uniforms.u_disk, view.disk ? 1 : 0);
   gl.uniform1f(uniforms.u_shift, view.shift ? 1 : 0);
   gl.uniform1f(uniforms.u_stars, view.stars ? 1 : 0);
-  gl.uniform1i(uniforms.u_steps, steps);
   gl.uniform1i(uniforms.u_aa, aa);
+  gl.uniform1i(uniforms.u_debug, diagnostic ? 1 : 0);
   gl.uniform2f(uniforms.u_res, canvas.width, canvas.height);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
@@ -133,7 +147,7 @@ let last = 0,
   clock = 0;
 function tick(now) {
   frame = 0;
-  if (document.hidden) return;
+  if (document.hidden || rendererState !== 'ready') return;
   const dt = last ? Math.min((now - last) / 1000, 0.1) : 0;
   last = now;
   const moving = !still() && view.disk; // 盘在转 → 一直画；否则只在有变化时画
@@ -146,14 +160,15 @@ function tick(now) {
     if (moving && dt) {
       if (dt > 0.045) (slow++, (fast = 0));
       else if (dt < 0.02) (fast++, (slow = 0));
+      else slow = fast = 0;
       if (slow > 12) {
-        if (aa > 1) aa = 1;
-        else if (scale > 0.35) scale = Math.max(0.35, scale - 0.1);
+        if (scale > 0.35) scale = Math.max(0.35, scale - 0.1);
+        else aa = 1;
         slow = 0;
       }
       if (fast > 90) {
-        if (scale < 1) scale = Math.min(1, scale + 0.05);
-        else aa = 2;
+        if (aa < 2) aa = 2;
+        else if (scale < 1) scale = Math.min(1, scale + 0.05);
         fast = 0;
       }
     }
@@ -164,14 +179,15 @@ function tick(now) {
 function invalidate() {
   dirty = true;
   readout();
-  if (!frame && !document.hidden) frame = requestAnimationFrame(tick);
+  if (rendererState === 'ready' && !frame && !document.hidden) frame = requestAnimationFrame(tick);
 }
 
 // 检查用：马上画一帧，读出几个点的颜色（坐标是画布上的比例，左上角为 0,0）。scripts 里的浏览器检查靠它看画面对不对。
-window.zhixuBlackHoleProbe = (points) => {
-  draw(clock);
+window.zhixuBlackHoleProbe = (points, { diagnostic = false, time = clock } = {}) => {
+  if (rendererState !== 'ready') return null;
+  draw(time, diagnostic);
   const px = new Uint8Array(4);
-  return points.map(([fx, fy]) => {
+  const result = points.map(([fx, fy]) => {
     gl.readPixels(
       Math.round(fx * (canvas.width - 1)),
       Math.round((1 - fy) * (canvas.height - 1)),
@@ -183,6 +199,8 @@ window.zhixuBlackHoleProbe = (points) => {
     );
     return [px[0], px[1], px[2]];
   });
+  if (diagnostic || time !== clock) draw(clock);
+  return result;
 };
 
 // ---------- 读数和控件 ----------
@@ -195,6 +213,28 @@ function readout() {
   canvas.dataset.r = view.r.toFixed(3);
   canvas.dataset.incl = view.incl.toFixed(3);
   canvas.dataset.az = view.az.toFixed(3);
+  const locked = reduceMotion || params.get('motion') === '0';
+  $('opt-motion').disabled = locked || rendererState !== 'ready';
+  $('opt-motion').textContent = locked ? '静态观察' : paused ? '继续转动' : '暂停盘面';
+  $('opt-motion').setAttribute('aria-pressed', String(still()));
+  $('motion-out').textContent =
+    rendererState !== 'ready'
+      ? '二维示意可用'
+      : !still() && view.disk
+        ? '光线追踪 · 盘面转动中'
+        : '光线追踪 · 静态观察';
+  const presets = {
+    home: HOME,
+    side: { r: 22, incl: Math.PI / 2 },
+    top: { r: 26, incl: (18 * Math.PI) / 180 },
+    near: { r: 4, incl: (80 * Math.PI) / 180 },
+  };
+  for (const [name, preset] of Object.entries(presets)) {
+    $('view-' + name).setAttribute(
+      'aria-pressed',
+      String(Math.abs(view.r - preset.r) < 0.01 && Math.abs(view.incl - preset.incl) < 0.001),
+    );
+  }
 }
 function setView(patch) {
   Object.assign(view, patch);
@@ -237,6 +277,7 @@ function bindControls() {
   };
   canvas.addEventListener('pointerup', release);
   canvas.addEventListener('pointercancel', release);
+  canvas.addEventListener('lostpointercapture', release);
   canvas.addEventListener(
     'wheel',
     (e) => {
@@ -270,10 +311,15 @@ function bindControls() {
       view[key] = e.target.checked;
       invalidate();
     };
-  $('view-side').onclick = () => setView({ r: 22, incl: (86 * Math.PI) / 180 });
+  $('view-side').onclick = () => setView({ r: 22, incl: Math.PI / 2 });
   $('view-top').onclick = () => setView({ r: 26, incl: (18 * Math.PI) / 180 });
   $('view-near').onclick = () => setView({ r: 4, incl: (80 * Math.PI) / 180 });
   $('view-home').onclick = () => setView({ ...HOME });
+  $('opt-motion').onclick = () => {
+    paused = !paused;
+    last = 0;
+    invalidate();
+  };
 }
 
 // ---------- 二维示意图：平行射来的一束光，各自的瞄准距离不同 ----------
@@ -341,7 +387,7 @@ function drawRays() {
     ? `掉进黑洞（b 小于临界值 ${B_CRIT.toFixed(3)} r_s）`
     : `偏折 ${deg(pick.deflection).toFixed(1)}°` +
       (pick.deflection > Math.PI
-        ? `，绕了 ${(pick.deflection / (2 * Math.PI)).toFixed(2)} 圈才飞走`
+        ? `，累计偏折相当于 ${(pick.deflection / (2 * Math.PI)).toFixed(2)} 圈`
         : '') +
       ` · 弱场公式给 ${deg(weakDeflection(chosen)).toFixed(1)}°`;
   plot.dataset.b = chosen.toFixed(2);
@@ -352,7 +398,31 @@ $('b').oninput = (e) => {
   drawRays();
 };
 
-// ---------- 启动 ----------
+// ---------- 启动 / 上下文丢失 / 降级 ----------
+function fallback(message, state = 'unavailable') {
+  rendererState = state;
+  cancelAnimationFrame(frame);
+  frame = 0;
+  last = 0;
+  $('fallback').hidden = false;
+  $('fallback').textContent = message;
+  document.documentElement.dataset.ready = 'fallback';
+  readout();
+}
+function restoreRenderer() {
+  try {
+    setup();
+    rendererState = 'ready';
+    // 恢复后即便画布尺寸未变也显式设置 viewport。
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    $('fallback').hidden = true;
+    document.documentElement.dataset.ready = 'true';
+    invalidate();
+  } catch (error) {
+    console.warn('Schwarzschild exhibit:', error);
+    fallback('三维画面暂时无法启动。下面「光线怎么弯」的示意图仍然可以使用。');
+  }
+}
 function start() {
   bindControls();
   readout();
@@ -361,33 +431,31 @@ function start() {
     drawRays();
     invalidate();
   }).observe(document.body);
-  if (!gl) throw new Error('WebGL2 unavailable');
-  setup();
+  if (!gl) {
+    fallback('这台设备画不了三维画面（需要 WebGL2）。下面「光线怎么弯」的示意图仍然可以使用。');
+    return;
+  }
   canvas.addEventListener('webglcontextlost', (e) => {
     e.preventDefault();
-    cancelAnimationFrame(frame);
-    frame = 0;
-    $('fallback').hidden = false;
+    fallback('三维画面暂时中断，正在等待恢复。下面的光线示意图仍然可以使用。', 'lost');
   });
-  canvas.addEventListener('webglcontextrestored', () => {
-    $('fallback').hidden = true;
-    setup();
+  canvas.addEventListener('webglcontextrestored', restoreRenderer);
+  reduced.addEventListener('change', (event) => {
+    reduceMotion = event.matches;
+    last = 0;
     invalidate();
   });
-  reduced.addEventListener('change', invalidate);
   document.addEventListener('visibilitychange', () => {
     last = 0;
     if (!document.hidden) invalidate();
   });
-  invalidate();
-  document.documentElement.dataset.ready = 'true';
+  restoreRenderer();
 }
 try {
   start();
 } catch (error) {
   console.warn('Schwarzschild exhibit:', error);
-  $('fallback').hidden = false;
-  document.documentElement.dataset.ready = 'fallback';
+  fallback('三维画面暂时无法启动。下面「光线怎么弯」的示意图仍然可以使用。');
   try {
     drawRays();
   } catch {}

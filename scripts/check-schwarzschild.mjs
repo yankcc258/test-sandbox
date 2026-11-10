@@ -1,7 +1,13 @@
 // 史瓦西黑洞展品的物理检查（露娜）：不看画面，只核对光线方程给出的数。
 // 画面那一半（着色器编译、阴影是黑的、盘一边亮一边暗、拖动和缩放）在 scripts/check-schwarzschild-browser.mjs，需要浏览器。
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { FRAGMENT as glsl } from '../exhibits/schwarzschild/shader.js';
+import {
+  orbitStep,
+  observerOrbit,
+  traceObserverRay,
+  diskTexturePoint,
+} from '../exhibits/schwarzschild/orbit.js';
 import {
   RS,
   PHOTON_SPHERE,
@@ -91,14 +97,9 @@ close(diskShift(ISCO, 0), Math.SQRT1_2, 1e-12, 'face-on shift at the ISCO');
 assert.ok(diskShift(6, 5) > 1 && diskShift(6, -5) < diskShift(6, 0));
 assert.ok(diskShift(100, 0) > 0.99, 'far out the shift vanishes');
 
-// 7) 着色器和这里用的是同一个方程、同一条步长规则、同样的频移公式（两边各写了一遍，别改了一边忘了另一边）
-const glsl = await readFile(
-  new URL('../exhibits/schwarzschild/shader.js', import.meta.url),
-  'utf8',
-);
+// 7) 真实着色器的方程 / 频移；GPU 终点的独立解析检查在浏览器脚本里。
 for (const [what, piece] of [
-  ['geodesic acceleration', '-1.5 * h2 * x / pow(r, 5.0)'],
-  ['step rule', 'clamp(0.1 * (r - 0.6), 0.012, 0.6)'],
+  ['Binet equation', '1.5 * s.x * s.x - s.x'],
   ['static observer', 'sqrt(1.0 - 1.0 / r0)'],
   ['Kepler angular velocity', 'sqrt(0.5 / (r * r * r))'],
   ['disk shift', 'sqrt(1.0 - 1.5 / r) / (1.0 - omega * lz) / obs'],
@@ -107,6 +108,91 @@ for (const [what, piece] of [
   assert.ok(glsl.includes(piece), `shader still has the ${what}: ${piece}`);
 assert.equal(stepSize(1.6), Math.min(0.6, Math.max(0.012, 0.1 * (1.6 - 0.6))));
 
+// 8) 全距离范围内，解析阴影两侧分别落入 / 逃逸，不受距无穷远的路程影响。
+for (const r of [1.6, 2, 4, 22, 60]) {
+  for (const factor of [0.99, 1.01]) {
+    const psi = shadowAngle(r) * factor;
+    const result = traceObserverRay([r, 0, 0], [-Math.cos(psi), Math.sin(psi), 0], { disk: false });
+    assert.equal(
+      result.status,
+      factor < 1 ? 'captured' : 'escaped',
+      `shadow r=${r}, factor=${factor}`,
+    );
+  }
+  const psi = Math.min(1.5, shadowAngle(r) * 1.2 + 0.1),
+    n = [-Math.cos(psi), Math.sin(psi), 0];
+  const normal = traceObserverRay([r, 0, 0], n, { disk: false });
+  const fine = traceObserverRay([r, 0, 0], n, { disk: false, step: 0.0125, maxSteps: 2048 });
+  assert.equal(normal.status, 'escaped');
+  assert.ok(
+    Math.hypot(...normal.direction.map((x, i) => x - fine.direction[i])) < 2e-5,
+    'escape direction converges',
+  );
+  let s = observerOrbit([r, 0, 0], n).state;
+  const energy = ([u, w]) => w * w + u * u - u * u * u,
+    E = energy(s);
+  for (let i = 0; i < 1024 && s[0] > 0 && s[0] < 1; i++) {
+    s = orbitStep(s, 0.025);
+    close(energy(s), E, 2e-6, 'null geodesic energy integral');
+  }
+}
+assert.equal(traceObserverRay([22, 0, 0], [-1, 0.1, 0], { maxSteps: 1 }).status, 'unresolved');
+
+// 9) 盘面交点用独立的笛卡尔 Verlet 小步积分核对，尤其包含接近正侧面的轨道。
+const dot = (a, b) => a.reduce((sum, x, i) => sum + x * b[i], 0);
+const norm = (a) => a.map((x) => x / Math.hypot(...a));
+let hits = 0;
+for (const degrees of [18, 80, 86, 90]) {
+  for (const offset of [-0.12, 0.12, 0.35]) {
+    const inc = (degrees * Math.PI) / 180,
+      camera = [22 * Math.sin(inc), 22 * Math.cos(inc), 0];
+    const radial = norm(camera),
+      up = [-Math.cos(inc), Math.sin(inc), 0];
+    const n = norm(radial.map((x, i) => -x + up[i] * offset + (i === 2 ? -0.25 : 0)));
+    const orbit = traceObserverRay(camera, n);
+    if (orbit.status !== 'disk') continue;
+    const nr = dot(n, radial),
+      p = [...camera],
+      v = norm(n.map((x, i) => x + (radialStretch(22) - 1) * nr * radial[i]));
+    const h2 = dot(p, p) * dot(v, v) - dot(p, v) ** 2;
+    let radius = null;
+    for (let i = 0; i < 100000; i++) {
+      const before = [...p];
+      step(p, v, h2, stepSize(Math.hypot(...p), 0.04));
+      if (before[1] * p[1] < 0) {
+        const t = before[1] / (before[1] - p[1]);
+        const hit = before.map((x, j) => x + t * (p[j] - x)),
+          r = Math.hypot(...hit);
+        if (r >= 3 && r <= 12) {
+          radius = r;
+          break;
+        }
+      }
+      if (Math.hypot(...p) < 1 || Math.hypot(...p) > 100) break;
+    }
+    assert.notEqual(radius, null, `Cartesian ray intersects disk at inclination ${degrees}`);
+    close(orbit.radius, radius, 5e-4, `disk radius at inclination ${degrees}`);
+    hits++;
+  }
+}
+assert.ok(hits >= 4, 'independent disk intersection fixtures exercised');
+
+// 10) +y 物质运动与逆向纹理取样、频移保持一致：x>0 处物质向 -z 运动。
+{
+  const r = 6,
+    angle = 0.3,
+    pos = [r * Math.cos(angle), 0, -r * Math.sin(angle)];
+  const q = diskTexturePoint(pos, angle);
+  close(q[0], r, 1e-12, 'advected texture stays with gas');
+  assert.ok(Math.abs(q[1]) < 1e-12);
+  const omega = Math.sqrt(0.5 / r ** 3),
+    gasVelocity = [0, 0, -r * omega];
+  assert.ok(
+    gasVelocity[2] < 0 && diskShift(r, r) > diskShift(r, -r),
+    'approaching -z side is blue-shifted',
+  );
+}
+
 console.log(
-  'PASS: Schwarzschild exhibit — constants, weak-field deflection (incl. 1.75″ at the solar limb), critical impact parameter, photon-sphere orbit, angular momentum, static-observer shadow, disk frequency shift, shader matches the JS equation.',
+  'PASS: Schwarzschild — weak field, critical ray, photon sphere, invariants, analytic shadow at 1.6–60 r_s, RK4 convergence, independent Cartesian disk intersections, +y rotation and frequency shift.',
 );

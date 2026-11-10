@@ -5,16 +5,70 @@
 // 关掉吸积盘后盘的位置只剩星空；拖动改视角、滚轮改距离、预设按钮；二维示意图：小于临界瞄准距离的光线掉进去；
 // 手机宽度不横向溢出。加 SHOTS=目录 会顺便存截图。
 import assert from 'node:assert/strict';
+import { B_CRIT } from '../exhibits/schwarzschild/geodesic.js';
+import { traceObserverRay } from '../exhibits/schwarzschild/orbit.js';
 const { chromium, devices } = await import(process.env.PLAYWRIGHT_PATH || 'playwright');
 const origin = process.env.PREVIEW_URL || 'http://127.0.0.1:8080';
 const shots = process.env.SHOTS;
-const b = await chromium.launch({ args: ['--no-sandbox', '--enable-unsafe-swiftshader'] });
+const b = await chromium.launch({
+  channel: process.env.BROWSER_CHANNEL || undefined,
+  args: ['--no-sandbox', '--enable-unsafe-swiftshader'],
+});
 const lum = ([r, g, bl]) => 0.2126 * r + 0.7152 * g + 0.0722 * bl;
+const grid = Array.from({ length: 13 * 9 }, (_, i) => [
+  0.08 + (i % 13) * 0.07,
+  0.1 + Math.floor(i / 13) * 0.1,
+]);
+const frame = (p) =>
+  p.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+  );
+const setDistance = async (p, r) => {
+  await p.locator('#dist').evaluate((e, r) => {
+    e.value = String(Math.log(r));
+    e.dispatchEvent(new Event('input', { bubbles: true }));
+  }, r);
+  await frame(p);
+};
+// 读取实际 GPU 相机和整数像素中心，避免浏览器缩放 / DPR 造成边界误判。
+const diagnostic = (p, points = grid) =>
+  p.evaluate((points) => {
+    const rgb = zhixuBlackHoleProbe(points, { diagnostic: true });
+    const gl = document.querySelector('#hole').getContext('webgl2'),
+      program = gl.getParameter(gl.CURRENT_PROGRAM);
+    const uniform = (name) =>
+      Array.from(gl.getUniform(program, gl.getUniformLocation(program, name)));
+    return {
+      rgb,
+      cam: uniform('u_cam'),
+      fwd: uniform('u_fwd'),
+      right: uniform('u_right'),
+      up: uniform('u_up'),
+      tan: uniform('u_tan'),
+      w: gl.canvas.width,
+      h: gl.canvas.height,
+    };
+  }, points);
+const rayFor = (data, [x, y]) => {
+  const qx = (2 * (Math.round(x * (data.w - 1)) + 0.5)) / data.w - 1;
+  const qy = (2 * (Math.round((1 - y) * (data.h - 1)) + 0.5)) / data.h - 1;
+  const v = data.fwd.map(
+    (a, i) => a + qx * data.tan[0] * data.right[i] + qy * data.tan[1] * data.up[i],
+  );
+  return v.map((x) => x / Math.hypot(...v));
+};
+const statusColor = {
+  captured: [0, 0, 255],
+  escaped: [0, 255, 0],
+  disk: [255, 0, 0],
+  unresolved: [255, 0, 255],
+};
 for (const [tag, opts] of [
   ['desk', { viewport: { width: 1280, height: 800 } }],
   ['phone', devices['iPhone 13']],
 ]) {
   const ctx = await b.newContext(opts);
+  ctx.setDefaultTimeout(15000);
   const p = await ctx.newPage();
   const errs = [];
   p.on('pageerror', (e) => errs.push(e.message));
@@ -99,10 +153,146 @@ for (const [tag, opts] of [
     await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
     '不横向溢出',
   );
+  await p.locator('#hole').scrollIntoViewIfNeeded();
+  await p.uncheck('#opt-disk');
+  for (const r of [1.6, 4, 22, 60]) {
+    await setDistance(p, r);
+    const d = await diagnostic(p),
+      r0 = Math.hypot(...d.cam);
+    for (let i = 0; i < grid.length; i++) {
+      const n = rayFor(d, grid[i]),
+        nr = n.reduce((sum, x, j) => sum + (x * d.cam[j]) / r0, 0);
+      const impact = (r0 * Math.sqrt(Math.max(0, 1 - nr * nr))) / Math.sqrt(1 - 1 / r0);
+      if (Math.abs(impact - B_CRIT) < 0.002) continue;
+      assert.deepEqual(
+        d.rgb[i],
+        impact < B_CRIT ? statusColor.captured : statusColor.escaped,
+        `${tag}: analytic shadow at r=${r}, pixel=${i}`,
+      );
+    }
+    if (r === 60) {
+      const sky = await probe(grid);
+      assert.ok(
+        sky.filter((rgb) => lum(rgb) > 1).length > grid.length * 0.7,
+        `${tag}: far sky remains visible`,
+      );
+      if (shots) await p.screenshot({ path: `${shots}/${tag}-far.png` });
+    }
+  }
+  await p.check('#opt-disk');
+  for (const inclination of [18, 80, 86, 90]) {
+    await setDistance(p, 22);
+    await p.locator('#incl').fill(String(inclination));
+    const d = await diagnostic(p);
+    for (let i = 0; i < grid.length; i++) {
+      const expected = traceObserverRay(d.cam, rayFor(d, grid[i]));
+      assert.notEqual(expected.status, 'unresolved', 'CPU orbit resolves');
+      assert.deepEqual(
+        d.rgb[i],
+        statusColor[expected.status],
+        `${tag}: CPU/GPU disk crossing incl=${inclination}, pixel=${i}`,
+      );
+    }
+  }
+  if (shots) await p.screenshot({ path: `${shots}/${tag}-side.png` });
   assert.deepEqual(errs, [], tag);
+  console.log('PASS: ' + tag + ' rendering and physical boundaries');
+  await ctx.close();
+}
+
+// 无 WebGL2 和初始化失败都不能再调度三维绘制；二维示意图仍可交互。
+for (const failure of ['unavailable', 'compile']) {
+  const ctx = await b.newContext({ viewport: { width: 1000, height: 700 } });
+  ctx.setDefaultTimeout(15000);
+  await ctx.addInitScript((failure) => {
+    if (failure === 'unavailable') {
+      const original = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (kind, ...args) {
+        return kind === 'webgl2' ? null : original.call(this, kind, ...args);
+      };
+    } else {
+      WebGL2RenderingContext.prototype.compileShader = function () {
+        throw new Error('test shader failure');
+      };
+    }
+  }, failure);
+  const p = await ctx.newPage(),
+    errs = [];
+  p.on('pageerror', (e) => errs.push(e.message));
+  await p.goto(origin + '/exhibits/schwarzschild/');
+  await p.waitForFunction(() => document.documentElement.dataset.ready === 'fallback');
+  await p.click('#view-near');
+  await setDistance(p, 60);
+  await p.setViewportSize({ width: 700, height: 800 });
+  await frame(p);
+  await p.locator('#b').fill('2.5');
+  assert.equal(await p.locator('#rays').getAttribute('data-captured'), 'true');
+  assert.ok(await p.locator('#fallback').isVisible());
+  assert.deepEqual(errs, [], failure + ' fallback');
+  console.log('PASS: ' + failure + ' fallback');
+  await ctx.close();
+}
+
+// 动画暂停 / 恢复、系统减弱动效、GPU 上下文丢失后交互与恢复。
+{
+  const ctx = await b.newContext({ viewport: { width: 1280, height: 800 } });
+  ctx.setDefaultTimeout(15000);
+  const p = await ctx.newPage(),
+    errs = [];
+  p.on('pageerror', (e) => errs.push(e.message));
+  await p.goto(origin + '/exhibits/schwarzschild/');
+  await p.waitForFunction(() => document.documentElement.dataset.ready === 'true');
+  const time = () =>
+    p.evaluate(() => {
+      const gl = document.querySelector('#hole').getContext('webgl2');
+      const prog = gl.getParameter(gl.CURRENT_PROGRAM);
+      return gl.getUniform(prog, gl.getUniformLocation(prog, 'u_time'));
+    });
+  await p.click('#opt-motion');
+  await frame(p);
+  const stopped = await time();
+  await frame(p);
+  assert.equal(await time(), stopped, 'pause freezes shader time');
+  await p.click('#opt-motion');
+  await frame(p);
+  assert.ok((await time()) > stopped, 'resume advances shader time');
+  console.log('PASS: pause and resume');
+  await p.emulateMedia({ reducedMotion: 'reduce' });
+  await frame(p);
+  await p.waitForFunction(() => document.querySelector('#opt-motion').disabled);
+  assert.ok(await p.locator('#opt-motion').isDisabled());
+  const reduced = await time();
+  await frame(p);
+  assert.equal(await time(), reduced, 'reduced motion stays still');
+  console.log('PASS: reduced motion');
+  await p.evaluate(() => {
+    window.testLoss = document
+      .querySelector('#hole')
+      .getContext('webgl2')
+      .getExtension('WEBGL_lose_context');
+    if (!window.testLoss) throw new Error('context loss test unavailable');
+    window.testLoss.loseContext();
+  });
+  await p.waitForFunction(() => document.documentElement.dataset.ready === 'fallback');
+  await p.click('#view-near');
+  await p.setViewportSize({ width: 1200, height: 780 });
+  await frame(p);
+  await p.evaluate(() => window.testLoss.restoreContext());
+  await p.waitForFunction(() => document.documentElement.dataset.ready === 'true');
+  await frame(p);
+  assert.ok(await p.locator('#fallback').isHidden());
+  assert.equal(await p.locator('#r-out').innerText(), '4.00');
+  const d = await diagnostic(p, [[0.5, 0.5]]);
+  assert.deepEqual(d.rgb[0], statusColor.captured, 'restored shader renders the current view');
+  await p.emulateMedia({ reducedMotion: 'no-preference' });
+  await p.waitForFunction(() => !document.querySelector('#opt-motion').disabled);
+  const resumed = await time();
+  await frame(p);
+  assert.ok((await time()) > resumed, 'leaving reduced motion resumes animation');
+  assert.deepEqual(errs, [], 'motion and context restore');
   await ctx.close();
 }
 await b.close();
 console.log(
-  'PASS browser: Schwarzschild exhibit — shader compiles, black shadow, approaching side brighter (and not when shift is off), disk toggle, drag / wheel / presets, 2D rays captured below the critical impact parameter; desktop and phone.',
+  'PASS browser: Schwarzschild — desktop/phone, analytic GPU shadow at 1.6–60 r_s, CPU/GPU disk crossings incl. 90°, far sky, frequency shift, controls, pause/reduced motion, WebGL unavailable/compile failure/context restore, 2D rays and layout.',
 );

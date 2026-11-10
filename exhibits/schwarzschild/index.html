@@ -9,8 +9,8 @@
     />
     <title>史瓦西黑洞 · 知序实验展品</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="./blackhole.css?v=1" />
-    <script type="module" src="./app.js?v=1"></script>
+    <link rel="stylesheet" href="./blackhole.css?v=2" />
+    <script type="module" src="./app.js?v=2"></script>
   </head>
   <body>
     <main class="exhibit">
@@ -24,11 +24,10 @@
           这台设备画不了三维画面（需要 WebGL2）。下面「光线怎么弯」的示意图仍然可以看。
         </p>
         <header class="title">
-          <p class="eyebrow">EXHIBIT 01 · SCHWARZSCHILD</p>
+          <p class="eyebrow">知序 · 第二研究室<br /><span>01 / SCHWARZSCHILD</span></p>
           <h1>史瓦西黑洞</h1>
-          <p class="lead">
-            不转、不带电的黑洞。画面里每个像素都是一条光线，按史瓦西度规一步步算出来的。
-          </p>
+          <p class="lead">光没有绕路。<br />它沿着弯曲的时空前行。</p>
+          <p class="live-state" id="motion-out">正在准备画面</p>
         </header>
         <dl class="readout" aria-label="当前观察位置">
           <div>
@@ -45,9 +44,13 @@
           </div>
         </dl>
         <div class="panel" role="group" aria-label="观察设置">
+          <div class="panel-heading">
+            <span>观察控制</span
+            ><button type="button" id="opt-motion" aria-pressed="false">暂停盘面</button>
+          </div>
           <label
             >距离
-            <input id="dist" type="range" step="0.01" aria-label="观察距离" />
+            <input id="dist" type="range" step="any" aria-label="观察距离" />
           </label>
           <label
             >倾角
@@ -73,10 +76,14 @@
           </div>
           <p class="hint">拖动改视角 · 滚轮或双指改距离</p>
         </div>
+        <p class="stage-caption">
+          不旋转 · 不带电<br /><span>r<sub>s</sub> = 2GM / c²</span>
+        </p>
       </section>
 
       <section class="notes" aria-labelledby="rays-title">
         <div class="rays-box">
+          <p class="section-kicker">01 / 跟随一束光</p>
           <h2 id="rays-title">光线怎么弯</h2>
           <p>
             从左边平行射来的一束光，离中心线的距离（瞄准距离
@@ -97,6 +104,7 @@
           </ul>
         </div>
         <div class="text">
+          <p class="section-kicker">02 / 读懂这片光</p>
           <h2>画面里在看什么</h2>
           <ul>
             <li>
@@ -108,7 +116,8 @@
               >：盘其实是平的，后面那部分发出的光绕过黑洞顶上才到你眼里。下方那道细弧是盘的背面，光从底下绕过来。
             </li>
             <li>
-              <b>贴着黑影的细亮环</b>是光子环：光在 1.5 r<sub>s</sub> 附近绕了一圈甚至几圈才飞出来。
+              <b>贴着黑影的细亮弧</b>是吸积盘的高阶像：越接近临界位置，光越可能在 1.5 r<sub>s</sub>
+              附近绕行，再来到眼前。这里的多条高阶像会逐渐逼近光子环。
             </li>
             <li>
               <b>一边亮一边暗</b
@@ -119,14 +128,12 @@
           <h2>用的方程</h2>
           <p class="formula">d²u/dφ² + u = (3/2) r<sub>s</sub> u² ， u = 1/r</p>
           <p>
-            这是史瓦西度规下光子轨道的方程。右边那一项是广义相对论多出来的，没有它光走直线。着色器里把它写成三维的形式
-            d²x/dλ² = −(3/2) r<sub>s</sub> h² x /
-            r⁵，对每个像素积分几百步。相机是静止在那个距离上的观察者；盘的亮度按 g⁴ 变化，g
-            是光到达时的频率比。
+            这是史瓦西度规下光子轨道的方程。右边那一项是广义相对论多出来的，没有它光走直线。画面在每条光线自己的轨道平面内做四阶积分，求到视界、盘面或无穷远。下方示意图用等价的三维加速度方程计算。相机是静止在那个距离上的观察者；盘的亮度按
+            g⁴ 变化，g 是光到达时的频率比。
           </p>
           <p class="small">
             盘内沿取在最内稳定圆轨道 3 r<sub>s</sub>，外沿 12
-            r<sub>s</sub>。盘是几何上无限薄、不透明的理想盘，颜色和纹理是示意；星空是随机生成的，不是真实星图。
+            r<sub>s</sub>。盘是几何上无限薄、不透明的理想盘；径向发光强度、色温、纹理和转动时间尺度是示意，转向与多普勒频移一致。星空是随机生成的，不是真实星图。距离改变时，视场也会调整以便观察。
           </p>
         </div>
       </section>

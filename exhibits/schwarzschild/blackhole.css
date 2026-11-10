@@ -7,10 +7,10 @@
 }
 :root {
   color-scheme: dark;
-  --ink: #e9e4d8;
-  --muted: #9aa3ab;
-  --line: #cfd6dc2e;
-  --warm: #ffe2a8;
+  --ink: #ece8de;
+  --muted: #929da7;
+  --line: #d7d0be29;
+  --warm: #e9c995;
 }
 * {
   box-sizing: border-box;
@@ -54,34 +54,56 @@ body {
 }
 .title {
   position: absolute;
-  top: 28px;
-  left: 32px;
-  max-width: 340px;
+  top: 36px;
+  left: 40px;
+  max-width: 360px;
   pointer-events: none;
 }
 .eyebrow {
   margin: 0;
   color: var(--muted);
   font-size: 11px;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.2em;
+  line-height: 2;
+}
+.eyebrow span {
+  font-size: 10px;
+  color: #c9b38c;
 }
 h1 {
-  margin: 6px 0 8px;
-  font-size: 34px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
+  margin: 16px 0 14px;
+  font-size: clamp(32px, 3.8vw, 52px);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
 }
 .lead {
   margin: 0;
   color: var(--muted);
   font-size: 13px;
+  line-height: 1.9;
+}
+.live-state {
+  margin-top: 22px;
+  font-size: 10px;
+  color: #a6acae;
+  letter-spacing: 0.08em;
+}
+.live-state::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  margin: 0 8px 2px 0;
+  border-radius: 50%;
+  background: var(--warm);
 }
 .readout {
   position: absolute;
-  top: 30px;
-  right: 32px;
+  top: 38px;
+  right: 40px;
   display: grid;
-  gap: 8px;
+  gap: 14px;
   margin: 0;
   text-align: right;
   pointer-events: none;
@@ -93,24 +115,44 @@ h1 {
 .readout dd {
   margin: 0;
   font-variant-numeric: tabular-nums;
+  color: #b6b4ad;
 }
 .readout b {
-  font-size: 20px;
-  font-weight: 500;
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--ink);
 }
 .panel {
   position: absolute;
-  left: 32px;
-  bottom: 28px;
+  left: 40px;
+  bottom: 32px;
   display: grid;
   gap: 10px;
   width: min(320px, calc(100% - 64px));
-  padding: 14px 16px;
+  padding: 16px 18px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #06080ccc;
-  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  background: linear-gradient(145deg, #14171bde, #080b10e8);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 16px 48px #0005;
   font-size: 12px;
+}
+.panel-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+  color: var(--warm);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+.panel-heading button {
+  border: 0;
+  background: transparent;
+  padding: 2px 0 2px 12px;
+  color: #c3c9cd;
+  font-size: 11px;
 }
 .panel > label {
   display: grid;
@@ -143,6 +185,30 @@ button:focus-visible {
   border-color: var(--warm);
   outline: none;
 }
+button[aria-pressed='true']:not(#opt-motion) {
+  color: #f0dbb6;
+  border-color: #d8bc8059;
+  background: #d8bc8012;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.stage-caption {
+  position: absolute;
+  bottom: 34px;
+  right: 40px;
+  margin: 0;
+  text-align: right;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  pointer-events: none;
+}
+.stage-caption span {
+  font-size: 13px;
+  color: #c4beb0;
+}
 .toggles label {
   display: flex;
   align-items: center;
@@ -159,7 +225,8 @@ button:focus-visible {
   gap: 40px;
   max-width: 1180px;
   margin: 0 auto;
-  padding: 56px 32px 24px;
+  padding: 72px 32px 24px;
+  border-top: 1px solid var(--line);
 }
 h2 {
   margin: 0 0 10px;
@@ -172,6 +239,12 @@ h2 {
 .notes p,
 .notes li {
   color: #c9c5bb;
+}
+.notes .section-kicker {
+  margin: 0 0 14px;
+  color: #b9a582;
+  font-size: 10px;
+  letter-spacing: 0.14em;
 }
 .text ul {
   margin: 0;
@@ -257,10 +330,11 @@ h2 {
   .title {
     top: 18px;
     left: 18px;
-    max-width: 62%;
+    max-width: calc(100% - 165px);
   }
   h1 {
     font-size: 26px;
+    margin-top: 10px;
   }
   .lead {
     display: none;
@@ -268,6 +342,8 @@ h2 {
   .readout {
     top: 18px;
     right: 18px;
+    max-width: 125px;
+    gap: 10px;
   }
   .readout b {
     font-size: 16px;
@@ -277,6 +353,20 @@ h2 {
     bottom: 12px;
     width: calc(100% - 24px);
   }
+  .eyebrow {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+  }
+  .eyebrow span {
+    font-size: 8px;
+  }
+  .live-state {
+    margin-top: 12px;
+    font-size: 9px;
+  }
+  .stage-caption {
+    display: none;
+  }
   .notes {
     grid-template-columns: 1fr;
     gap: 28px;
@@ -284,5 +374,21 @@ h2 {
   }
   .foot {
     padding: 20px 18px 32px;
+  }
+}
+@media (max-height: 580px) and (min-width: 821px) {
+  .lead,
+  .live-state {
+    display: none;
+  }
+  .title {
+    top: 18px;
+  }
+  h1 {
+    font-size: 30px;
+    margin-top: 8px;
+  }
+  .panel {
+    bottom: 14px;
   }
 }
