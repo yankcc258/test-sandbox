@@ -1,0 +1,288 @@
+/* 史瓦西黑洞展品（露娜）。朴素的深色页面：上面是画面，下面是示意图和说明。 */
+@font-face {
+  font-family: Inter;
+  src: url('../../assets/fonts/inter-latin-wght.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+:root {
+  color-scheme: dark;
+  --ink: #e9e4d8;
+  --muted: #9aa3ab;
+  --line: #cfd6dc2e;
+  --warm: #ffe2a8;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: #000;
+  color: var(--ink);
+  font:
+    14px/1.75 Inter,
+    'PingFang SC',
+    'Microsoft YaHei',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.stage {
+  position: relative;
+  height: 100svh;
+  min-height: 520px;
+  overflow: hidden;
+}
+#hole {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+  outline: none;
+}
+#hole.dragging {
+  cursor: grabbing;
+}
+#hole:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--warm);
+}
+.fallback {
+  position: absolute;
+  inset: 40% 12% auto;
+  text-align: center;
+  color: var(--muted);
+}
+.title {
+  position: absolute;
+  top: 28px;
+  left: 32px;
+  max-width: 340px;
+  pointer-events: none;
+}
+.eyebrow {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+}
+h1 {
+  margin: 6px 0 8px;
+  font-size: 34px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+.lead {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.readout {
+  position: absolute;
+  top: 30px;
+  right: 32px;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  text-align: right;
+  pointer-events: none;
+}
+.readout dt {
+  color: var(--muted);
+  font-size: 11px;
+}
+.readout dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.readout b {
+  font-size: 20px;
+  font-weight: 500;
+}
+.panel {
+  position: absolute;
+  left: 32px;
+  bottom: 28px;
+  display: grid;
+  gap: 10px;
+  width: min(320px, calc(100% - 64px));
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #06080ccc;
+  backdrop-filter: blur(8px);
+  font-size: 12px;
+}
+.panel > label {
+  display: grid;
+  grid-template-columns: 3em 1fr;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+}
+input[type='range'] {
+  width: 100%;
+  accent-color: var(--warm);
+}
+.views,
+.toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+button {
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #0d1118;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+button:hover,
+button:focus-visible {
+  border-color: var(--warm);
+  outline: none;
+}
+.toggles label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.notes {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 40px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 56px 32px 24px;
+}
+h2 {
+  margin: 0 0 10px;
+  font-size: 18px;
+  font-weight: 500;
+}
+.text h2:not(:first-child) {
+  margin-top: 28px;
+}
+.notes p,
+.notes li {
+  color: #c9c5bb;
+}
+.text ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.text li {
+  margin: 8px 0;
+}
+.text b {
+  color: var(--ink);
+}
+#rays {
+  display: block;
+  width: 100%;
+  height: 300px;
+  margin: 12px 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #05070b;
+}
+.b-pick {
+  display: grid;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.b-result {
+  min-height: 1.75em;
+  margin: 8px 0;
+  color: var(--warm) !important;
+}
+.legend {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+.legend i {
+  display: inline-block;
+  width: 18px;
+  height: 0;
+  margin-right: 8px;
+  vertical-align: middle;
+  border-top: 2px solid #cfd6dc;
+}
+.legend .k-photon {
+  border-top: 2px dashed #8fd0ff;
+}
+.legend .k-crit {
+  border-top: 2px dotted #ffe2a8;
+}
+.formula {
+  padding: 10px 14px;
+  border-left: 2px solid var(--warm);
+  background: #0b0e14;
+  color: var(--ink) !important;
+  font-size: 16px;
+}
+.small {
+  font-size: 12px;
+  color: var(--muted) !important;
+}
+.foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 32px 40px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.foot a {
+  color: var(--ink);
+  text-decoration: none;
+}
+.foot a:hover,
+.foot a:focus-visible {
+  color: var(--warm);
+}
+@media (max-width: 820px) {
+  .title {
+    top: 18px;
+    left: 18px;
+    max-width: 62%;
+  }
+  h1 {
+    font-size: 26px;
+  }
+  .lead {
+    display: none;
+  }
+  .readout {
+    top: 18px;
+    right: 18px;
+  }
+  .readout b {
+    font-size: 16px;
+  }
+  .panel {
+    left: 12px;
+    bottom: 12px;
+    width: calc(100% - 24px);
+  }
+  .notes {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    padding: 36px 18px 16px;
+  }
+  .foot {
+    padding: 20px 18px 32px;
+  }
+}

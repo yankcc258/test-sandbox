@@ -4,19 +4,20 @@
 
 知序的视觉与交互试验场。只有示例数据和课程快照，不连接正式站的账号、接口或学习记录；部分成果已接入正式站，但这里不是正式站的副本。
 
-**当前重点**：知序 **v3.0.0 已上线**。Yank 先试用几天收集问题，这期间不加新功能。之后的顺序：①希可按要求生成科目和模型（露娜）；②有机化学的分子积木（特蕾莎，先在沙盒做，可并行）；③新奇想法网站（以后，过渡做成「从实验室走到另一个科室的实验室」）。详见[唯一计划和进度表](https://github.com/yankcc258/yank-study-lab/blob/main/docs/v3-plan.md)（PR [yankcc258/yank-study-lab#103](https://github.com/yankcc258/yank-study-lab/pull/103) 合并前先看 PR 里的文件）。学习区 v40 已冻结，以后直接在正式站改。
+**当前重点**（2026-11-11）：知序正式站在做「复习做实」（错题本、笔记卡片、今日复习、备考），学习区已收起、不再加新课。沙盒这边开始做**新奇想法网站**——Yank 说的「第二个研究科室」，专门放好看、好玩、物理上是真的东西。第一件展品是[史瓦西黑洞](exhibits/schwarzschild/)的样稿（露娜做，**请特蕾莎审**，见[说明和审阅清单](docs/exhibits/schwarzschild.md)）。计划见[唯一计划和进度表](https://github.com/yankcc258/yank-study-lab/blob/main/docs/v3-plan.md)。学习区 v40 已冻结。
 
 ## 三个区域
 
 知序像一栋楼：2F 工作台、1F 实验室、B1 复习区，区域之间坐同一条竖井。
 
-| 区域           | 入口                                                       | 代码                     | 说明                                   |
-| -------------- | ---------------------------------------------------------- | ------------------------ | -------------------------------------- |
-| 1F 实验室      | [laboratory/](laboratory/?v=40)                            | `laboratory/`            | [docs/laboratory/](docs/laboratory/)   |
-| B1 复习区      | [recall.html](recall.html?i=1&workbench=1)                 | `recall.html`、`recall/` | [docs/recall/](docs/recall/)           |
-| 2F 工作台      | [workstation/](workstation/)                               | `workstation/`           | [docs/workstation/](docs/workstation/) |
-| 星空           | [preview/starfield/](preview/starfield/?from=catalog&v=29) | `preview/starfield/`     | [docs/starfield/](docs/starfield/)     |
-| 小样与历史原型 | [preview/](preview/)                                       | `preview/`               | [docs/history/](docs/history/)         |
+| 区域           | 入口                                                       | 代码                     | 说明                                             |
+| -------------- | ---------------------------------------------------------- | ------------------------ | ------------------------------------------------ |
+| 1F 实验室      | [laboratory/](laboratory/?v=40)                            | `laboratory/`            | [docs/laboratory/](docs/laboratory/)             |
+| B1 复习区      | [recall.html](recall.html?i=1&workbench=1)                 | `recall.html`、`recall/` | [docs/recall/](docs/recall/)                     |
+| 2F 工作台      | [workstation/](workstation/)                               | `workstation/`           | [docs/workstation/](docs/workstation/)           |
+| 星空           | [preview/starfield/](preview/starfield/?from=catalog&v=29) | `preview/starfield/`     | [docs/starfield/](docs/starfield/)               |
+| 实验展品       | [exhibits/schwarzschild/](exhibits/schwarzschild/)         | `exhibits/`              | [docs/exhibits/](docs/exhibits/schwarzschild.md) |
+| 小样与历史原型 | [preview/](preview/)                                       | `preview/`               | [docs/history/](docs/history/)                   |
 
 ## 接手先读
 
@@ -27,6 +28,7 @@
 | 实验室的方向讨论                 | [学科空间与流星组装讨论稿](docs/laboratory/laboratory-proposal.md) · [流星组装小样](docs/laboratory/meteor-assembly.md)                               |
 | 复习区                           | [七个系统的解剖与信号](docs/recall/spine-anatomy.md) · [记忆生命体设定](docs/recall/living-specimen.md)                                               |
 | 工作台                           | [工作台范本](docs/workstation/workstation-prototype.md) · [竖井、纸飞机与平板](docs/workstation/region-motion.md) · [希可](docs/workstation/seeko.md) |
+| 新奇想法网站的展品（史瓦西黑洞） | [展品 01 说明和审阅清单](docs/exhibits/schwarzschild.md)                                                                                              |
 | 以前每一版改了什么               | [更新记录 v23–v36](docs/history/changelog.md) · [v17 之前](docs/history/review-sandbox-v17.md)                                                        |
 
 协作方式：直接在 `main` 上迭代，推送前先同步远端，保留别人的并行修改。改了别人负责的文件，在对应交接里写一句改了什么。
@@ -74,6 +76,7 @@ npm run check
 - `check:laboratory`：数学几何、运动与流程状态，包含 17 章快照、85 题判题、章节隔离、目录状态、组装与五个数学观察对象检查；v35 补查沿环到入口、按到达时间分派、落位展开与同章参数增减。本轮完整检查与浏览器验证已通过，结果见 [v35 验证记录](docs/laboratory/laboratory-observation.md#validation-v35)，历史通过记录不代替本轮验收。
 - `check:pulse`、`check:experience`、`check:terminal`：已有脊柱交互与几何检查；`check-anatomy` 是复习区七个系统的解剖读数。
 - `check-specimen-kit`（在 `check:laboratory` 里）：标本积木的公式解析器，配方在滑杆全范围可生成，并用原题答案核对。
+- `check:exhibits`：史瓦西黑洞展品的光线方程——弱场偏折角、临界瞄准距离、光子球、角动量守恒、静止观察者的阴影角、吸积盘的频移，以及着色器和 JS 用的是同一套公式。画面那一半用 `scripts/check-schwarzschild-browser.mjs`（要浏览器）。
 - `check:docs`：所有 Markdown 和 HTML 里的相对链接、图片都指向真实存在的文件；挪动文件以后跑一遍就知道哪里断了。
 - `scripts/smoke/` 是早期调试脚本，部分断言过时，不作为当前验收结论。
 
