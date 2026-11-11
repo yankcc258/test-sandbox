@@ -13,7 +13,9 @@ out vec4 color;
 uniform vec3 u_cam, u_right, u_up, u_fwd;
 uniform vec2 u_tan, u_res;
 uniform float u_time, u_rin, u_rout, u_disk, u_shift, u_stars;
-uniform int u_aa, u_debug;
+uniform int u_aa, u_debug, u_probe;
+uniform vec3 u_beta;
+uniform float u_gamma;
 const float PI = 3.141592653589793;
 const float ORBIT_STEP = ${ORBIT_STEP};
 const int MAX_STEPS = ${ORBIT_MAX_STEPS};
@@ -84,10 +86,10 @@ vec3 blackbody(float T) {
   return vec3(r, g, b);
 }
 // 无限薄、光学厚的示意盘：首次与盘相交即停止追踪，避免透过盘叠出伪像。
-vec3 disk(vec3 pos, float lz, float obs) {
+vec3 disk(vec3 pos, float ly, float energy) {
   float r = length(pos.xz);
   float omega = sqrt(0.5 / (r * r * r));
-  float g = sqrt(1.0 - 1.5 / r) / (1.0 - omega * lz) / obs;
+  float g = sqrt(1.0 - 1.5 / r) / (energy - omega * ly);
   g = mix(1.0, g, u_shift);
   float flux = (1.0 - sqrt(u_rin / r)) / (r * r * r);
   float peak = u_rin * 49.0 / 36.0;
@@ -115,18 +117,51 @@ vec3 disk(vec3 pos, float lz, float obs) {
 vec3 directionAt(vec3 radial, vec3 tangent, float phi) {
   return cos(phi) * radial + sin(phi) * tangent;
 }
+// 以相机接收频率为 1。运动相机先转到视界规则的 PG 自由落体正交标架。
+void photon(vec3 n, out vec3 transverse, out float kr, out float energy, out float ly) {
+  float r0 = length(u_cam);
+  vec3 radial = u_cam / r0;
+  if (u_probe == 1) {
+    float bn = dot(u_beta, n), b2 = dot(u_beta, u_beta);
+    float kt = u_gamma * (-1.0 + bn);
+    float factor = b2 > 1e-12 ? (u_gamma - 1.0) * bn / b2 - u_gamma : 0.0;
+    vec3 spatial = n + factor * u_beta;
+    float sr = dot(spatial, radial), flow = sqrt(1.0 / r0);
+    transverse = spatial - sr * radial;
+    kr = sr - flow * kt;
+    energy = -kt + flow * sr;
+    ly = -cross(u_cam, spatial).y;
+  } else {
+    float obs = sqrt(1.0 - 1.0 / r0), nr = dot(n, radial);
+    transverse = n - nr * radial;
+    kr = nr * obs;
+    energy = obs;
+    ly = -cross(u_cam, n).y;
+  }
+}
+vec3 sky(vec3 direction, float energy) {
+  float g = u_probe == 1 && u_shift > 0.5 ? 1.0 / max(energy, 1e-6) : 1.0;
+  // 合成星空的色温是示意；光行差、频率比及 g⁴ 能量变化来自相机标架。
+  return u_stars * stars(direction) * blackbody(6500.0 * g) * pow(g, 4.0);
+}
 // alpha 保存终点类别用于检查：0 视界，1 无穷远，2 盘面，3 未收敛。
 vec4 trace(vec2 q) {
   vec3 n = normalize(u_fwd + q.x * u_tan.x * u_right + q.y * u_tan.y * u_up);
-  float r0 = length(u_cam), obs = sqrt(1.0 - 1.0 / r0);
+  float r0 = length(u_cam);
   vec3 radial = u_cam / r0;
-  float nr = dot(n, radial);
-  vec3 transverse = n - nr * radial;
+  vec3 transverse;
+  float kr, energy, ly;
+  photon(n, transverse, kr, energy, ly);
+  // 非正 Killing 能量不可能连接到本模型的外部恒星 / 盘面光源。
+  if (energy <= 0.0) return vec4(0.0);
   float nt = length(transverse);
-  if (nt < 1e-7) return nr < 0.0 ? vec4(0.0) : vec4(u_stars * stars(n), 1.0);
+  // 光子球内，超过临界冲量的轨道无法连接到 r≥3 的盘或无穷远。
+  // 用有效势的解析障碍判定，避免极小 Killing 能量的轨道在视界附近数值往返。
+  if (r0 <= 1.5 && r0 * nt > 2.598076211 * energy) return vec4(0.0);
+  if (nt < 1e-7) return kr < 0.0 ? vec4(0.0) : vec4(sky(radial, energy), 1.0);
   vec3 tangent = transverse / nt;
-  vec2 s = vec2(1.0 / r0, -nr * obs / (r0 * nt));
-  float lz = -cross(u_cam, n).y / obs;
+  vec2 s = vec2(1.0 / r0, -kr / (r0 * nt));
+  bool exterior = r0 >= 1.0;
   float phi = 0.0;
   float crossing = atan(-radial.y, tangent.y);
   if (crossing <= 1e-7) crossing += PI;
@@ -134,12 +169,13 @@ vec4 trace(vec2 q) {
   if (u_disk < 0.5 || length(vec2(radial.y, tangent.y)) < 1e-6) crossing = 1e6;
   for (int i = 0; i < MAX_STEPS; i++) {
     // 准确走到赤道面，再判断半径是否在盘内；不因接近盘面而无限缩步。
-    float h = min(ORBIT_STEP, crossing - phi);
+    float h = min(ORBIT_STEP / max(1.0, s.x), crossing - phi);
     vec2 next = orbitStep(s, h);
-    if (next.x >= 1.0) return vec4(0.0);
+    if (exterior && next.x >= 1.0) return vec4(0.0);
+    if (next.x < 1.0) exterior = true;
     if (next.x <= 0.0) {
       float end = phi + escapeStep(s, h);
-      return vec4(u_stars * stars(directionAt(radial, tangent, end)), 1.0);
+      return vec4(sky(directionAt(radial, tangent, end), energy), 1.0);
     }
     phi += h;
     s = next;
@@ -147,7 +183,7 @@ vec4 trace(vec2 q) {
       float r = 1.0 / s.x;
       if (r >= u_rin && r <= u_rout) {
         vec3 hit = r * directionAt(radial, tangent, phi);
-        return vec4(disk(hit, lz, obs), 2.0);
+        return vec4(disk(hit, ly, energy), 2.0);
       }
       crossing += PI;
     }
@@ -164,8 +200,10 @@ void main() {
   vec3 col = vec3(0.0);
   vec2 px = 2.0 / u_res;
   // 临界曲线附近单独加密到 4×4：空间积分保住细环，不用发光描边改变阴影。
-  float r0 = length(u_cam), slope = length(uv * u_tan);
-  float impact = r0 * slope / sqrt(1.0 + slope * slope) / sqrt(1.0 - 1.0 / r0);
+  vec3 transverse;
+  float kr, energy, ly;
+  photon(normalize(u_fwd + uv.x * u_tan.x * u_right + uv.y * u_tan.y * u_up), transverse, kr, energy, ly);
+  float impact = length(u_cam) * length(transverse) / max(energy, 1e-5);
   int samples = abs(impact - 2.598076211) < 2.0 * max(fwidth(impact), 1e-5) ? 4 : u_aa;
   for (int i = 0; i < samples; i++)
     for (int j = 0; j < samples; j++)
@@ -173,6 +211,8 @@ void main() {
   col /= float(samples * samples);
   // 只按亮度压缩，保留频移带来的色差；不在阴影上叠光晕。
   float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
-  col *= (1.0 - exp(-lum * 1.05)) / max(lum, 1e-4);
+  // 相机自动缩短曝光，保留靠近时被蓝移增亮的盘面层次；频率比不受影响。
+  float exposure = u_probe == 1 ? 1.05 / (1.0 + 12.0 / dot(u_cam, u_cam)) : 1.05;
+  col *= (1.0 - exp(-lum * exposure)) / max(lum, 1e-4);
   color = vec4(pow(clamp(col, 0.0, 1.0), vec3(1.0 / 2.2)), 1.0);
 }`;

@@ -1,6 +1,9 @@
 // 史瓦西黑洞展品的页面逻辑（露娜）：WebGL 画面、拖动 / 缩放、读数，以及下面那张「光线怎么弯」的二维示意图。
 // geodesic.js 是笛卡尔参考积分；orbit.js / shader.js 用等价的轨道平面方程。
-import { VERTEX, FRAGMENT } from './shader.js?v=2';
+import { VERTEX, FRAGMENT } from './shader.js?v=3';
+import { initMission } from './mission.js?v=1';
+import { buildFlight, flightCamera, FLIGHT_MASS } from './flight.js?v=1';
+import { scales } from './infall.js?v=1';
 import {
   RS,
   PHOTON_SPHERE,
@@ -21,8 +24,14 @@ const deg = (x) => (x * 180) / Math.PI;
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 
 // ---------- 观察状态 ----------
+// 独立的二维实验不依赖 WebGL，主画面降级时也能运行。
+initMission(document.getElementById('infall'));
 const HOME = { r: 22, incl: (80 * Math.PI) / 180, az: 0.6 };
 const view = { ...HOME, disk: true, shift: true, stars: true };
+const flight = { active: false, running: false, progress: 0, yaw: 0, pitch: 0, half: 0.85 };
+const trajectory = buildFlight();
+const flightFrame = () => flightCamera(trajectory, flight.progress, flight.yaw, flight.pitch);
+const flightLocked = () => reduceMotion || params.get('motion') === '0';
 const R_MIN = 1.6,
   R_MAX = 60,
   R_IN = ISCO,
@@ -38,6 +47,7 @@ const gl = (() => {
   }
 })();
 let rendererState = 'loading';
+let stageVisible = true;
 let program = null,
   uniforms = {},
   dirty = true,
@@ -86,6 +96,9 @@ function setup() {
     'u_aa',
     'u_debug',
     'u_res',
+    'u_probe',
+    'u_beta',
+    'u_gamma',
   ])
     uniforms[name] = gl.getUniformLocation(program, name);
 }
@@ -114,7 +127,7 @@ function draw(time, diagnostic = false) {
   resize();
   const { r, incl, az } = view;
   // 盘的轴是 +y；incl 是视线和轴的夹角（90° = 正侧面）
-  const cam = [
+  let cam = [
       r * Math.sin(incl) * Math.cos(az),
       r * Math.cos(incl),
       r * Math.sin(incl) * Math.sin(az),
@@ -122,8 +135,10 @@ function draw(time, diagnostic = false) {
     fwd = norm(cam.map((x) => -x)),
     right = norm(cross(fwd, [0, 1, 0])),
     up = cross(right, fwd);
+  const probe = flight.active ? flightFrame() : null;
+  if (probe) ({ cam, fwd, right, up } = probe);
   // 视场：短边上能看到整个盘的外沿（离得近时最多放到 100°）
-  const half = clamp(Math.atan((R_OUT * 1.35) / r), 0.42, 0.87),
+  const half = flight.active ? flight.half : clamp(Math.atan((R_OUT * 1.35) / r), 0.42, 0.87),
     aspect = canvas.width / canvas.height,
     tanV = aspect >= 1 ? Math.tan(half) : Math.tan(half) / aspect,
     tanH = tanV * aspect;
@@ -131,6 +146,9 @@ function draw(time, diagnostic = false) {
   gl.uniform3fv(uniforms.u_right, right);
   gl.uniform3fv(uniforms.u_up, up);
   gl.uniform3fv(uniforms.u_fwd, fwd);
+  gl.uniform1i(uniforms.u_probe, flight.active ? 1 : 0);
+  gl.uniform3fv(uniforms.u_beta, probe ? probe.beta : [0, 0, 0]);
+  gl.uniform1f(uniforms.u_gamma, probe ? probe.gamma : 1);
   gl.uniform2f(uniforms.u_tan, tanH, tanV);
   gl.uniform1f(uniforms.u_time, time);
   gl.uniform1f(uniforms.u_rin, R_IN);
@@ -147,12 +165,18 @@ let last = 0,
   clock = 0;
 function tick(now) {
   frame = 0;
-  if (document.hidden || rendererState !== 'ready') return;
+  if (document.hidden || !stageVisible || rendererState !== 'ready') return;
   const dt = last ? Math.min((now - last) / 1000, 0.1) : 0;
   last = now;
-  const moving = !still() && view.disk; // 盘在转 → 一直画；否则只在有变化时画
+  const flying = flight.active && flight.running && !flightLocked();
+  if (flying) {
+    flight.progress = Math.min(1, flight.progress + dt / 50);
+    if (flight.progress === 1) flight.running = false;
+    readout();
+  }
+  const moving = (!still() && view.disk) || flying;
   if (!moving) aa = 2;
-  if (moving) clock += dt;
+  if (!still() && view.disk) clock += dt;
   if (moving || dirty) {
     draw(clock);
     dirty = false;
@@ -179,7 +203,8 @@ function tick(now) {
 function invalidate() {
   dirty = true;
   readout();
-  if (rendererState === 'ready' && !frame && !document.hidden) frame = requestAnimationFrame(tick);
+  if (rendererState === 'ready' && !frame && !document.hidden && stageVisible)
+    frame = requestAnimationFrame(tick);
 }
 
 // 检查用：马上画一帧，读出几个点的颜色（坐标是画布上的比例，左上角为 0,0）。scripts 里的浏览器检查靠它看画面对不对。
@@ -213,6 +238,45 @@ function readout() {
   canvas.dataset.r = view.r.toFixed(3);
   canvas.dataset.incl = view.incl.toFixed(3);
   canvas.dataset.az = view.az.toFixed(3);
+  canvas.dataset.flight = String(flight.active);
+  canvas.dataset.progress = String(flight.progress);
+  canvas.dataset.flying = String(flight.running);
+  $('r-label').textContent = flight.active ? '探测器坐标半径' : '观察距离';
+  $('incl-label').textContent = flight.active ? '累计绕行' : '视线与盘轴的夹角';
+  $('incl-unit').textContent = flight.active ? ' 圈' : '°';
+  $('shadow-label').textContent = flight.active ? '船上已过时间' : '阴影的视直径';
+  $('shadow-unit').textContent = flight.active ? ' 分' : '°';
+  $('flight-enter').disabled = rendererState !== 'ready';
+  $('flight-play').disabled = flightLocked() || rendererState !== 'ready';
+  $('flight-play').textContent = flightLocked()
+    ? '拖动进度体验'
+    : flight.running
+      ? '暂停航行'
+      : flight.progress === 1
+        ? '再次航行'
+        : '开始航行';
+  $('flight-play').setAttribute('aria-pressed', String(flight.running));
+  if (flight.active) {
+    const s = flightFrame();
+    $('r-out').textContent = s.r.toFixed(3);
+    $('incl-out').textContent = (s.phi / (2 * Math.PI)).toFixed(2);
+    $('shadow-out').textContent = ((s.tau * scales(FLIGHT_MASS).time) / 60).toFixed(2);
+    canvas.dataset.r = String(s.r);
+    $('flight-progress').value = String(flight.progress);
+    $('flight-percent').textContent = Math.round(flight.progress * 100) + '%';
+    $('flight-phase').textContent =
+      flight.progress === 1
+        ? '航程终点 · 未到奇点'
+        : Math.abs(s.r - 1) < 1e-4
+          ? '穿过事件视界'
+          : s.r < 1
+            ? '视界内 · 外部光仍可抵达'
+            : s.r < 1.7
+              ? '向视界坠落'
+              : s.r < 3
+                ? '绕行 · 最后的弯道'
+                : '接近黑洞';
+  }
   const locked = reduceMotion || params.get('motion') === '0';
   $('opt-motion').disabled = locked || rendererState !== 'ready';
   $('opt-motion').textContent = locked ? '静态观察' : paused ? '继续转动' : '暂停盘面';
@@ -220,9 +284,11 @@ function readout() {
   $('motion-out').textContent =
     rendererState !== 'ready'
       ? '二维示意可用'
-      : !still() && view.disk
-        ? '光线追踪 · 盘面转动中'
-        : '光线追踪 · 静态观察';
+      : flight.active
+        ? '探测器第一视角 · ' + (flight.running ? '航行中' : '已暂停')
+        : !still() && view.disk
+          ? '光线追踪 · 盘面转动中'
+          : '光线追踪 · 静态观察';
   const presets = {
     home: HOME,
     side: { r: 22, incl: Math.PI / 2 },
@@ -237,12 +303,73 @@ function readout() {
   }
 }
 function setView(patch) {
+  if (flight.active) {
+    if (patch.az !== undefined) flight.yaw += patch.az - view.az;
+    if (patch.incl !== undefined)
+      flight.pitch = clamp(flight.pitch + view.incl - patch.incl, -1.35, 1.35);
+    if (patch.r !== undefined) flight.half = clamp((flight.half * patch.r) / view.r, 0.35, 1.1);
+    invalidate();
+    return;
+  }
   Object.assign(view, patch);
   view.r = clamp(view.r, R_MIN, R_MAX);
   view.incl = clamp(view.incl, 0.06, Math.PI - 0.06);
   invalidate();
 }
 function bindControls() {
+  const toggleFlight = (active) => {
+    flight.active = active;
+    flight.running = active && !flightLocked();
+    $('static-controls').hidden = active;
+    $('flight-enter').hidden = active;
+    $('flight-controls').hidden = !active;
+    $('flight-hud').hidden = !active;
+    document.querySelector('.panel').classList.remove('compact');
+    $('flight-hud').textContent = '收起面板';
+    $('flight-hud').setAttribute('aria-expanded', 'true');
+    $('flight-explanation').hidden = !active;
+    document.querySelector('.stage').classList.toggle('in-flight', active);
+    $('view-hint').textContent = active
+      ? '拖动转头 · 滚轮或双指调视野'
+      : '拖动改视角 · 滚轮或双指改距离';
+    canvas.setAttribute(
+      'aria-label',
+      active
+        ? '探测器第一视角；拖动或方向键转头，滚轮、双指或加减号调视野，Home 回正'
+        : '黑洞的实时画面；拖动改变视角，滚轮或双指改变距离，方向键和加减号也可以',
+    );
+    last = 0;
+    invalidate();
+  };
+  const seekFlight = (p) => {
+    flight.progress = p;
+    flight.running = false;
+    last = 0;
+    invalidate();
+  };
+  $('flight-enter').onclick = () => toggleFlight(true);
+  $('flight-hud').onclick = () => {
+    const compact = document.querySelector('.panel').classList.toggle('compact');
+    $('flight-hud').textContent = compact ? '展开面板' : '收起面板';
+    $('flight-hud').setAttribute('aria-expanded', String(!compact));
+  };
+  $('flight-exit').onclick = () => toggleFlight(false);
+  $('flight-progress').oninput = (e) => seekFlight(Number(e.target.value));
+  $('flight-restart').onclick = () => {
+    flight.yaw = flight.pitch = 0;
+    flight.half = 0.85;
+    seekFlight(0);
+  };
+  $('flight-play').onclick = () => {
+    if (flightLocked()) return;
+    if (flight.progress === 1) flight.progress = 0;
+    flight.running = !flight.running;
+    last = 0;
+    invalidate();
+  };
+  $('flight-orbit').onclick = () => seekFlight(0.52);
+  $('flight-horizon').onclick = () => seekFlight(0.88);
+  $('flight-inside').onclick = () => seekFlight(0.96);
   const pointers = new Map();
   let pinch = 0;
   const spread = () => {
@@ -295,7 +422,13 @@ function bindControls() {
       '+': () => setView({ r: view.r * 0.88 }),
       '=': () => setView({ r: view.r * 0.88 }),
       '-': () => setView({ r: view.r * 1.14 }),
-      Home: () => setView({ ...HOME }),
+      Home: () => {
+        if (flight.active) {
+          flight.yaw = flight.pitch = 0;
+          flight.half = 0.85;
+          invalidate();
+        } else setView({ ...HOME });
+      },
     }[e.key];
     if (act) {
       e.preventDefault();
@@ -401,6 +534,7 @@ $('b').oninput = (e) => {
 // ---------- 启动 / 上下文丢失 / 降级 ----------
 function fallback(message, state = 'unavailable') {
   rendererState = state;
+  flight.running = false;
   cancelAnimationFrame(frame);
   frame = 0;
   last = 0;
@@ -431,6 +565,19 @@ function start() {
     drawRays();
     invalidate();
   }).observe(document.body);
+  new IntersectionObserver(
+    ([entry]) => {
+      stageVisible = entry.intersectionRatio >= 0.001;
+      if (!stageVisible) {
+        cancelAnimationFrame(frame);
+        frame = 0;
+        last = 0;
+        flight.running = false;
+        readout();
+      } else invalidate();
+    },
+    { threshold: 0.001 },
+  ).observe(canvas);
   if (!gl) {
     fallback('这台设备画不了三维画面（需要 WebGL2）。下面「光线怎么弯」的示意图仍然可以使用。');
     return;
@@ -442,11 +589,16 @@ function start() {
   canvas.addEventListener('webglcontextrestored', restoreRenderer);
   reduced.addEventListener('change', (event) => {
     reduceMotion = event.matches;
+    if (reduceMotion) flight.running = false;
     last = 0;
     invalidate();
   });
   document.addEventListener('visibilitychange', () => {
     last = 0;
+    if (document.hidden) {
+      flight.running = false;
+      readout();
+    }
     if (!document.hidden) invalidate();
   });
   restoreRenderer();

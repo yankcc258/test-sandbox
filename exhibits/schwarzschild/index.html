@@ -9,8 +9,8 @@
     />
     <title>史瓦西黑洞 · 知序实验展品</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="./blackhole.css?v=2" />
-    <script type="module" src="./app.js?v=3"></script>
+    <link rel="stylesheet" href="./blackhole.css?v=5" />
+    <script type="module" src="./app.js?v=5"></script>
   </head>
   <body>
     <main class="exhibit">
@@ -31,54 +31,211 @@
         </header>
         <dl class="readout" aria-label="当前观察位置">
           <div>
-            <dt>观察距离</dt>
+            <dt id="r-label">观察距离</dt>
             <dd><b id="r-out">22.0</b> r<sub>s</sub></dd>
           </div>
           <div>
-            <dt>视线与盘轴的夹角</dt>
-            <dd><b id="incl-out">80</b>°</dd>
+            <dt id="incl-label">视线与盘轴的夹角</dt>
+            <dd><b id="incl-out">80</b><span id="incl-unit">°</span></dd>
           </div>
           <div>
-            <dt>阴影的视直径</dt>
-            <dd><b id="shadow-out">—</b>°</dd>
+            <dt id="shadow-label">阴影的视直径</dt>
+            <dd><b id="shadow-out">—</b><span id="shadow-unit">°</span></dd>
           </div>
         </dl>
         <div class="panel" role="group" aria-label="观察设置">
           <div class="panel-heading">
             <span>观察控制</span
             ><button type="button" id="opt-motion" aria-pressed="false">暂停盘面</button>
+            <button type="button" id="flight-hud" aria-expanded="true" hidden>收起面板</button>
           </div>
-          <label
-            >距离
-            <input id="dist" type="range" step="any" aria-label="观察距离" />
-          </label>
-          <label
-            >倾角
-            <input
-              id="incl"
-              type="range"
-              min="4"
-              max="176"
-              step="1"
-              aria-label="视线与盘轴的夹角"
-            />
-          </label>
-          <div class="views">
-            <button type="button" id="view-home">默认</button>
-            <button type="button" id="view-side">正侧面</button>
-            <button type="button" id="view-top">俯视</button>
-            <button type="button" id="view-near">贴近</button>
+          <div id="static-controls">
+            <label
+              >距离
+              <input id="dist" type="range" step="any" aria-label="观察距离" />
+            </label>
+            <label
+              >倾角
+              <input
+                id="incl"
+                type="range"
+                min="4"
+                max="176"
+                step="1"
+                aria-label="视线与盘轴的夹角"
+              />
+            </label>
+            <div class="views">
+              <button type="button" id="view-home">默认</button>
+              <button type="button" id="view-side">正侧面</button>
+              <button type="button" id="view-top">俯视</button>
+              <button type="button" id="view-near">贴近</button>
+            </div>
+          </div>
+          <button class="flight-enter" id="flight-enter" type="button">
+            搭乘探测器，坠入黑洞 <span>↗</span>
+          </button>
+          <div id="flight-controls" hidden>
+            <div class="flight-status">
+              <span id="flight-phase">接近黑洞</span><b id="flight-percent">0%</b>
+            </div>
+            <label class="flight-scrub" for="flight-progress"
+              >航行进度<input
+                id="flight-progress"
+                type="range"
+                min="0"
+                max="1"
+                step="0.0001"
+                value="0"
+            /></label>
+            <div class="views">
+              <button id="flight-play" type="button">开始航行</button
+              ><button id="flight-restart" type="button">重置</button
+              ><button id="flight-exit" type="button">外部观察</button>
+            </div>
+            <div class="flight-stops">
+              <button id="flight-orbit" type="button">绕行</button
+              ><button id="flight-horizon" type="button">视界</button
+              ><button id="flight-inside" type="button">视界内</button>
+            </div>
+            <p class="flight-note">
+              430 万太阳质量 · 自由落体<br />演示时间经过压缩，视界内慢放 · 自动曝光。
+            </p>
           </div>
           <div class="toggles">
             <label><input type="checkbox" id="opt-disk" checked /> 吸积盘</label>
             <label><input type="checkbox" id="opt-shift" checked /> 多普勒和引力红移</label>
             <label><input type="checkbox" id="opt-stars" checked /> 背景星空</label>
           </div>
-          <p class="hint">拖动改视角 · 滚轮或双指改距离</p>
+          <p class="hint" id="view-hint">拖动改视角 · 滚轮或双指改距离</p>
+          <a class="mission-link" href="#infall">释放一艘探测船 <span>↓</span></a>
         </div>
         <p class="stage-caption">
           不旋转 · 不带电<br /><span>r<sub>s</sub> = 2GM / c²</span>
         </p>
+      </section>
+
+      <aside class="flight-explanation" id="flight-explanation" hidden>
+        <b>你就是探测器的相机。</b
+        >无推力绕行并坠入，拖动画面可以转头。船上时间有限，穿过视界时没有发光的边界，也不会突然看不到外部宇宙。
+        <details>
+          <summary>航行与画面的物理设定</summary>
+          <p>
+            参考
+            <a href="https://svs.gsfc.nasa.gov/14576/" target="_blank" rel="noreferrer"
+              >NASA 2024 年的坠入可视化</a
+            >，采用独立计算的施瓦西自由落体捕获轨道，E = 1、L = 1.9999 rₛc，从 18 rₛ
+            开始，轨道平面倾斜 10°，停在 0.2
+            rₛ；未到奇点。镜头先朝轨迹前方，坠落时逐渐转向外部天空；可自由转头，不是陀螺仪无转动相机。靠近时自动缩短曝光，频率比不受影响。相机频移与光行差用视界规则的自由落体标架计算，光线仍沿零测地线追踪。黑暗区域表示本模型中没有外部光源连接，不是视界表面。
+          </p>
+          <p>
+            这是浏览器中的理想化重现，不使用 NASA
+            原片轨迹或图像数据。忽略盘的加热、阻力及探测器破坏；盘面纹理、星空与可见光配色为示意，未计算盘面纹理的传播时延。下方径向释放实验是另一条零角动量轨迹。
+          </p>
+        </details>
+      </aside>
+
+      <section class="mission" id="infall" aria-labelledby="mission-title">
+        <header class="mission-header">
+          <div>
+            <p class="section-kicker">实验 / 01 · 穿越的边界</p>
+            <h2 id="mission-title">让一艘飞船落下去。</h2>
+          </div>
+          <p>关掉引擎，从静止释放。<br />同一次坠落，两种时钟。</p>
+        </header>
+        <div class="mission-layout">
+          <div class="mission-view">
+            <div class="mission-view-head">
+              <span id="ship-view-label">船上时间 · 位置示意</span><b id="ship-status">等待释放</b>
+            </div>
+            <canvas
+              id="ship-scene"
+              aria-label="探测船径向自由落体的位置示意；视界为坐标半径一，不是望远镜影像"
+            ></canvas>
+            <p class="mission-caption">
+              视界坐标示意，圆环不是发光表面。位置按坐标半径绘制，飞船外形与尺寸放大；不模拟船体破坏。
+            </p>
+            <div class="mission-timeline">
+              <label for="ship-progress"
+                ><span id="ship-clock-label">推进船上时间</span
+                ><output id="ship-progress-out">0%</output></label
+              >
+              <input id="ship-progress" type="range" min="0" max="1" step="0.0001" value="0" />
+              <div class="mission-actions">
+                <button id="ship-play" type="button">释放探测船</button
+                ><button id="ship-reset" type="button">重新开始</button
+                ><button id="ship-horizon" type="button">到达视界</button>
+              </div>
+              <p id="ship-timescale" class="small"></p>
+            </div>
+          </div>
+          <aside class="mission-instruments" aria-label="飞船实验读数">
+            <div class="mission-modes" role="group" aria-label="播放使用的时钟">
+              <button id="ship-proper" type="button" aria-pressed="true">船上时间</button
+              ><button id="ship-received" type="button" aria-pressed="false">接收信号</button>
+            </div>
+            <label class="mission-setting"
+              >黑洞质量<select id="ship-mass">
+                <option value="4000000">400 万个太阳质量</option>
+                <option value="10">10 个太阳质量</option>
+              </select></label
+            >
+            <label class="mission-setting" for="ship-release"
+              >释放位置 <output id="ship-release-out">8 rₛ</output
+              ><input id="ship-release" type="range" min="6" max="16" step="1" value="8"
+            /></label>
+            <dl class="mission-readouts">
+              <div>
+                <dt>飞船坐标半径</dt>
+                <dd id="ship-radius">8.000 rₛ</dd>
+              </div>
+              <div>
+                <dt>船上已过时间</dt>
+                <dd id="ship-proper-out">0 s</dd>
+              </div>
+              <div>
+                <dt>这条信号抵达接收器时</dt>
+                <dd id="ship-arrival-out">0 s</dd>
+              </div>
+              <div>
+                <dt>外部当地静止系测速</dt>
+                <dd id="ship-speed">0 c</dd>
+              </div>
+              <div>
+                <dt>20 m 船长的径向潮汐差</dt>
+                <dd id="ship-tide">—</dd>
+              </div>
+            </dl>
+            <div class="mission-signal">
+              <span>船上 550 nm 信标 → 接收端</span><strong id="ship-wavelength">—</strong>
+              <div class="spectrum"><i id="ship-spectrum-marker"></i></div>
+              <p id="ship-signal-out"></p>
+            </div>
+          </aside>
+        </div>
+        <p class="mission-explanation" id="ship-explanation">
+          船内的钟始终正常走。自由落体的加速度计读零，但船头与船尾仍会受到不同的潮汐拉伸。
+        </p>
+        <details class="mission-method">
+          <summary>这个实验怎么算，哪些只是示意？</summary>
+          <p>
+            飞船视作不改变黑洞的试验粒子，零角动量、无推力，从 R rₛ 处静止释放。设 rₛ = c = 1，则 E²
+            = 1 − 1/R，(dr/dτ)² = 1/r −
+            1/R。轨迹用解析参数解计算，船上固有时间可平滑跨越视界；演示停在 0.65 rₛ，未到奇点。
+          </p>
+          <p>
+            接收器独立固定在 30
+            rₛ，与上方相机无关。接收时间以第一条释放信号到达时为零；包含后续径向光信号的传播延迟。g
+            = ν接收/ν发射 同时包含引力和运动频移，接收波长为 550/g
+            nm。信号功率读数只计光子能量与到达速率的相对因子
+            (g/g₀)²，不包含束散、距离或仪器响应，不是飞船的总光度。
+          </p>
+          <p>
+            示意图中飞船是位置标记，不是经过引力透镜渲染的船体影像；红移只作用于信标示意。潮汐差用线性近似
+            Δa = 2GM L/r³，L = 20
+            m。不计吸积盘阻力、加热、材料强度或主动驾驶。两种播放方式展示不同事件序列，不是把船上与接收器的“现在”强行对齐。
+          </p>
+        </details>
       </section>
 
       <section class="notes" aria-labelledby="rays-title">
@@ -128,7 +285,7 @@
           <h2>用的方程</h2>
           <p class="formula">d²u/dφ² + u = (3/2) r<sub>s</sub> u² ， u = 1/r</p>
           <p>
-            这是史瓦西度规下光子轨道的方程。右边那一项是广义相对论多出来的，没有它光走直线。画面在每条光线自己的轨道平面内做四阶积分，求到视界、盘面或无穷远。下方示意图用等价的三维加速度方程计算。相机是静止在那个距离上的观察者；盘的亮度按
+            这是史瓦西度规下光子轨道的方程。右边那一项是广义相对论多出来的，没有它光走直线。画面在每条光线自己的轨道平面内做四阶积分，求到视界、盘面或无穷远。下方示意图用等价的三维加速度方程计算。外部观察模式的相机静止在所选距离，探测器模式则沿自由落体轨道运动；盘的亮度按
             g⁴ 变化，g 是光到达时的频率比。
           </p>
           <p class="small">

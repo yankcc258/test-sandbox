@@ -102,7 +102,7 @@ for (const [what, piece] of [
   ['Binet equation', '1.5 * s.x * s.x - s.x'],
   ['static observer', 'sqrt(1.0 - 1.0 / r0)'],
   ['Kepler angular velocity', 'sqrt(0.5 / (r * r * r))'],
-  ['disk shift', 'sqrt(1.0 - 1.5 / r) / (1.0 - omega * lz) / obs'],
+  ['disk shift', 'sqrt(1.0 - 1.5 / r) / (energy - omega * ly)'],
   ['brightness ∝ g⁴', 'pow(g, 4.0)'],
 ])
   assert.ok(glsl.includes(piece), `shader still has the ${what}: ${piece}`);
