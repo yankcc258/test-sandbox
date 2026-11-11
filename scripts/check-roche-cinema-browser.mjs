@@ -2,6 +2,7 @@
 // 桌面和 iPad 横竖屏下，进场只有标题和工具条、动画真的在走（不靠检查用的快进）、暂停、仪表抽屉、
 // 暂停着换望远镜档位镜头照样转过去、回全景、没有 WebGL 错误、不横向溢出。
 import assert from 'node:assert/strict';
+import {localPreview} from './roche-browser-utils.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_PATH || 'playwright');
 const origin = process.env.PREVIEW_URL || 'http://127.0.0.1:8080';
 const browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || undefined });
@@ -17,25 +18,26 @@ try {
       hasTouch: touch,
       deviceScaleFactor: touch ? 2 : 1,
     });
+    await localPreview(ctx,origin);
     const p = await ctx.newPage(),
       errors = [];
     p.on('pageerror', (e) => errors.push(e.message));
     p.on('console', (m) => {
       if (m.type() === 'error') errors.push(m.text());
     });
-    await p.goto(origin + '/exhibits/roche/');
-    await p.waitForFunction(() => document.documentElement.dataset.ready === 'true');
-    const state = () => p.evaluate(() => window.zhixuRocheBinaryProbe());
+    await p.goto(origin + '/exhibits/roche/',{waitUntil:'commit'});
+    await p.waitForFunction(() => document.documentElement.dataset.ready === 'true',{}, {timeout:120000});
+    const state = () => p.evaluate(() => window.zhixuRocheProbe());
     const click = (selector) => (touch ? p.tap(selector) : p.click(selector));
     assert.ok(await p.locator('.console').isHidden());
     assert.ok(await p.locator('.readout').isHidden());
     const before = await state();
     await p.waitForTimeout(2000);
-    assert.ok((await state()).theta > before.theta, 'real animation loop advances');
+    assert.ok((await state()).time > before.time, 'real animation loop advances');
     await click('#deck-pause');
     const paused = await state();
     await p.waitForTimeout(200);
-    assert.equal((await state()).theta, paused.theta);
+    assert.equal((await state()).time, paused.time);
     await click('#deck-data');
     assert.equal(await p.locator('#deck-data').getAttribute('aria-expanded'), 'true');
     for (const selector of ['.console', '.readout', '.deck-toolbar']) {
@@ -46,21 +48,21 @@ try {
       );
     }
     // 暂停着换档：望远镜照样慢慢转过去，时间不走，标题让开
-    await click('.deck-toolbar [data-scope="pair"]');
-    await p.waitForFunction(() => window.zhixuRocheBinaryProbe().tan < 0.2);
+    await click('.deck-toolbar [data-scope="nebula"]');
+    await p.waitForFunction(() => window.zhixuRocheProbe().tan < 0.37);
     await p.waitForFunction(
       () => Number(getComputedStyle(document.querySelector('.title')).opacity) < 0.02,
     );
-    assert.equal((await state()).theta, paused.theta, 'lens settles while physics remains paused');
+    assert.equal((await state()).time, paused.time, 'lens settles while nebula time remains paused');
     await click('#deck-data');
     assert.ok(await p.locator('.console').isHidden());
     // 仪表收着的时候，转头、回全景和暂停照样能用
     const canvas = p.locator('#view');
     await canvas.focus();
     await p.keyboard.press('ArrowLeft');
-    await p.waitForFunction(() => window.zhixuRocheBinaryProbe().yaw < 0);
+    await p.waitForFunction(() => window.zhixuRocheProbe().yaw < 0);
     await p.keyboard.press('Home');
-    await p.waitForFunction(() => window.zhixuRocheBinaryProbe().scope === 'vista');
+    await p.waitForFunction(() => window.zhixuRocheProbe().scope === 'vista');
     await click('#deck-pause');
     assert.equal((await state()).paused, false);
     const glError = await p.evaluate(() =>

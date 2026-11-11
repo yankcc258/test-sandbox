@@ -5,67 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="洛希极限：两颗虚构的行星站在彼此的洛希极限上，把外面的行星带搅成一片横过天空的旋涡。从带外一颗小卫星上空的观景舱看。"
+      content="洛希极限：巨大的星云被拉向左下方的红色致密星体。走进观景舱，看云层旋转、细丝汇流，再探索洛希瓣。"
     />
     <title>洛希极限 · 知序实验展品</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="./binary.css?v=4" />
-    <script type="module" src="./main.js?v=4"></script>
+    <link rel="stylesheet" href="./binary.css?v=6" />
+    <script type="module" src="./main.js?v=6"></script>
   </head>
   <body>
     <main class="exhibit">
-      <section class="deck" id="deck" aria-label="从观景舱看两颗行星和行星带的实时画面">
+      <section class="deck" id="deck" aria-label="从观景舱看巨大星云向红色星体汇流">
         <canvas
           id="view"
           tabindex="0"
-          aria-label="一片旋涡状的行星带，中心是两颗尖端相对的行星，下方是地平线；左右拖动稍微转头，方向键也可以，Home 键回到全景"
+          aria-label="右侧巨大星云的碎裂光丝被拉向左下方红色光点，光柱纵贯天空。拖动或方向键转头，Home 回全景"
         ></canvas>
-        <!-- 窗边站着看的人：纯装饰，用来比大小。落地窗和地板画在画面里 -->
-        <svg class="watcher" viewBox="0 0 60 150" aria-hidden="true">
-          <defs>
-            <linearGradient id="rim" x1="0" x2="1" y1="0" y2="0">
-              <stop offset="0" stop-color="#9fe6ff" stop-opacity="0.9" />
-              <stop offset="0.32" stop-color="#9fe6ff" stop-opacity="0" />
-            </linearGradient>
-            <g id="person">
-              <ellipse cx="30" cy="13" rx="8" ry="9.5" />
-              <path
-                d="M26 21h8l1 5c7 1 11 4 12 10l3 30c.4 3-3.6 3.6-4.2.6L43 44l-1 30 2 68c.2 4-6.6 4.6-7.2.6L31.5 86h-3l-5.3 56.6c-.6 4-7.4 3.4-7.2-.6l2-68-1-30-2.8 22.6c-.6 3-4.6 2.4-4.2-.6l3-30c1-6 5-9 12-10z"
-              />
-            </g>
-          </defs>
-          <use href="#person" fill="#010204" />
-          <use href="#person" fill="url(#rim)" />
-        </svg>
+        <p class="fallback loading" id="loading" role="status">正在展开星云…</p>
         <p class="fallback" id="fallback" hidden>
           这台设备画不了三维画面（需要 WebGL2）。下面「两颗行星各自的地盘」的示意图仍然可以看。
         </p>
         <header class="title">
           <p class="eyebrow">知序 · 第二研究室<br /><span>02 / ROCHE LIMIT</span></p>
           <h1>洛希极限</h1>
-          <p class="lead">两颗行星，站在彼此的极限上。<br />谁也没有撞上谁。</p>
+          <p class="lead">庞然的星云，被一个小小的光点牵走。<br />缓慢旋转，向红光深处坠落。</p>
         </header>
-        <dl class="hud readout" aria-label="两颗行星现在的状态">
-          <div>
-            <dt>两星间距</dt>
-            <dd><b id="gap-out">—</b> 千米</dd>
-          </div>
-          <div>
-            <dt>互绕一圈</dt>
-            <dd><b id="period-out">—</b> 小时</dd>
-          </div>
-          <div>
-            <dt>尖端之间</dt>
-            <dd><b id="tips-out">—</b> 千米</dd>
-          </div>
-          <div>
-            <dt>尖端伸到 L₁ 的</dt>
-            <dd><b id="fill-out">—</b> %</dd>
-          </div>
-          <div>
-            <dt>行星带从这头到那头</dt>
-            <dd>约 <b id="belt-out">—</b> 万千米</dd>
-          </div>
+        <dl class="hud readout" aria-label="观景舱状态">
+          <div><dt>右侧</dt><dd>巨型星云 · 破碎光丝</dd></div>
+          <div><dt>左下方</dt><dd>致密星体 · 红色光核</dd></div>
+          <div><dt>物质流向</dt><dd>星云 → 红色光源</dd></div>
+          <div><dt>观察时间</dt><dd><b id="elapsed-out">00:00</b></dd></div>
         </dl>
         <div class="console" id="observation-console" role="group" aria-label="观测仪表">
           <p class="where" aria-live="polite">
@@ -73,10 +41,6 @@
             <span id="scope-out">—</span>
             <span id="clock-out">—</span>
           </p>
-          <label class="near"
-            ><span>两星靠得多近</span>
-            <input id="fill" type="range" min="0.6" max="1" step="0.002" aria-label="两颗行星靠得多近" />
-          </label>
           <div class="row">
             <span class="tag">时间</span>
             <button type="button" id="opt-speed">×1</button>
@@ -86,9 +50,10 @@
         <!-- 底部工具条：平时只留镜头、暂停和仪表入口，读数和控制按需展开 -->
         <div class="deck-toolbar" role="group" aria-label="观景舱控制">
           <span class="call">守夜三号 <i>/</i> OBSERVATION 02</span>
-          <div class="stations" role="group" aria-label="望远镜对准哪里">
+          <div class="stations" role="group" aria-label="镜头对准哪里">
             <button type="button" data-scope="vista">全景</button>
-            <button type="button" data-scope="pair">双星</button>
+            <button type="button" data-scope="nebula">星云</button>
+            <button type="button" data-scope="beacon">光源</button>
           </div>
           <div class="tools">
             <button id="deck-pause" type="button" aria-pressed="false">暂停时间</button>
@@ -102,12 +67,17 @@
 
       <section class="notes" aria-labelledby="lobes-title">
         <div class="lobe-box">
-          <p class="section-kicker">01 / 各自的地盘</p>
+          <p class="section-kicker">01 / 独立教学模型</p>
           <h2 id="lobes-title">两颗行星各自的地盘</h2>
           <p>
             跟着两颗行星一起转着看，每颗行星周围有一块泪滴形的地盘（洛希瓣），两块地盘在 L₁
             这一点相接。行星越近，地盘越小；行星长到碰到 L₁，尖端的东西就归了对方。
           </p>
+          <dl class="model-readout" aria-label="下方洛希瓣模型的计算读数">
+            <div><dt>两星间距</dt><dd><b id="gap-out">—</b> 千米</dd></div>
+            <div><dt>互绕周期</dt><dd><b id="period-out">—</b> 小时</dd></div>
+            <div><dt>尖端间距</dt><dd><b id="tips-out">—</b> 千米</dd></div>
+          </dl>
           <canvas id="lobes" aria-label="共转系里的等势线：两个洛希瓣在 L1 相接成 8 字形"></canvas>
           <label class="pick"
             ><span>两星靠得多近：尖端伸到 L₁ 的 <b id="fill2-out">—</b> %</span>
@@ -124,46 +94,16 @@
           <p class="section-kicker">02 / 读懂这片景象</p>
           <h2>画面里在看什么</h2>
           <ul>
-            <li>
-              <b>横过天空的那片旋涡是行星带。</b
-              >碎屑离得够远时，把两颗行星当成一个整体来绕。可是中间那两颗在转，引力一下一下地拨它，在带子里搅出两条旋臂。从这头到那头大约二十万千米，窗边的人影是用来比大小的。
-            </li>
-            <li>
-              <b>旋涡中心是两颗行星。</b
-              >烛阴（红边）和望舒（青边）靠得太近，又始终同一面朝着对方，都被拉成了泪滴形，尖端几乎碰在一起。点「双星」，望远镜会对准它们。
-            </li>
-            <li>
-              <b>尖端之间的亮点。</b
-              >尖端伸到 L₁ 附近，那里的东西几乎不受任何一方约束，稍微一动就落向对方。把「两星靠得多近」往回拉，亮点会灭。
-            </li>
-            <li>
-              <b>带子内缘落向行星的两股流。</b
-              >带子的内缘不稳定：靠得太近的碎屑被两颗行星轮流拉扯，沿着两股细流落下去。所以带子中间是空的。
-            </li>
-            <li>
-              <b>脚下的地平线。</b
-              >观景舱停在带子外面一颗小卫星的上空。左边贴着地平线的是这个系统的恒星，那道竖的光柱是镜头里的东西。
-            </li>
+            <li><b>右侧是一片超出视野的巨大星云。</b>星球只露出一小段轮廓，周围是明暗交错的云层与破碎的发光细丝。</li>
+            <li><b>左下方的红点，是牵引它的致密星体。</b>云层缓慢旋转，细流沿弯曲路径向它汇聚；红色光核与纵向光柱始终可见。</li>
+            <li><b>窗框、地平线与观测者给出尺度。</b>全景保留完整构图；「星云」看云层近景，「光源」看物质汇入的位置。</li>
           </ul>
-          <h2>用的方程</h2>
-          <p class="formula">
-            Ω = ½ (u² + w²) + (1 − μ) / r<sub>A</sub> + μ / r<sub>B</sub>
-          </p>
-          <p>
-            这是跟着两颗行星一起转的坐标里的有效势：两颗行星的引力，加上转动带来的离心力。两颗行星的表面是它的等值面，画面里每个像素沿视线去找这个面，所以泪滴形、尖端朝着
-            L₁、越近越尖，都是算出来的。下面示意图里的洛希瓣和五个拉格朗日点也来自同一个势。
-          </p>
-          <p class="small">
-            两颗行星完全是虚构的：烛阴（质量占 65%）和望舒（占 35%），大小按烛阴等体积半径 6,400
-            千米换算，周期由此算出。算出来的只有两颗行星的形状、位置和转动，以及读数。<b
-              >行星带是画的</b
-            >：双星外面的盘会被搅出旋臂、内缘有两股流落向行星，这些是真实的现象，但这里的亮度、颜色、花纹和它们怎么流动是照着效果画的，不是逐粒算的；旋臂跟着两颗行星一起转。其余示意的部分：脚下的小卫星和观景舱、恒星的光柱、落地窗和地板、尖端在伸到
-            L₁ 的九成时中间就开始发亮（真实里要等充满洛希瓣）、时间被加快了。等势面模型把每颗行星的质量当成集中在中心，这是洛希模型的标准近似。
-          </p>
-          <p class="small">
-            另一个实验：<a href="./moon/">把一颗碎石堆成的卫星推过洛希极限</a
-            >，看它被拉长、撕开、抹成环。那一页里每颗碎石之间的引力都是算的。
-          </p>
+          <p class="small">主画面是潮汐拉扯的艺术化想象：星体尺度、云层、流动与光柱为视觉设计，不对应某个真实系统。观察时间和倍速控制这段景象的播放。</p>
+          <h2>洛希瓣教学模型</h2>
+          <p class="formula">Ω = ½ (u² + w²) + (1 − μ) / r<sub>A</sub> + μ / r<sub>B</sub></p>
+          <p>左侧示意图独立展示共转坐标系里的有效势：引力与离心项共同决定等势线、洛希瓣和五个拉格朗日点。滑动控件改变模型中行星表面的填充程度，不改变上方星云的构图。</p>
+          <p class="small">教学模型使用虚构的烛阴（质量占 65%）和望舒（占 35%），以烛阴等体积半径 6,400 千米换算距离。读数属于这个模型，不是上方星云的测量值。</p>
+          <p class="small">另一个实验：<a href="./moon/">把一颗碎石堆成的卫星推过洛希极限</a>，看它被拉长、撕开、抹成环。那一页里每颗碎石之间的引力都是算的。</p>
         </div>
       </section>
       <footer class="foot">

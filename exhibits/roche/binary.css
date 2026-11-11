@@ -529,7 +529,15 @@ h2 {
     gap: 6px;
   }
 }
-/* 望远镜对准双星的时候，标题让开 */
-.deck[data-scope='pair'] .title {
+/* 近景时标题让开 */
+.deck:not([data-scope='vista']) .title {
   opacity: 0;
 }
+
+/* 模型读数只放在教学示意图旁，避免与艺术化主画面混淆。 */
+.model-readout{display:flex;flex-wrap:wrap;gap:14px 24px;margin:18px 0;font-size:12px;font-variant-numeric:tabular-nums}
+.model-readout dt{color:var(--muted)}.model-readout dd{margin:0;color:var(--ink)}
+.deck-toolbar{gap:8px 18px}.deck-toolbar > div{gap:4px 16px}
+@media(max-width:1100px){.deck-toolbar .call{display:none}}
+@media(prefers-reduced-motion:reduce){.title,.readout,.console,.deck-toolbar > *{transition:none}}
+.loading{color:#b3cbdc;letter-spacing:.15em}
