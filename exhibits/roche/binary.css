@@ -145,21 +145,34 @@ body {
 }
 .title,
 .hud,
-.console,
-.bare-switch {
+.console {
   position: absolute;
   z-index: 1;
+}
+/* 仪表（读数和控制台）平时收着，点工具条上的「观测仪表」才展开 */
+.deck .readout,
+.deck .console {
+  display: none;
+}
+.deck.data-open .readout,
+.deck.data-open .console {
+  display: grid;
 }
 .title,
 .readout,
 .console,
-#overlay {
+#overlay,
+.deck-toolbar > * {
   transition: opacity 0.5s;
 }
 .deck.bare .title,
 .deck.bare .readout,
 .deck.bare .console,
-.deck.bare #overlay {
+.deck.bare #overlay,
+.deck.bare .deck-toolbar .call,
+.deck.bare .deck-toolbar .stations,
+.deck.bare #deck-pause,
+.deck.bare #deck-data {
   opacity: 0;
   pointer-events: none;
 }
@@ -202,7 +215,6 @@ h1 {
 .readout {
   top: 9%;
   right: 4.6%;
-  display: grid;
   gap: 12px;
   margin: 0;
   padding: 12px 14px;
@@ -230,7 +242,6 @@ h1 {
 .console {
   left: 4.6%;
   bottom: 12.5%;
-  display: grid;
   gap: 9px;
   width: min(400px, calc(100% - 48px));
   padding: 13px 16px 14px;
@@ -292,15 +303,57 @@ h1 {
   align-items: center;
   gap: 5px;
 }
-.bare-switch {
+/* 底部工具条：落在地板上，右边给人影留出位置 */
+.deck-toolbar {
+  position: absolute;
+  z-index: 2;
   left: 4.6%;
-  bottom: 3%;
-  padding: 4px 12px;
-  border-radius: 99px;
-  background: #0d111899;
-  color: var(--muted);
+  right: 17%;
+  bottom: 0;
+  height: 9.5%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 28px;
+  color: #8fa9bb;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+}
+.deck-toolbar .call {
+  white-space: nowrap;
+}
+.deck-toolbar i {
+  margin: 0 12px;
+  color: #557083;
+  font-style: normal;
+}
+.deck-toolbar > div {
+  display: flex;
+  gap: 4px 22px;
+}
+.deck-toolbar button {
+  min-height: 44px;
+  padding: 8px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #b7cfdd;
   font-size: 11px;
   letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+.deck-toolbar button:hover {
+  color: #eaf6ff;
+}
+.deck-toolbar button:focus-visible {
+  outline: 1px solid #8fd0ff;
+  outline-offset: 4px;
+}
+.deck-toolbar button[aria-pressed='true']:not(#opt-motion),
+.deck-toolbar button[aria-expanded='true'] {
+  background: transparent;
+  color: #f0dbb6;
+  box-shadow: inset 0 -1px 0 #d8bc80aa;
 }
 input[type='range'] {
   width: 100%;
@@ -482,8 +535,16 @@ h2 {
     left: 26px;
     bottom: 12%;
   }
-  .bare-switch {
+  .deck-toolbar {
     left: 26px;
+    right: 150px;
+    gap: 0 18px;
+  }
+  .deck-toolbar .call {
+    display: none;
+  }
+  .deck-toolbar > div {
+    gap: 0 16px;
   }
   .mullion {
     display: none;

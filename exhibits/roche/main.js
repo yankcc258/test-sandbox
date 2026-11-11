@@ -15,7 +15,7 @@ import {
   gpuDustAvailable,
   project,
   SUN,
-} from './scene.js?v=2';
+} from './scene.js?v=3';
 
 const $ = (id) => document.getElementById(id);
 const query = new URLSearchParams(location.search);
@@ -432,8 +432,11 @@ function readout() {
   $('clock-out').textContent = paused
     ? '时间 已暂停'
     : `时间流速 ×${Math.round(((periodHours(MU, sizeB, DENSITY_B) * 3600) / ORBIT_SECONDS) * speed).toLocaleString('en-US')}`;
-  for (const button of document.querySelectorAll('.console [data-station]'))
+  for (const button of document.querySelectorAll('.deck-toolbar [data-station]'))
     pressed(button, button.dataset.station === view.station);
+  $('deck-pause').disabled = status !== 'ready';
+  $('deck-pause').textContent = paused ? '继续观测' : '暂停时间';
+  pressed($('deck-pause'), paused);
   $('opt-speed').textContent = `×${speed}`;
   $('opt-motion').disabled = status !== 'ready';
   $('opt-motion').textContent = paused ? '继续' : '暂停';
@@ -532,7 +535,7 @@ function bindControls() {
     setBare(!$('deck').classList.contains('bare'));
   });
   for (const id of ['fill', 'fill2']) $(id).oninput = (e) => setFill(Number(e.target.value));
-  for (const button of document.querySelectorAll('.console [data-station]'))
+  for (const button of document.querySelectorAll('.deck-toolbar [data-station]'))
     button.onclick = () => {
       view.station = button.dataset.station;
       view.zoom = 1;
@@ -558,6 +561,13 @@ function bindControls() {
     invalidate();
   };
   $('opt-bare').onclick = () => setBare(!$('deck').classList.contains('bare'));
+  // 工具条：暂停，和按需展开的仪表（读数 + 控制台）
+  $('deck-pause').onclick = () => $('opt-motion').click();
+  $('deck-data').onclick = () => {
+    const open = $('deck').classList.toggle('data-open');
+    $('deck-data').setAttribute('aria-expanded', String(open));
+    $('deck-data').textContent = open ? '收起仪表 −' : '观测仪表 ＋';
+  };
 }
 
 // ---------- 二维示意：共转系里的等势线 ----------

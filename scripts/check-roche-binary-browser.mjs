@@ -46,7 +46,7 @@ const desktop = () => browser.newContext({ viewport: { width: 1280, height: 800 
   const context = await desktop(),
     { page, errors } = await open(context);
   await ready(page);
-  await page.locator('#opt-motion').click(); // 先暂停，时间由检查来推
+  await page.locator('#deck-pause').click(); // 先暂停，时间由检查来推
   let state = await advance(page, 0);
   assert.equal(state.backend, 'gpu');
   assert.equal(state.count, 1024 * 1024);
@@ -79,9 +79,9 @@ const desktop = () => browser.newContext({ viewport: { width: 1280, height: 800 
   assert.equal(await page.locator('#fill-out').textContent(), '97');
   // 四个机位：换过去以后读数跟着变，天上那颗行星的张角是个像样的数
   for (const station of ['zhuyin', 'between', 'far', 'wangshu']) {
-    await page.locator(`.console [data-station="${station}"]`).click();
+    await page.locator(`.deck-toolbar [data-station="${station}"]`).click();
     assert.equal(
-      await page.locator(`.console [data-station="${station}"]`).getAttribute('aria-pressed'),
+      await page.locator(`.deck-toolbar [data-station="${station}"]`).getAttribute('aria-pressed'),
       'true',
     );
     assert.equal((await advance(page, 0)).station, station);
@@ -106,7 +106,8 @@ const desktop = () => browser.newContext({ viewport: { width: 1280, height: 800 
   await page.locator('#opt-bare').click();
   assert.ok(await page.locator('#deck').evaluate((node) => node.classList.contains('bare')));
   await page.waitForTimeout(700);
-  assert.equal(await page.locator('.console').evaluate((node) => getComputedStyle(node).opacity), '0');
+  assert.equal(await page.locator('.title').evaluate((node) => getComputedStyle(node).opacity), '0');
+  assert.equal(await page.locator('#deck-data').evaluate((node) => getComputedStyle(node).opacity), '0');
   await page.keyboard.press('h');
   assert.ok(!(await page.locator('#deck').evaluate((node) => node.classList.contains('bare'))));
   // 暂停状态下不点快进，时间不走
@@ -135,7 +136,8 @@ for (const [name, width, height, grains] of [
     await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
     'no horizontal overflow',
   );
-  // 控制台和读数都还在画面里、互不压着
+  // 展开仪表：控制台和读数都还在画面里、互不压着
+  await page.locator('#deck-data').click();
   const boxes = await page.evaluate(() =>
     ['.console', '.readout', '.title'].map((selector) => {
       const r = document.querySelector(selector).getBoundingClientRect();

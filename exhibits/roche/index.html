@@ -9,8 +9,8 @@
     />
     <title>洛希极限 · 知序实验展品</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="./binary.css?v=2" />
-    <script type="module" src="./main.js?v=2"></script>
+    <link rel="stylesheet" href="./binary.css?v=3" />
+    <script type="module" src="./main.js?v=3"></script>
   </head>
   <body>
     <main class="exhibit">
@@ -72,7 +72,7 @@
             <dd><b id="fill-out">—</b> %</dd>
           </div>
         </dl>
-        <div class="console" role="group" aria-label="观测控制">
+        <div class="console" id="observation-console" role="group" aria-label="观测仪表">
           <p class="where" aria-live="polite">
             <b>观景舱 · <span id="station-out">—</span></b>
             <span id="alt-out">—</span>
@@ -80,13 +80,6 @@
             <span id="scope-out">—</span>
             <span id="clock-out">—</span>
           </p>
-          <div class="row" role="group" aria-label="观景舱停在哪里">
-            <span class="tag">机位</span>
-            <button type="button" data-station="wangshu">望舒上空</button>
-            <button type="button" data-station="zhuyin">烛阴上空</button>
-            <button type="button" data-station="between">两界之间</button>
-            <button type="button" data-station="far">L₄</button>
-          </div>
           <label class="near"
             ><span>两星靠得多近</span>
             <input id="fill" type="range" min="0.6" max="1" step="0.002" aria-label="两颗行星靠得多近" />
@@ -99,9 +92,23 @@
             <label><input type="checkbox" id="opt-lobes" /> 洛希瓣</label>
           </div>
         </div>
-        <button type="button" class="bare-switch" id="opt-bare" aria-pressed="false" title="快捷键 H">
-          隐藏界面
-        </button>
+        <!-- 底部工具条（特蕾莎的做法）：平时只留机位、暂停和仪表入口，读数和控制按需展开 -->
+        <div class="deck-toolbar" role="group" aria-label="观景舱控制">
+          <span class="call">守夜三号 <i>/</i> OBSERVATION 02</span>
+          <div class="stations" role="group" aria-label="观景舱停在哪里">
+            <button type="button" data-station="wangshu">望舒上空</button>
+            <button type="button" data-station="zhuyin">烛阴上空</button>
+            <button type="button" data-station="between">两界之间</button>
+            <button type="button" data-station="far">L₄</button>
+          </div>
+          <div class="tools">
+            <button id="deck-pause" type="button" aria-pressed="false">暂停时间</button>
+            <button id="deck-data" type="button" aria-expanded="false" aria-controls="observation-console">
+              观测仪表 ＋
+            </button>
+            <button id="opt-bare" type="button" aria-pressed="false" title="快捷键 H">隐藏界面</button>
+          </div>
+        </div>
       </section>
 
       <section class="notes" aria-labelledby="lobes-title">

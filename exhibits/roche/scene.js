@@ -421,9 +421,11 @@ uniform ivec2 u_size;
 uniform mat4 u_view, u_proj;
 uniform vec3 u_sun, u_eye, u_shadowA, u_shadowB; // 行星中心；影子半径放在 u_radii
 uniform vec2 u_radii;
-uniform float u_px, u_grain, u_stream, u_gain;
+uniform float u_px, u_grain, u_stream, u_gain, u_blur;
 out vec3 v_tint;
 out float v_cover;
+out vec2 v_direction; // 足迹的长轴在屏幕上朝哪边
+out float v_aspect;   // 长轴是短轴的几倍
 float hash(float n) { return fract(sin(n * 12.9898) * 43758.5453); }
 float shade(vec3 p, vec3 center, float radius) {
   vec3 d = p - center;
@@ -437,8 +439,11 @@ void main() {
   gl_PointSize = 0.0;
   v_tint = vec3(0.0);
   v_cover = 0.0;
+  v_direction = vec2(1.0, 0.0);
+  v_aspect = 1.0;
   if (p.w > 2.5) return;
-  float age = texelFetch(u_vel, at, 0).w, seed = hash(float(gl_VertexID) + 0.37);
+  vec4 velocity = texelFetch(u_vel, at, 0);
+  float age = velocity.w, seed = hash(float(gl_VertexID) + 0.37);
   vec4 view = u_view * vec4(p.xyz, 1.0);
   float size = mix(0.5, 2.2, seed * seed * seed) * u_grain * (p.w > 0.5 ? u_stream : 1.0);
   float px = 2.0 * size * u_px / max(-view.z, 1e-4);
@@ -465,18 +470,28 @@ void main() {
   // 贴到镜头跟前的碎屑淡出，免得一粒糊住半个画面
   float close = smoothstep(0.04, 0.16, -view.z);
   v_tint = tint * u_gain * (p.w > 0.5 ? 1.7 : 1.0) * smoothstep(0.0, 0.25, age + (p.w > 0.5 ? 0.25 : 0.0));
-  v_cover = min(4.1 * px * px / (spot * spot), 1.0) * thin * close;
-  gl_PointSize = spot;
+  // 椭圆足迹（特蕾莎的做法）：长轴沿这一粒真实速度在屏幕上的方向，一粒粒的点连成细丝；位置和受力不变，没有另画轨迹。
+  // 镜头跟着两颗行星一起转，所以用的是减掉「跟着转」那部分以后的速度。长了多少，透明度就按面积减多少。
+  vec3 drift = (u_view * vec4(velocity.xyz - vec3(-p.z, 0.0, p.x), 0.0)).xyz;
+  float smear = u_px * length(drift.xy) / max(-view.z, 1e-4) * u_blur;
+  float size_ = min(spot * clamp(1.0 + smear / spot, 1.0, 5.0), 64.0);
+  v_aspect = size_ / spot;
+  if (dot(drift.xy, drift.xy) > 1e-12) v_direction = normalize(vec2(drift.x, -drift.y));
+  v_cover = min(4.1 * px * px / (spot * spot), 1.0) * thin * close / v_aspect;
+  gl_PointSize = size_;
   gl_Position = u_proj * view;
 }`;
 const DUST_FRAGMENT = `#version 300 es
 precision highp float;
 in vec3 v_tint;
 in float v_cover;
+in vec2 v_direction;
+in float v_aspect;
 out vec4 o;
 uniform float u_direct;
 void main() {
   vec2 c = gl_PointCoord * 2.0 - 1.0;
+  c = vec2(dot(c, v_direction), dot(c, vec2(-v_direction.y, v_direction.x)) * v_aspect);
   float r2 = dot(c, c);
   if (r2 > 1.0) discard;
   // 颜色是「厚厚一层碎屑」该有的亮度，透明度是这一粒遮住的份额：叠得再多也只趋近这个亮度
@@ -1000,6 +1015,7 @@ export function createRenderer(gl, { allowHdr = true } = {}) {
         gl.uniform1f(dust.u.u_px, height / (2 * tanV));
         gl.uniform1f(dust.u.u_grain, scene.grain);
         gl.uniform1f(dust.u.u_stream, scene.stream ?? 1);
+        gl.uniform1f(dust.u.u_blur, scene.blur ?? 0.012);
         gl.uniform1f(dust.u.u_gain, scene.gain ?? 1);
         gl.uniform1f(dust.u.u_direct, direct);
         gl.drawArrays(gl.POINTS, 0, scene.dust.count);
