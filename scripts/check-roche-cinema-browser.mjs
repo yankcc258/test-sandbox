@@ -33,8 +33,12 @@ try {
     assert.ok(await p.locator('.readout').isHidden());
     const before = await state();
     await p.waitForTimeout(2000);
-    assert.ok((await state()).time > before.time, 'real animation loop advances');
+    const playing = await state();
+    assert.ok(playing.time > before.time, 'real animation loop advances');
+    // 播放时体积云用省的档位（层数少、可以低于画布分辨率）；暂停以后回到完整画质
+    assert.ok(playing.layers < 128 && playing.quality <= 1, `${name}: playback uses a lighter effort level`);
     await click('#deck-pause');
+    await p.waitForFunction(() => window.zhixuRocheProbe().layers === 128 && window.zhixuRocheProbe().quality === 1);
     const paused = await state();
     await p.waitForTimeout(200);
     assert.equal((await state()).time, paused.time);

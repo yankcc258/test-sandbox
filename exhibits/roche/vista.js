@@ -14,28 +14,31 @@ float noise3(vec3 p) {
     mix(mix(hash13(i + vec3(0.0, 0.0, 1.0)), hash13(i + vec3(1.0, 0.0, 1.0)), f.x), mix(hash13(i + vec3(0.0, 1.0, 1.0)), hash13(i + vec3(1.0, 1.0, 1.0)), f.x), f.y),
     f.z);
 }
+// 循环的上界故意不写成常量：Windows 上着色器经 ANGLE 交给 D3D 编译，常量次数的循环会被整段展开。
+// 这个文件里体积采样 128 层、每层几十次噪声，展开以后场景着色器要编译二十多秒（实测 24.5 秒 → 1 秒）。
+// u_loop 由 draw() 传 128，所以 min(layers, u_loop) 就是 layers，结果不变。
+uniform int u_loop;
 float fbm(vec3 p, int layers) {
   float sum = 0.0, weight = 0.5;
-  for (int i = 0; i < layers; i++) { sum += weight * noise3(p); p = mat3(0.00,0.80,0.60,-0.80,0.36,-0.48,-0.60,-0.48,0.64) * p * 2.03 + 11.7; weight *= 0.5; }
+  for (int i = 0; i < min(layers, u_loop); i++) { sum += weight * noise3(p); p = mat3(0.00,0.80,0.60,-0.80,0.36,-0.48,-0.60,-0.48,0.64) * p * 2.03 + 11.7; weight *= 0.5; }
   return sum;
 }`;
 
-// 画面：银河背景 → 破碎星云 → 红色致密星体 → 地平线与观察舱。
-const SCENE = `#version 300 es
-precision highp float;
-uniform vec2 u_res,u_tan;
-uniform vec3 u_right,u_up,u_fwd;
-uniform float u_time,u_distance;
-in vec2 v_uv;
-out vec4 o;
-${NOISE}
-
+// 两遍都要用的：星体的尺寸和位置、视线和球面的交点
+const GEOMETRY = `
 // Fictional scale study: irregular nebular clouds and bright broken filaments feed a low-left red stellar beacon.
 // All dimensions, density, lighting and transport are art-directed. This is not a dynamical solution.
 const vec2 SINK=vec2(-13.395632,0.494323);
 const float GIANT_RADIUS=3.20;
 const float SINK_RADIUS=0.27;
+float sphere(vec3 rd,vec3 center,float radius) {
+  float b=dot(rd,center),h=b*b-dot(center,center)+radius*radius;
+  return h<0.0?-1.0:b-sqrt(h);
+}
+`;
 
+// 破碎的星云和汇向红色光源的三股流在盘面上一点的颜色和密度
+const CLOUD = `
 vec2 ribbon(vec2 p,vec2 a,vec2 b,vec2 c) {
   // Smooth quadratic stream; nearest-point refinement retains a continuous taper.
   float t=clamp(dot(p-a,c-a)/dot(c-a,c-a),0.0,1.0);
@@ -69,6 +72,9 @@ vec4 aurora(vec2 p,float z) {
   float transfer=highFlow+lowFlow+midFlow;
   float support=envelope+transfer;
   if(support<0.0004)return vec4(0.0);
+  // 云在厚度方向上是一个高斯：中面最多偏 0.23（fold 的上限），标准差是 thick。
+  // 离中面超过 2.7 个标准差时密度不到千分之一，后面几十次噪声可以不算。细流里（thick 小）能省下约四成的层。
+  if(abs(z)>0.23+2.7*mix(0.38,0.13,smoothstep(0.30,1.0,transfer)))return vec4(0.0);
 
   float turn=a+0.46*log(r+0.3)-u_time*0.0015;
   vec3 flow=vec3(cos(turn)*r,sin(turn)*r,z*2.2);
@@ -113,7 +119,67 @@ vec4 aurora(vec2 p,float z) {
   density*=smoothstep(0.23,0.34,sinkR);
   return vec4(light,density);
 }
+`;
 
+// 第一遍：只画体积云。输出 rgb = 云自己的光，a = 后面的东西还透得过来多少。
+// 这一遍可以用比画布低的分辨率（见 draw 的 volume 参数）：每帧的时间几乎全花在这里。
+const VOLUME = `#version 300 es
+precision highp float;
+uniform vec2 u_tan;
+uniform vec3 u_right,u_up,u_fwd;
+uniform float u_time,u_distance;
+uniform int u_layers; // 沿视线取多少层：完整画质 128，播放吃力时减少
+uniform float u_seed; // 每帧换一个，让各层的取样位置逐帧错开；完整画质时是 0
+in vec2 v_uv;
+out vec4 o;
+${NOISE}
+${GEOMETRY}
+${CLOUD}
+void main() {
+  vec2 ndc=v_uv*2.0-1.0;
+  vec3 rd=normalize(ndc.x*u_tan.x*u_right+ndc.y*u_tan.y*u_up+u_fwd);
+  vec3 host=vec3(8.0,1.8,10.0)*(u_distance/9.2);
+  vec3 N=normalize(vec3(-0.20694789,0.8,-0.6));
+  vec3 U=normalize(cross(N,vec3(0,0,1))),V=cross(N,U);
+  float tg=sphere(rd,host,GIANT_RADIUS),opaque=tg>0.0?tg:1e5;
+  vec3 glow=vec3(0.0);
+  float through=1.0;
+  float denom=dot(rd,N),s=dot(host,N)/denom;
+  if(s>0.0&&abs(denom)>0.018) {
+    // 完整画质是 128 层，每层的位置和抖动与原来逐层对应。从近到远累加：glow 是云自己的光，through 是后面还透得过来多少。
+    // 和「从远到近一层层盖上去」是同一个式子，只是换了求和的顺序；前面的云已经把后面挡严了就不用再算。
+    // 层数少的时候把每层的位置抖得开一些：不然层与层之间的缝会显成一圈圈等高线
+    float layers=float(u_layers),spread=u_layers>=128?0.18:0.70;
+    for(int k=0;k<u_layers;k++) {
+      float jitter=(hash13(vec3(gl_FragCoord.xy,float(k)+3.7+u_seed))-0.5)*spread;
+      float z=((float(k)+0.5+jitter)/layers*2.0-1.0)*0.90;
+      float t=s+z/abs(denom);
+      if(t<0.0)continue;
+      if(t>opaque)break;                                  // 再往后都在巨行星后面
+      vec3 at=rd*t-host;
+      vec4 cloud=aurora(vec2(dot(at,U),dot(at,V)),dot(at,N));
+      float alpha=1.0-exp(-cloud.a*(1.8/layers)*3.0/abs(denom));
+      glow+=through*alpha*cloud.rgb;
+      through*=1.0-alpha;
+      if(through<0.004)break;                             // 后面的东西最多只剩千分之四，看不出来
+    }
+  }
+  o=vec4(glow,through);
+}
+`;
+
+// 第二遍：银河背景 → 巨行星 → 叠上第一遍的星云 → 红色致密星体 → 地平线。
+const SCENE = `#version 300 es
+precision highp float;
+uniform vec2 u_res,u_tan;
+uniform vec3 u_right,u_up,u_fwd;
+uniform float u_time,u_distance;
+uniform sampler2D u_volume;
+in vec2 v_uv;
+out vec4 o;
+${NOISE}
+
+${GEOMETRY}
 vec3 sky(vec3 rd) {
   vec3 col=vec3(0.0004,0.0007,0.0018);
   vec3 w=vec3(fbm(rd*5.0+2.3,3),fbm(rd*5.0+13.1,3),fbm(rd*5.0+33.4,3));
@@ -144,10 +210,6 @@ vec3 sky(vec3 rd) {
   return col;
 }
 
-float sphere(vec3 rd,vec3 center,float radius) {
-  float b=dot(rd,center),h=b*b-dot(center,center)+radius*radius;
-  return h<0.0?-1.0:b-sqrt(h);
-}
 vec3 giantSurface(vec3 rd,vec3 center,float t) {
   vec3 n=normalize(rd*t-center);
   float rim=pow(1.0-max(dot(n,-rd),0.0),4.0);
@@ -184,19 +246,9 @@ void main() {
   // A continuous corona crosses the limb smoothly, preserving the white-pink light point.
   col+=vec3(0.28,0.006,0.017)*exp(-miss*miss/0.095);
   col+=vec3(0.009,0.0004,0.0016)*exp(-miss*miss/0.65);
-  float denom=dot(rd,N),s=dot(host,N)/denom;
-  if(s>0.0&&abs(denom)>0.018) {
-    for(int k=127;k>=0;k--) {
-      float jitter=(hash13(vec3(gl_FragCoord.xy,float(k)+3.7))-0.5)*0.18;
-      float z=((float(k)+0.5+jitter)/128.0*2.0-1.0)*0.90;
-      float t=s+z/abs(denom);
-      if(t<0.0||t>opaque)continue;
-      vec3 at=rd*t-host;
-      vec4 cloud=aurora(vec2(dot(at,U),dot(at,V)),dot(at,N));
-      float alpha=1.0-exp(-cloud.a*(1.8/128.0)*3.0/abs(denom));
-      col=col*(1.0-alpha)+cloud.rgb*alpha;
-    }
-  }
+  // 体积云在 VOLUME 那一遍里已经画好：rgb 是云自己的光，a 是后面还透得过来多少
+  vec4 volume=texture(u_volume,v_uv);
+  col=col*volume.a+volume.rgb;
   // A tapered emissive limb keeps the compact source crisp without a hard red disc.
   // Composite at the front of the incoming cloud, retaining its geometric centre and radius.
   if(ts>0.0&&ts<opaque) {
@@ -231,6 +283,11 @@ void main() {
 }
 `;
 
+// 原样拷一张图：把这一帧的体积云按比例混进前几帧的平均里
+const COPY = `#version 300 es
+precision highp float;
+uniform sampler2D u_src; in vec2 v_uv; out vec4 o;
+void main() { o = texture(u_src, v_uv); }`;
 const BRIGHT = `#version 300 es
 precision highp float;
 uniform sampler2D u_src; uniform vec2 u_texel; in vec2 v_uv; out vec4 o;
@@ -324,7 +381,7 @@ vec3 reconstructedScene(vec2 uv) {
   return c;
 }
 vec3 outside(vec2 uv) {
-  vec3 c = reconstructedScene(uv) + texture(u_bloom, uv).rgb * 0.075 * texture(u_scene,uv).a;
+  vec3 c = reconstructedScene(uv) + texture(u_bloom, uv).rgb * 0.075;
   vec2 p = (uv - u_star) * vec2(u_res.x / u_res.y, 1.0);
   // Three optical scales: a narrow bright core, red body, then a very soft light veil.
   float axial=1.0/(1.0+9.0*p.y*p.y);
@@ -437,7 +494,7 @@ async function link(gl, vs, fs) {
     await new Promise(resolve=>setTimeout(resolve,16));
   if(gl.isContextLost())throw new Error('WebGL context lost during setup');
   const valid=gl.getProgramParameter(program,gl.LINK_STATUS);
-  const message=valid?'':gl.getProgramInfoLog(program);
+  const message=valid?'':[gl.getProgramInfoLog(program),...shaders.map(shader=>gl.getShaderInfoLog(shader))].filter(Boolean).join('\n');
   for(const shader of shaders)gl.deleteShader(shader);
   if(!valid){gl.deleteProgram(program);throw new Error(message);}
   const u = {};
@@ -475,8 +532,8 @@ export async function createVista(gl) {
   const float = Boolean(
     gl.getExtension('EXT_color_buffer_float') || gl.getExtension('EXT_color_buffer_half_float'),
   );
-  const [scene,bright,blur,final]=await Promise.all(
-    [SCENE,BRIGHT,BLUR,FINAL].map(source=>link(gl,QUAD,source)),
+  const [volume,copy,scene,bright,blur,final]=await Promise.all(
+    [VOLUME,COPY,SCENE,BRIGHT,BLUR,FINAL].map(source=>link(gl,QUAD,source)),
   );
   const quad = gl.createVertexArray(),
     buffer = gl.createBuffer();
@@ -505,10 +562,10 @@ export async function createVista(gl) {
     return { texture, frame, w, h };
   };
   let stage = null;
-  function ensure(w, h) {
-    if (stage && stage.w === w && stage.h === h) return;
+  function ensure(w, h, vw, vh) {
+    if (stage && stage.w === w && stage.h === h && stage.volume.w === vw && stage.volume.h === vh) return;
     if (stage)
-      for (const level of [stage.full, ...stage.soft, ...stage.levels]) {
+      for (const level of [stage.volume, stage.history, stage.full, ...stage.soft, ...stage.levels]) {
         gl.deleteFramebuffer(level.frame);
         gl.deleteTexture(level.texture);
       }
@@ -517,6 +574,9 @@ export async function createVista(gl) {
     stage = {
       w,
       h,
+      volume: target(vw, vh), // 这一帧的体积云，可以比画布小
+      history: target(vw, vh), // 最近几帧体积云的平均；场景用的是这一张
+      fresh: true, // 刚建好，里面还没有东西
       full: target(w, h),
       soft: [target(w >> 1, h >> 1), target(w >> 2, h >> 2), target(w >> 3, h >> 3)], // 地板的倒影用
       levels,
@@ -528,21 +588,56 @@ export async function createVista(gl) {
   };
   return {
     hdr: float,
-    // s：theta（两星连线的相位）、time（秒，细丝和云按它动）、level / reach / tip / l1（两颗行星的形状）、
-    // bridge（尖端伸得够近时的亮点和两股流，0–1）、tan（16:9 时横向半视场的正切）、basis（aim() 给的三根轴）
+    // s：time（秒，云的转动和细流按它走）、tan（横向半视场的正切）、basis（aim() 给的镜头三根轴）、
+    // volume（体积云按画布分辨率的几成来画，0.25–1，默认 1；小于 1 时云会软一些，别的东西不受影响）、
+    // layers（体积云沿视线取多少层，16–128，默认 128；少了会多一点颗粒）、
+    // seed（取样位置的种子，默认 0）和 blend（这一帧占多大比例，默认 1 即不和前几帧平均）：
+    // 播放时每帧换种子、取 0.2 左右，几帧平均下来颗粒就没了；镜头在动时要取大一些，不然会拖影
     draw(s) {
       const { width: w, height: h } = gl.canvas,
         aspect = w / h,
         tanH = s.tan, // 保住横向构图；iPad 竖屏也能看到左下红色光源。
         tanV = tanH / aspect,
         { right, up, fwd } = s.basis;
-      ensure(w, h);
+      const share = Math.max(0.25, Math.min(1, s.volume ?? 1));
+      ensure(w, h, Math.max(2, Math.round(w * share)), Math.max(2, Math.round(h * share)));
       gl.disable(gl.DEPTH_TEST);
       gl.disable(gl.BLEND);
       gl.bindVertexArray(quad);
+      // 第一遍：体积云
+      gl.bindFramebuffer(gl.FRAMEBUFFER, stage.volume.frame);
+      gl.viewport(0, 0, stage.volume.w, stage.volume.h);
+      gl.useProgram(volume.program);
+      gl.uniform2f(volume.u.u_tan, tanH, tanV);
+      gl.uniform3fv(volume.u.u_right, right);
+      gl.uniform3fv(volume.u.u_up, up);
+      gl.uniform3fv(volume.u.u_fwd, fwd);
+      gl.uniform1f(volume.u.u_time, s.time);
+      gl.uniform1f(volume.u.u_distance, distance);
+      gl.uniform1i(volume.u.u_loop, 128);
+      gl.uniform1i(volume.u.u_layers, Math.max(16, Math.min(128, Math.round(s.layers ?? 128))));
+      gl.uniform1f(volume.u.u_seed, s.seed ?? 0);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      // 混进前几帧的平均。8 位渲染目标精度不够做这种平均（小的变化会被舍掉、画面卡住不更新），直接用这一帧
+      const weight = stage.fresh || !float ? 1 : Math.max(0.05, Math.min(1, s.blend ?? 1));
+      stage.fresh = false;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, stage.history.frame);
+      gl.useProgram(copy.program);
+      bind(0, stage.volume.texture);
+      gl.uniform1i(copy.u.u_src, 0);
+      if (weight < 1) {
+        gl.enable(gl.BLEND);
+        gl.blendColor(0, 0, 0, weight);
+        gl.blendFunc(gl.CONSTANT_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA);
+      }
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      gl.disable(gl.BLEND);
+      // 第二遍：其余的场景，把云叠进去
       gl.bindFramebuffer(gl.FRAMEBUFFER, stage.full.frame);
       gl.viewport(0, 0, w, h);
       gl.useProgram(scene.program);
+      bind(0, stage.history.texture);
+      gl.uniform1i(scene.u.u_volume, 0);
       gl.uniform2f(scene.u.u_res, w, h);
       gl.uniform2f(scene.u.u_tan, tanH, tanV);
       gl.uniform3fv(scene.u.u_right, right);
@@ -550,6 +645,7 @@ export async function createVista(gl) {
       gl.uniform3fv(scene.u.u_fwd, fwd);
       gl.uniform1f(scene.u.u_time, s.time);
       gl.uniform1f(scene.u.u_distance,distance);
+      gl.uniform1i(scene.u.u_loop,128);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       const run = (shader, to, from) => {
         gl.bindFramebuffer(gl.FRAMEBUFFER, to.frame);

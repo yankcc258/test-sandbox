@@ -80,13 +80,18 @@ const picture = async (page, label) => {
 // ---------- 桌面 ----------
 {
   const context = await desktop(),
+    started = Date.now(),
     { page, errors } = await open(context);
   await ready(page);
+  // 着色器要在几秒内准备好。体积采样的循环次数曾经写成常量，被显卡驱动整段展开，第一次打开要等 25 秒
+  assert.ok(Date.now() - started < 20000, `the scene is ready in seconds (${Date.now() - started} ms)`);
   // 进场只有标题和工具条，仪表收着
   assert.ok(await page.locator('.console').isHidden());
   assert.ok(await page.locator('.readout').isHidden());
   await page.locator('#deck-pause').click(); // 先暂停，时间由检查来推
   let state = await advance(page, 0);
+  // 暂停并且镜头停稳以后是完整画质：体积云满分辨率、128 层
+  assert.deepEqual([state.quality, state.layers], [1, 128], 'a paused frame is drawn at full effort');
   assert.equal(state.hdr, true);
   assert.equal(state.fill, 0.97);
   assert.equal(state.scope, 'vista');

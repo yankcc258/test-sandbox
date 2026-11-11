@@ -1,6 +1,6 @@
 // 观景舱：艺术化星云流场；下半页：独立的洛希瓣教学模型。
 import {lagrange,planetShape,volumeRadius,periodHours,roche} from './binary.js?v=1';
-import {createVista,aim,FOCUS} from './vista.js?v=7';
+import {createVista,aim,FOCUS} from './vista.js?v=8';
 const $=id=>document.getElementById(id);
 const query=new URLSearchParams(location.search);
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
@@ -26,9 +26,16 @@ const canvas=$('view');
 let gl=null;
 try{gl=canvas.getContext('webgl2',{antialias:false,powerPreference:'high-performance'});}catch{}
 let status='loading',vista=null,clock=0,paused=reduced.matches||query.get('motion')==='0',speed=1;
-let quality=1,frame=0,last=0,slow=0,fast=0,generation=0;
+// 画得慢时怎么省。每帧的时间几乎全花在体积云上，所以只动它：[按画布分辨率的几成来画, 沿视线取多少层]。
+// 暂停并且镜头停稳以后，总是用完整画质（满分辨率、128 层），和确认过的静帧一致。
+// 播放时层数少，靠每帧错开取样位置、再和前几帧平均来抹掉颗粒（见 draw）。
+const EFFORT=[[1,48],[0.85,48],[0.7,40],[0.6,36],[0.5,32],[0.45,28],[0.4,24]],FULL=[1,128];
+let level=clamp(query.has('level')?Number(query.get('level'))||0:2,0,EFFORT.length-1); // ?level=0–6：检查用，指定从哪一档开始
+let frame=0,last=0,slow=0,fast=0,hold=0,generation=0,effort=FULL,sample=0,pose='';
 function resize(){
-  const dpr=Math.min(devicePixelRatio||1,2)*quality;
+  // 画布始终按屏幕的分辨率（最多两倍像素比）。画得慢的时候降的是体积云那一遍的分辨率（quality，见 tick 和 vista.draw），
+  // 窗框、人影、星点和光柱不跟着变糊。
+  const dpr=Math.min(devicePixelRatio||1,2);
   const w=Math.max(2,Math.round(canvas.clientWidth*dpr)),h=Math.max(2,Math.round(canvas.clientHeight*dpr));
   if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
 }
@@ -37,13 +44,23 @@ function settled(){
   return Math.abs(Math.log(view.tan/goal.tan))<2e-3&&view.focus.every((n,i)=>Math.abs(n-goal.focus[i])<2e-3);
 }
 function advance(seconds){clock+=Math.max(0,Number(seconds)||0)*speed;}
-function draw(seconds){
+function draw(seconds,settle=false){
   resize();
   const goal=SCOPES[view.scope],ease=seconds&&!reduced.matches?1-Math.exp(-seconds*2.4):1;
   view.tan*=(goal.tan/view.tan)**ease;
   view.focus=view.focus.map((n,i)=>n+(goal.focus[i]-n)*ease);
   // 固定机位；云层缓慢旋转，细流向左下光源汇入。
-  vista.draw({time:clock,tan:view.tan,basis:aim(view.focus[0]+view.yaw,view.focus[1]+view.pitch)});
+  // 镜头和上一帧一样时，这一帧只占两成，和前几帧平均；镜头在动时占七成，免得拖影
+  const now=[view.tan,view.focus[0]+view.yaw,view.focus[1]+view.pitch].map(n=>n.toFixed(5)).join(),still=now===pose;
+  pose=now;
+  // 完整画质一帧要画几十毫秒：只在暂停、镜头停稳、而且这一帧没有在转头的时候用（settle：检查用的快进直接要完整的一帧）
+  const full=paused&&settled()&&(still||settle);
+  effort=full?FULL:EFFORT[level];
+  vista.draw({
+    time:clock,tan:view.tan,basis:aim(view.focus[0]+view.yaw,view.focus[1]+view.pitch),
+    volume:effort[0],layers:effort[1],
+    seed:full?0:(++sample%997)*1.618,blend:full?1:still?0.2:0.7,
+  });
 }
 function tick(now){
   frame=0;
@@ -51,12 +68,15 @@ function tick(now){
   const seconds=last?Math.min(now-last,100)/1000:0;last=now;
   if(!paused&&seconds){
     advance(seconds);
-    if(seconds>0.03){slow++;fast=0;}else if(seconds<0.019){fast++;slow=0;}
-    if(slow>10){quality=Math.max(0.5,quality-0.1);slow=0;}
-    if(fast>120){quality=Math.min(1,quality+0.05);fast=0;}
+    // 连着几帧赶不上每秒 60 帧就降一档；降过以后隔一阵才试着升回去，免得来回跳
+    if(seconds>0.0195){slow++;fast=0;}else if(seconds<0.0175){fast++;slow=0;}
+    if(hold>0)hold--;
+    if(slow>8&&level<EFFORT.length-1){level++;slow=0;hold=600;}
+    if(fast>180&&hold===0&&level>0){level--;fast=0;hold=240;}
   }
   draw(seconds);readout();
-  if(!paused||!settled())frame=requestAnimationFrame(tick);else last=0;
+  // 暂停着但刚才那一帧不是完整画质（还在转头或变焦）：再画一帧补上
+  if(!paused||!settled()||effort!==FULL)frame=requestAnimationFrame(tick);else last=0;
 }
 function invalidate(){
   readout();
@@ -64,30 +84,40 @@ function invalidate(){
 }
 window.zhixuRocheProbe=()=>status==='ready'?{
   hdr:vista.hdr,model:'cinematic-nebula',time:clock,fill:model.fill,speed,paused,
-  scope:view.scope,tan:view.tan,yaw:view.yaw,pitch:view.pitch,quality,
+  scope:view.scope,tan:view.tan,yaw:view.yaw,pitch:view.pitch,quality:effort[0],layers:effort[1],level,
 }:null;
 window.zhixuRocheAdvance=seconds=>{
   if(status!=='ready')return null;
   advance(seconds);view.tan=SCOPES[view.scope].tan;view.focus=[...SCOPES[view.scope].focus];
-  draw(0);readout();return window.zhixuRocheProbe();
+  draw(0,true);readout();return window.zhixuRocheProbe();
 };
-function readout(){
-  const km=kilometres(),pressed=(node,on)=>node.setAttribute('aria-pressed',String(on));
-  $('gap-out').textContent=Math.round(km).toLocaleString('en-US');
-  $('period-out').textContent=periodHours(MU,sizeB,DENSITY_B).toFixed(1);
-  $('tips-out').textContent=Math.round((shapeB.tip-shapeA.tip)*km).toLocaleString('en-US');
-  $('fill2-out').textContent=(model.fill*100).toFixed(0);$('fill2').value=String(model.fill);
-  $('elapsed-out').textContent=Math.floor(clock/60).toString().padStart(2,'0')+':'+Math.floor(clock%60).toString().padStart(2,'0');
-  $('scope-out').textContent='视场 '+((2*Math.atan(view.tan)*180)/Math.PI).toFixed(0)+'°';
-  $('clock-out').textContent=paused?'时间 已暂停':'播放速度 ×'+speed;
-  for(const b of document.querySelectorAll('[data-scope]'))if(b.tagName==='BUTTON')pressed(b,b.dataset.scope===view.scope);
-  $('opt-speed').textContent='×'+speed;
-  $('opt-motion').disabled=$('deck-pause').disabled=status!=='ready';
-  $('opt-motion').textContent=paused?'继续':'暂停';$('deck-pause').textContent=paused?'继续观测':'暂停时间';
-  pressed($('opt-motion'),paused);pressed($('deck-pause'),paused);
-  canvas.dataset.telescope=view.scope;$('deck').dataset.scope=view.scope;
+// 画面每帧都会调用 readout：内容没变就不去动页面，免得每帧都触发一遍排版
+const shown=new Map();
+function put(id,text){if(shown.get(id)!==text){shown.set(id,text);$(id).textContent=text;}}
+function pressed(node,on){const value=String(on);if(node.getAttribute('aria-pressed')!==value)node.setAttribute('aria-pressed',value);}
+const scopeButtons=[...document.querySelectorAll('button[data-scope]')];
+// 下方教学模型的读数：只在滑杆动的时候变
+function modelReadout(){
+  const km=kilometres();
+  put('gap-out',Math.round(km).toLocaleString('en-US'));
+  put('period-out',periodHours(MU,sizeB,DENSITY_B).toFixed(1));
+  put('tips-out',Math.round((shapeB.tip-shapeA.tip)*km).toLocaleString('en-US'));
+  put('fill2-out',(model.fill*100).toFixed(0));
+  if($('fill2').value!==String(model.fill))$('fill2').value=String(model.fill);
 }
-function setFill(value){model.fill=clamp(value,0.6,1);reshape();drawLobes();readout();}
+function readout(){
+  put('elapsed-out',Math.floor(clock/60).toString().padStart(2,'0')+':'+Math.floor(clock%60).toString().padStart(2,'0'));
+  put('scope-out','视场 '+((2*Math.atan(view.tan)*180)/Math.PI).toFixed(0)+'°');
+  put('clock-out',paused?'时间 已暂停':'播放速度 ×'+speed);
+  for(const b of scopeButtons)pressed(b,b.dataset.scope===view.scope);
+  put('opt-speed','×'+speed);
+  const off=status!=='ready';
+  if($('opt-motion').disabled!==off)$('opt-motion').disabled=$('deck-pause').disabled=off;
+  put('opt-motion',paused?'继续':'暂停');put('deck-pause',paused?'继续观测':'暂停时间');
+  pressed($('opt-motion'),paused);pressed($('deck-pause'),paused);
+  if(canvas.dataset.telescope!==view.scope){canvas.dataset.telescope=view.scope;$('deck').dataset.scope=view.scope;}
+}
+function setFill(value){model.fill=clamp(value,0.6,1);reshape();drawLobes();modelReadout();}
 function setScope(scope){view.scope=scope;view.yaw=view.pitch=0;invalidate();}
 function setBare(on){
   $('deck').classList.toggle('bare',on);$('opt-bare').setAttribute('aria-pressed',String(on));
@@ -122,7 +152,7 @@ function bindControls(){
   $('fill2').oninput=e=>setFill(Number(e.target.value));
   for(const b of document.querySelectorAll('.deck-toolbar [data-scope]'))b.onclick=()=>setScope(b.dataset.scope);
   $('opt-speed').onclick=()=>{speed=SPEEDS[(SPEEDS.indexOf(speed)+1)%SPEEDS.length];invalidate();};
-  $('opt-motion').onclick=()=>{paused=!paused;if(paused)quality=1;last=0;invalidate();};
+  $('opt-motion').onclick=()=>{paused=!paused;last=0;invalidate();};
   $('deck-pause').onclick=()=>$('opt-motion').click();
   $('deck-data').onclick=()=>{
     const open=$('deck').classList.toggle('data-open');$('deck-data').setAttribute('aria-expanded',String(open));
@@ -268,6 +298,7 @@ async function restore() {
 }
 function start() {
   bindControls();
+  modelReadout();
   readout();
   drawLobes();
   new ResizeObserver(() => { drawLobes(); invalidate(); }).observe(document.body);
