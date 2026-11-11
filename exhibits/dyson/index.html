@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#100e0c" />
+    <meta name="description" content="站在戴森球内壁的观测台，仰望被巨型采能结构包围的恒星。一份关于恒星尺度建筑的动态设想。" />
+    <title>戴森球 · 恒星之内｜新奇想法</title>
+    <link rel="stylesheet" href="../shared/observation-report.css?v=2" />
+    <link rel="stylesheet" href="dyson.css?v=1" />
+  </head>
+  <body data-report="dyson">
+    <a class="skip" href="#report">跳至工程报告</a>
+    <main>
+      <section class="observatory" id="observatory" aria-label="戴森球内部观测台">
+        <div class="viewport" id="viewport">
+          <img id="plate" src="assets/concept-v1.png" width="1672" height="941" alt="观测台上的人极其渺小；左侧厚重结构遮住一部分金色恒星，右侧球壳内壁延伸到视野尽头。" fetchpriority="high" />
+          <canvas id="scene" tabindex="0" aria-label="戴森球动态影像。方向键微调取景，Home 回全景，空格暂停，H 隐藏界面，Esc 恢复。"></canvas>
+        </div>
+        <div class="scene-shade" aria-hidden="true"></div>
+        <header class="station scene-ui">
+          <a href="../../" aria-label="返回沙盒目录">新奇想法 <span>／ 03</span></a>
+          <span class="station-coordinate">DYSON INTERIOR <i></i> OBSERVATORY</span>
+          <a href="#report">工程档案 <span>↓</span></a>
+        </header>
+        <div class="scene-title scene-ui">
+          <p class="eyebrow">A STAR, ENCLOSED.</p>
+          <h1>恒星之内</h1>
+          <p class="subtitle">戴森球 / 内壁观测站</p>
+          <p class="intro">让一颗恒星，成为建筑的灯火。</p>
+          <button id="enter" class="enter" type="button">进入观测 <span>↗</span></button>
+        </div>
+        <p class="frame-note scene-ui"><span>PLATE 003</span> 球壳内部 · 动态概念影像</p>
+        <div class="deck scene-ui" aria-label="影像控制">
+          <div class="view-controls" role="group" aria-label="观察位置">
+            <button type="button" data-view="wide" aria-pressed="true">全景</button>
+            <button type="button" data-view="star" aria-pressed="false">恒星</button>
+            <button type="button" data-view="shell" aria-pressed="false">内壁</button>
+          </div>
+          <span class="deck-rule" aria-hidden="true"></span>
+          <button type="button" id="pause" aria-label="暂停动态影像" aria-pressed="false">Ⅱ 暂停</button>
+          <button type="button" id="hide" aria-label="隐藏界面，Esc 恢复">纯净画面</button>
+          <button type="button" id="fullscreen">全屏</button>
+        </div>
+        <button type="button" id="restore" hidden>显示界面</button>
+        <p id="status" class="status" role="status">正在展开观测影像…</p>
+        <noscript><p class="status">当前为静帧。启用 JavaScript 可播放动态影像与调整能量模型。</p></noscript>
+      </section>
+
+      <article class="observation-report" id="report" aria-labelledby="report-title">
+        <header class="report-cover">
+          <div class="report-masthead"><a href="../../">新奇想法 / 工程设想</a><span>DY–003 · CONCEPT STUDY</span><span>2026.11</span></div>
+          <div class="report-cover-grid">
+            <div><p class="report-kicker">ENGINEERING OBSERVATION / 003</p><h2 id="report-title">把恒星，<br />围进一座建筑。</h2><p class="report-abstract">视野里的金色天幕，是向远处弯曲的球壳内壁。近处的采能结构遮住恒星的一角，检修栈道上的一个人，让这座建筑终于有了尺度。</p><div class="report-classification"><span>戴森球内景</span><span>假想工程</span><span>观测台机位</span></div></div>
+            <figure class="report-plate"><img src="assets/concept-v1.png" width="1672" height="941" loading="lazy" alt="已确认的戴森球内景概念蓝本" /><figcaption><span>FIG. 01 / 已确认的构图蓝本</span><span>INTERIOR PLATE</span></figcaption></figure>
+          </div>
+          <dl class="report-facts"><div><dt>建筑类型</dt><dd>包围恒星的球壳</dd></div><div><dt>观察位置</dt><dd>内壁检修栈道</dd></div><div><dt>尺度参照</dt><dd>前景结构与观察者</dd></div><div><dt>影像性质</dt><dd>艺术化工程设想</dd></div></dl>
+          <nav class="report-index" aria-label="报告目录"><a href="#structure"><span>01</span> 空间与光</a><a href="#energy"><span>02</span> 能量预算</a><a href="#method"><span>03</span> 影像说明</a><a class="report-back" href="#observatory">返回观测 ↑</a></nav>
+        </header>
+        <section id="structure" class="report-findings">
+          <div class="report-section-heading"><p class="report-kicker">01 / ARCHITECTURE OF LIGHT</p><h2>宏大感来自距离</h2></div>
+          <div class="report-findings-grid"><div><span class="finding-number">Ⅰ</span><h3>遮挡，比全貌更有力量</h3><p>近处的厚重结构跨出画面。它挡住部分恒星，把观察者安放在建筑内部，而非悬在宇宙中的旁观者。</p></div><div><span class="finding-number">Ⅱ</span><h3>重复，一直延伸到尽头</h3><p>面板、桁架、检修沟槽逐层缩小。右侧的内壁弯入远方，让一块可辨认的构件，渐渐变成地貌。</p></div><div><span class="finding-number">Ⅲ</span><h3>一颗恒星照亮所有层次</h3><p>暖色掠射光划过金属边缘，冷色维护灯留在暗处。日珥缓慢流动，阴影沿曲面移动。</p></div></div>
+        </section>
+        <section class="energy-study" id="energy" aria-labelledby="energy-title">
+          <div class="report-section-heading"><p class="report-kicker">02 / ENERGY BUDGET</p><h2 id="energy-title">一颗太阳，能收集多少光？</h2></div>
+          <p class="model-intro">设恒星光度为太阳标称光度，改变球壳半径与有效采光覆盖率，观察能量如何分布。这里的参数只用于下方估算，主画面保持蓝本构图。</p>
+          <div class="energy-grid">
+            <div class="energy-visual" aria-hidden="true"><div class="energy-shell" id="energy-shell"><div class="energy-star"></div><div class="energy-orbit"></div></div><span>R / AU</span></div>
+            <div class="energy-controls">
+              <label for="radius">球壳半径 <output id="radius-value" for="radius">1.00 AU</output></label><input id="radius" type="range" min="0.1" max="2" step="0.01" value="1" />
+              <label for="coverage">有效采光覆盖率 <output id="coverage-value" for="coverage">80%</output></label><input id="coverage" type="range" min="20" max="100" step="1" value="80" />
+              <dl class="energy-values" aria-live="off"><div><dt>单位面积入射通量</dt><dd id="flux">1,361 W/m²</dd></div><div><dt>截获功率</dt><dd id="power">3.062 × 10²⁶ W</dd></div><div><dt>理想外向辐射温度</dt><dd id="temperature">394 K</dd></div><div><dt>有效采光面积</dt><dd id="area">2.250 × 10²³ m²</dd></div></dl>
+            </div>
+          </div>
+          <p class="model-note">F = L / (4πR²) · P = fL · A = f4πR² · T = (F/σ)<sup>¼</sup><br />理想模型：完全吸收；等面积黑体表面向外辐射全部截获能量；不计能量存储、反射与内部回照。温度不随覆盖率改变，是因为此模型的采光面积与散热面积一起改变。此处不计算球壳的结构强度或动力学稳定性。</p>
+        </section>
+        <section class="method" id="method"><p class="report-kicker">03 / METHOD &amp; ARCHIVE</p><div><h2>先确定一个值得走进去的世界</h2><p>本版沿用已确认的概念蓝本，以影像投射、局部流动和动态光影构成观测场景。取景可在全景、恒星与内壁之间切换；这是固定观测台的动态概念影像，尚不是可自由飞行的完整三维球壳。</p><p>恒星大小、可见距离与平台位置为电影构图而调整，影像中的日珥与阴影是视觉动画。工程估算与影像时钟独立。</p><p class="source-links">常数依据：<a href="https://arxiv.org/abs/1510.07674" target="_blank" rel="noreferrer">IAU 2015 · 太阳标称量</a> / <a href="https://srd.nist.gov/jpcrdreprint/5.0064853.pdf" target="_blank" rel="noreferrer">NIST · CODATA 2018</a><br /><a href="https://github.com/yankcc258/test-sandbox/blob/main/docs/exhibits/dyson.md">版本、蓝本与验证记录 ↗</a></p></div></section>
+        <footer class="report-end"><a href="../roche/">← 星云潮汐</a><a href="#observatory">重返恒星之内 ↑</a><a href="../schwarzschild/">史瓦西黑洞 →</a></footer>
+      </article>
+    </main>
+    <script type="module" src="main.js?v=1"></script>
+  </body>
+</html>
