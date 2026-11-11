@@ -76,6 +76,7 @@ vec3 stars(vec3 d) {
   // 很淡的冷色光雾，让吸积盘占主导；不是额外加出的黑洞光环。
   c += (0.00045 + band * (0.0015 + 0.018 * cloud * cloud)) * vec3(0.58, 0.70, 1.0);
   if (u_probe == 1) {
+    c *= 0.45;
     // 固定在天球上的合成银河与尘埃带；同样经由测地线采样，重复像不是屏幕叠图。
     vec3 axis = normalize(vec3(0.12, 0.75, 0.65));
     float latitude = dot(d, axis);
@@ -86,13 +87,13 @@ vec3 stars(vec3 d) {
     float dust = noise3(d * 34.0 + 51.0) * noise3(d * 71.0 + 9.0);
     float lanes = smoothstep(0.08, 0.42, dust);
     vec3 haze = mix(vec3(0.38, 0.46, 0.64), vec3(1.0, 0.80, 0.57), mist);
-    c += haze * (halo * 0.018 + core * (0.045 + 0.26 * mist * mist) * lanes);
+    c += haze * (halo * 0.004 + core * (0.010 + 0.060 * mist * mist) * lanes);
     float grains = pow(noise3(d * 260.0 + 23.0), 12.0);
-    c += vec3(0.76, 0.82, 1.0) * core * grains * 0.7;
+    c += vec3(0.76, 0.82, 1.0) * core * grains * 0.20;
     // 两团遥远星云为旋转 / 透镜提供辨认参照，不对应真实星图。
     float a = max(0.0, dot(d, normalize(vec3(-0.82, 0.20, -0.54))));
     float b = max(0.0, dot(d, normalize(vec3(-0.72, -0.02, -0.69))));
-    c += vec3(0.43, 0.57, 0.82) * (pow(a, 450.0) + 0.6 * pow(b, 800.0)) * (0.08 + 0.22 * mist);
+    c += vec3(0.43, 0.57, 0.82) * (pow(a, 450.0) + 0.6 * pow(b, 800.0)) * (0.016 + 0.044 * mist);
   }
   return c;
 }

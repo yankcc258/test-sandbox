@@ -23,7 +23,26 @@ for (const [tag, opts] of [
     errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(origin + '/exhibits/schwarzschild/?motion=0');
+  await page.waitForFunction(() => document.documentElement.dataset.ready === 'true');
+  const cameraState = () =>
+    page.evaluate(() => {
+      window.zhixuBlackHoleProbe([[0.5, 0.5]]);
+      const gl = document.querySelector('#hole').getContext('webgl2');
+      const program = gl.getParameter(gl.CURRENT_PROGRAM);
+      return Object.fromEntries(
+        ['u_cam', 'u_fwd', 'u_right', 'u_up', 'u_tan', 'u_beta'].map((name) => [
+          name,
+          Array.from(gl.getUniform(program, gl.getUniformLocation(program, name))),
+        ]),
+      );
+    });
+  const openingCamera = await cameraState();
   await page.click('#film-start');
+  assert.deepEqual(
+    await cameraState(),
+    openingCamera,
+    'launch preserves opening composition without a camera cut',
+  );
   await page.click('#film-data');
   assert.equal(await page.locator('#hole').getAttribute('data-flight'), 'true');
   assert.ok(await page.locator('#flight-play').isDisabled());
