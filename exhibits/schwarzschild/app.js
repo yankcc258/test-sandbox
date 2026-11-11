@@ -524,8 +524,34 @@ function bindControls() {
   $('flight-horizon').onclick = () => seekFlight(0.88);
   $('flight-inside').onclick = () => seekFlight(0.96);
   const pointers = new Map();
-  stage.addEventListener('pointermove', wakeFilm);
-  stage.addEventListener('pointerdown', wakeFilm);
+  let revealingControls = false;
+  stage.addEventListener('pointermove', (e) => {
+    // Touch browsers may emit a move before down. Keep hidden controls inert
+    // until that first touch has landed on (and been captured by) the canvas.
+    if (e.pointerType === 'mouse' || pointers.has(e.pointerId)) wakeFilm();
+  });
+  stage.addEventListener(
+    'pointerdown',
+    (e) => {
+      revealingControls = e.pointerType === 'touch' && $('film-ui').classList.contains('is-quiet');
+      if (revealingControls) e.preventDefault();
+      wakeFilm();
+    },
+    { capture: true },
+  );
+  stage.addEventListener(
+    'click',
+    (e) => {
+      // A compatibility click can be retargeted to the newly revealed button.
+      // A new pointerdown clears this flag, so the next deliberate tap works.
+      if (revealingControls && e.detail > 0) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      }
+      revealingControls = false;
+    },
+    { capture: true },
+  );
   $('film-ui').addEventListener('focusin', wakeFilm);
   let pinch = 0;
   const spread = () => {
