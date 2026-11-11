@@ -5,6 +5,7 @@ export const FLIGHT_E = 1;
 export const FLIGHT_L = 1.9999;
 export const FLIGHT_END = 0.2;
 export const FLIGHT_MASS = 4.3e6;
+export const FLIGHT_DURATION = 60;
 export const radialVelocity = (r, E = FLIGHT_E, L = FLIGHT_L) =>
   -Math.sqrt(Math.max(0, E * E - (1 - 1 / r) * (1 + (L * L) / (r * r))));
 
@@ -82,8 +83,8 @@ const cross = (a, b) => [
   a[0] * b[1] - a[1] * b[0],
 ];
 
-export function flightCamera(samples, progress, yaw = 0, pitch = 0) {
-  // 演示时间分段压缩，内部段慢放；实际固有时间始终来自同一条测地线。
+export function flightTime(samples, progress) {
+  // 单调三次 Hermite 时间映射：保留检查点，连接处速度连续，内部段慢放。
   const anchors = [
     [0, 0],
     [0.3, timeAtRadius(samples, 3)],
@@ -92,11 +93,33 @@ export function flightCamera(samples, progress, yaw = 0, pitch = 0) {
     [1, samples.at(-1).tau],
   ];
   progress = Math.max(0, Math.min(1, progress));
+  const h = anchors.slice(1).map((a, i) => a[0] - anchors[i][0]);
+  const delta = h.map((x, i) => (anchors[i + 1][1] - anchors[i][1]) / x);
+  const slopes = [delta[0]];
+  for (let j = 1; j < anchors.length - 1; j++) {
+    const w1 = 2 * h[j] + h[j - 1],
+      w2 = h[j] + 2 * h[j - 1];
+    slopes.push((w1 + w2) / (w1 / delta[j - 1] + w2 / delta[j]));
+  }
+  slopes.push(delta.at(-1));
   let i = 0;
   while (i < anchors.length - 2 && progress > anchors[i + 1][0]) i++;
   const [p0, t0] = anchors[i],
     [p1, t1] = anchors[i + 1];
-  const s = sampleAtTime(samples, t0 + ((t1 - t0) * (progress - p0)) / (p1 - p0));
+  const x = (progress - p0) / (p1 - p0),
+    x2 = x * x,
+    x3 = x2 * x;
+  return (
+    (2 * x3 - 3 * x2 + 1) * t0 +
+    (x3 - 2 * x2 + x) * h[i] * slopes[i] +
+    (-2 * x3 + 3 * x2) * t1 +
+    (x3 - x2) * h[i] * slopes[i + 1]
+  );
+}
+
+export function flightCamera(samples, progress, yaw = 0, pitch = 0) {
+  progress = Math.max(0, Math.min(1, progress));
+  const s = sampleAtTime(samples, flightTime(samples, progress));
   const a = (10 * Math.PI) / 180,
     radial = [Math.cos(a) * Math.cos(s.phi), Math.sin(a) * Math.cos(s.phi), Math.sin(s.phi)],
     tangent = [-Math.cos(a) * Math.sin(s.phi), -Math.sin(a) * Math.sin(s.phi), Math.cos(s.phi)];
@@ -113,12 +136,20 @@ export function flightCamera(samples, progress, yaw = 0, pitch = 0) {
     const t = Math.max(0, Math.min(1, (progress - a) / (b - a)));
     return t * t * (3 - 2 * t);
   };
-  yaw -= 0.35 * smooth(0.2, 0.6) + 1.2 * smooth(0.72, 1);
-  const horizontal = forward.map((x, j) => Math.cos(yaw) * x + Math.sin(yaw) * side[j]);
-  const fwd = horizontal.map((x, j) => Math.cos(pitch) * x + Math.sin(pitch) * axis[j]);
-  const right = norm(cross(fwd, axis)),
-    up = cross(right, fwd);
-  return { ...s, cam, radial, tangent, ur, beta, gamma: frame.gamma, fwd, right, up };
+  const heading = 0.45 * (1 - smooth(0, 0.3)) - 0.55 * smooth(0.12, 0.6) - 1.1 * smooth(0.72, 1);
+  const directed = forward.map((x, j) => Math.cos(heading) * x + Math.sin(heading) * side[j]);
+  const sideView = norm(cross(directed, axis)),
+    vertical = cross(sideView, directed);
+  // 摄影机滚转把视野中的外部天空置于上方；这是取景，不是陀螺仪姿态。
+  const roll = (Math.PI / 2) * smooth(0.08, 0.42);
+  const screenRight = sideView.map((x, j) => Math.cos(roll) * x + Math.sin(roll) * vertical[j]);
+  const screenUp = vertical.map((x, j) => Math.cos(roll) * x - Math.sin(roll) * sideView[j]);
+  // 用户转头在屏幕标架中施加，滚转后水平拖动仍然沿屏幕水平方向。
+  const horizontal = directed.map((x, j) => Math.cos(yaw) * x + Math.sin(yaw) * screenRight[j]);
+  const right = screenRight.map((x, j) => Math.cos(yaw) * x - Math.sin(yaw) * directed[j]);
+  const fwd = horizontal.map((x, j) => Math.cos(pitch) * x + Math.sin(pitch) * screenUp[j]);
+  const up = screenUp.map((x, j) => Math.cos(pitch) * x - Math.sin(pitch) * horizontal[j]);
+  return { ...s, cam, radial, tangent, ur, beta, gamma: frame.gamma, fwd, right, up, roll };
 }
 
 // 相机过去指向的零矢量 (-1,n) 先 Lorentz boost 到自由落体 PG 正交标架。

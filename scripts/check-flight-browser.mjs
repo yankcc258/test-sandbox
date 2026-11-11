@@ -26,6 +26,15 @@ for (const [tag, opts] of [
   await page.click('#flight-enter');
   assert.equal(await page.locator('#hole').getAttribute('data-flight'), 'true');
   assert.ok(await page.locator('#flight-play').isDisabled());
+  if (tag === 'phone') {
+    const width = await page.evaluate(() => innerWidth);
+    const slider = await page.locator('#flight-progress').boundingBox();
+    assert.ok(slider.width > width * 0.7, 'phone timeline uses full width');
+    assert.ok(
+      (await page.locator('.panel').boundingBox()).height < 340,
+      'phone panel leaves the image visible',
+    );
+  }
   for (const [label, progress] of [
     ['approach', 0],
     ['orbit', 0.52],
@@ -142,8 +151,35 @@ for (const [tag, opts] of [
   await p.waitForFunction(() => Number(document.querySelector('#hole').dataset.progress) > 0.002);
   await p.click('#flight-play');
   const at = await p.locator('#hole').getAttribute('data-progress');
+  const stillImage = await p.evaluate(() =>
+    window.zhixuBlackHoleProbe([
+      [0.3, 0.4],
+      [0.5, 0.5],
+      [0.7, 0.6],
+    ]),
+  );
   await p.waitForTimeout(150);
   assert.equal(await p.locator('#hole').getAttribute('data-progress'), at);
+  assert.deepEqual(
+    await p.evaluate(() =>
+      window.zhixuBlackHoleProbe([
+        [0.3, 0.4],
+        [0.5, 0.5],
+        [0.7, 0.6],
+      ]),
+    ),
+    stillImage,
+    'paused flight freezes disk texture as well as camera',
+  );
+  await p.click('#flight-hud');
+  await p.click('#flight-quick-pause');
+  await p.waitForFunction(
+    (at) => Number(document.querySelector('#hole').dataset.progress) > Number(at),
+    at,
+  );
+  await p.click('#flight-quick-pause');
+  assert.equal(await p.locator('#hole').getAttribute('data-flying'), 'false');
+  await p.click('#flight-hud');
   await p.click('#flight-play');
   await p.emulateMedia({ reducedMotion: 'reduce' });
   await p.waitForFunction(() => document.querySelector('#flight-play').disabled);

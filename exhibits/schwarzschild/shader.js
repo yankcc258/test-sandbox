@@ -75,6 +75,25 @@ vec3 stars(vec3 d) {
   float band = exp(-lat * lat * 18.0), cloud = skyCloud(d);
   // 很淡的冷色光雾，让吸积盘占主导；不是额外加出的黑洞光环。
   c += (0.00045 + band * (0.0015 + 0.018 * cloud * cloud)) * vec3(0.58, 0.70, 1.0);
+  if (u_probe == 1) {
+    // 固定在天球上的合成银河与尘埃带；同样经由测地线采样，重复像不是屏幕叠图。
+    vec3 axis = normalize(vec3(0.12, 0.75, 0.65));
+    float latitude = dot(d, axis);
+    float mist = skyCloud(d * 1.7);
+    float ridge = latitude + 0.025 * (noise3(d * 18.0 + 8.0) - 0.5);
+    float halo = exp(-latitude * latitude * 25.0);
+    float core = exp(-ridge * ridge * 180.0);
+    float dust = noise3(d * 34.0 + 51.0) * noise3(d * 71.0 + 9.0);
+    float lanes = smoothstep(0.08, 0.42, dust);
+    vec3 haze = mix(vec3(0.38, 0.46, 0.64), vec3(1.0, 0.80, 0.57), mist);
+    c += haze * (halo * 0.018 + core * (0.045 + 0.26 * mist * mist) * lanes);
+    float grains = pow(noise3(d * 260.0 + 23.0), 12.0);
+    c += vec3(0.76, 0.82, 1.0) * core * grains * 0.7;
+    // 两团遥远星云为旋转 / 透镜提供辨认参照，不对应真实星图。
+    float a = max(0.0, dot(d, normalize(vec3(-0.82, 0.20, -0.54))));
+    float b = max(0.0, dot(d, normalize(vec3(-0.72, -0.02, -0.69))));
+    c += vec3(0.43, 0.57, 0.82) * (pow(a, 450.0) + 0.6 * pow(b, 800.0)) * (0.08 + 0.22 * mist);
+  }
   return c;
 }
 vec3 blackbody(float T) {
@@ -95,7 +114,8 @@ vec3 disk(vec3 pos, float ly, float energy) {
   float peak = u_rin * 49.0 / 36.0;
   float fmax = (1.0 - sqrt(u_rin / peak)) / (peak * peak * peak);
   float f = max(0.0, flux / fmax);
-  float T = 5100.0 * pow(max(f, 1e-4), 0.25) * g;
+  // 探测器影像采用暖色示意色温；保留频移和辐射强度的独立计算。
+  float T = (u_probe == 1 ? 2900.0 : 5100.0) * pow(max(f, 1e-4), 0.25) * g;
   float period = 60.0, ph = u_time / period, w = 0.0, tex = 0.0;
   for (int k = 0; k < 2; k++) {
     float t = fract(ph + float(k) * 0.5);
@@ -106,13 +126,23 @@ vec3 disk(vec3 pos, float ly, float energy) {
     // 全部用连续的平面坐标，不用有 ±π 接缝的 atan 作为噪声坐标。
     float eddy = fbm(q * 0.65 + float(k) * 11.0);
     float ribbons = fbm(vec2(r * 7.0, eddy * 2.5 + float(k) * 9.0));
-    tex += weight * (0.55 * eddy + 0.45 * ribbons);
+    float detail = 0.55 * eddy + 0.45 * ribbons;
+    if (u_probe == 1) {
+      float warp = fbm(q * 1.3 + float(k) * 17.0);
+      float fibers = pow(0.5 + 0.5 * sin(r * 24.0 + 6.0 * warp + 2.0 * eddy), 3.0);
+      float knots = smoothstep(0.50, 0.82, fbm(q * 3.7 + float(k) * 13.0));
+      detail = 0.20 + 0.7 * eddy + 0.55 * fibers + 0.4 * knots;
+    }
+    tex += weight * detail;
     w += weight;
   }
-  tex = 0.65 + 0.8 * tex / w;
+  tex = u_probe == 1 ? 0.12 + 1.25 * tex / w : 0.65 + 0.8 * tex / w;
   float edge = smoothstep(u_rin, u_rin + 0.22, r) * (1.0 - smoothstep(u_rout - 2.0, u_rout, r));
   float bright = f * tex * edge * pow(g, 4.0) * 1.8;
-  return blackbody(T) * bright;
+  vec3 tint = blackbody(T);
+  // 经验色温近似返回显示 RGB；影像模式先转回线性光，避免最后伽马映射把橙色洗成黄白。
+  if (u_probe == 1) tint = pow(tint, vec3(2.2));
+  return tint * bright;
 }
 vec3 directionAt(vec3 radial, vec3 tangent, float phi) {
   return cos(phi) * radial + sin(phi) * tangent;
@@ -211,8 +241,14 @@ void main() {
   col /= float(samples * samples);
   // 只按亮度压缩，保留频移带来的色差；不在阴影上叠光晕。
   float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
-  // 相机自动缩短曝光，保留靠近时被蓝移增亮的盘面层次；频率比不受影响。
-  float exposure = u_probe == 1 ? 1.05 / (1.0 + 12.0 / dot(u_cam, u_cam)) : 1.05;
-  col *= (1.0 - exp(-lum * exposure)) / max(lum, 1e-4);
+  if (u_probe == 1) {
+    // 对数肩部保留高亮中的纹理。仅显示映射，不改 g 或轨道；暗区保持零。
+    float exposure = 1.6 / (1.0 + 3.0 / dot(u_cam, u_cam));
+    float peak = max(col.r, max(col.g, col.b));
+    float shoulder = log2(1.0 + peak * exposure);
+    col *= shoulder / (1.7 + shoulder) / max(peak, 1e-6);
+  } else {
+    col *= (1.0 - exp(-lum * 1.05)) / max(lum, 1e-4);
+  }
   color = vec4(pow(clamp(col, 0.0, 1.0), vec3(1.0 / 2.2)), 1.0);
 }`;

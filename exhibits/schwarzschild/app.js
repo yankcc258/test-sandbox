@@ -1,8 +1,8 @@
 // 史瓦西黑洞展品的页面逻辑（露娜）：WebGL 画面、拖动 / 缩放、读数，以及下面那张「光线怎么弯」的二维示意图。
 // geodesic.js 是笛卡尔参考积分；orbit.js / shader.js 用等价的轨道平面方程。
-import { VERTEX, FRAGMENT } from './shader.js?v=3';
+import { VERTEX, FRAGMENT } from './shader.js?v=4';
 import { initMission } from './mission.js?v=1';
-import { buildFlight, flightCamera, FLIGHT_MASS } from './flight.js?v=1';
+import { buildFlight, flightCamera, FLIGHT_MASS, FLIGHT_DURATION } from './flight.js?v=2';
 import { scales } from './infall.js?v=1';
 import {
   RS,
@@ -28,7 +28,7 @@ const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 initMission(document.getElementById('infall'));
 const HOME = { r: 22, incl: (80 * Math.PI) / 180, az: 0.6 };
 const view = { ...HOME, disk: true, shift: true, stars: true };
-const flight = { active: false, running: false, progress: 0, yaw: 0, pitch: 0, half: 0.85 };
+const flight = { active: false, running: false, progress: 0, yaw: 0, pitch: 0, half: 0.94 };
 const trajectory = buildFlight();
 const flightFrame = () => flightCamera(trajectory, flight.progress, flight.yaw, flight.pitch);
 const flightLocked = () => reduceMotion || params.get('motion') === '0';
@@ -103,7 +103,8 @@ function setup() {
     uniforms[name] = gl.getUniformLocation(program, name);
 }
 function resize() {
-  const renderScale = still() || !view.disk ? Math.max(scale, innerWidth < 700 ? 0.85 : 1) : scale;
+  const settled = flight.active ? !flight.running : still() || !view.disk;
+  const renderScale = settled ? Math.max(scale, innerWidth < 700 ? 0.85 : 1) : scale;
   const dpr = Math.min(devicePixelRatio || 1, 1.5),
     w = Math.max(2, Math.round(canvas.clientWidth * dpr * renderScale)),
     h = Math.max(2, Math.round(canvas.clientHeight * dpr * renderScale));
@@ -150,7 +151,7 @@ function draw(time, diagnostic = false) {
   gl.uniform3fv(uniforms.u_beta, probe ? probe.beta : [0, 0, 0]);
   gl.uniform1f(uniforms.u_gamma, probe ? probe.gamma : 1);
   gl.uniform2f(uniforms.u_tan, tanH, tanV);
-  gl.uniform1f(uniforms.u_time, time);
+  gl.uniform1f(uniforms.u_time, flight.active ? flight.progress * FLIGHT_DURATION : time);
   gl.uniform1f(uniforms.u_rin, R_IN);
   gl.uniform1f(uniforms.u_rout, R_OUT);
   gl.uniform1f(uniforms.u_disk, view.disk ? 1 : 0);
@@ -170,11 +171,11 @@ function tick(now) {
   last = now;
   const flying = flight.active && flight.running && !flightLocked();
   if (flying) {
-    flight.progress = Math.min(1, flight.progress + dt / 50);
+    flight.progress = Math.min(1, flight.progress + dt / FLIGHT_DURATION);
     if (flight.progress === 1) flight.running = false;
     readout();
   }
-  const moving = (!still() && view.disk) || flying;
+  const moving = (flight.active ? false : !still() && view.disk) || flying;
   if (!moving) aa = 2;
   if (!still() && view.disk) clock += dt;
   if (moving || dirty) {
@@ -256,6 +257,9 @@ function readout() {
         ? '再次航行'
         : '开始航行';
   $('flight-play').setAttribute('aria-pressed', String(flight.running));
+  $('flight-quick-pause').textContent = $('flight-play').textContent;
+  $('flight-quick-pause').disabled = $('flight-play').disabled;
+  $('flight-quick-pause').setAttribute('aria-pressed', String(flight.running));
   if (flight.active) {
     const s = flightFrame();
     $('r-out').textContent = s.r.toFixed(3);
@@ -324,6 +328,7 @@ function bindControls() {
     $('flight-enter').hidden = active;
     $('flight-controls').hidden = !active;
     $('flight-hud').hidden = !active;
+    $('flight-quick-pause').hidden = !active;
     document.querySelector('.panel').classList.remove('compact');
     $('flight-hud').textContent = '收起面板';
     $('flight-hud').setAttribute('aria-expanded', 'true');
@@ -348,6 +353,7 @@ function bindControls() {
     invalidate();
   };
   $('flight-enter').onclick = () => toggleFlight(true);
+  $('flight-quick-pause').onclick = () => $('flight-play').click();
   $('flight-hud').onclick = () => {
     const compact = document.querySelector('.panel').classList.toggle('compact');
     $('flight-hud').textContent = compact ? '展开面板' : '收起面板';
@@ -357,7 +363,7 @@ function bindControls() {
   $('flight-progress').oninput = (e) => seekFlight(Number(e.target.value));
   $('flight-restart').onclick = () => {
     flight.yaw = flight.pitch = 0;
-    flight.half = 0.85;
+    flight.half = 0.94;
     seekFlight(0);
   };
   $('flight-play').onclick = () => {
@@ -425,7 +431,7 @@ function bindControls() {
       Home: () => {
         if (flight.active) {
           flight.yaw = flight.pitch = 0;
-          flight.half = 0.85;
+          flight.half = 0.94;
           invalidate();
         } else setView({ ...HOME });
       },

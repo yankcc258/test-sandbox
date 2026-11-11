@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   buildFlight,
   flightCamera,
+  flightTime,
   fallingFrame,
   probePhoton,
   radialVelocity,
@@ -16,6 +17,29 @@ const dot = (a, b) => a.reduce((s, x, i) => s + x * b[i], 0);
 const norm = (a) => a.map((x) => x / Math.hypot(...a));
 const coarse = buildFlight(),
   fine = buildFlight({ step: 0.005 });
+let previousTime = -1;
+for (let i = 0; i <= 1000; i++) {
+  const t = flightTime(coarse, i / 1000);
+  assert.ok(t > previousTime, 'presentation clock is monotone');
+  previousTime = t;
+  assert.ok(t >= 0 && t <= coarse.at(-1).tau, 'presentation clock stays on trajectory');
+}
+for (const p of [0.3, 0.72, 0.88]) {
+  const e = 1e-6,
+    t = flightTime(coarse, p);
+  const left = (t - flightTime(coarse, p - e)) / e,
+    right = (flightTime(coarse, p + e) - t) / e;
+  close(left, right, 0.01, 'presentation speed is continuous at scene transition');
+}
+for (const p of [0, 0.25, 0.52, 0.88, 1]) {
+  const base = flightCamera(coarse, p),
+    e = 1e-5;
+  const yaw = flightCamera(coarse, p, e),
+    pitch = flightCamera(coarse, p, 0, e);
+  close(dot(yaw.fwd, base.right) / e, 1, 1e-8, 'yaw follows screen horizontal after roll');
+  close(dot(yaw.fwd, base.up), 0, 1e-10, 'yaw does not drift vertically');
+  close(dot(pitch.fwd, base.up) / e, 1, 1e-8, 'pitch follows screen vertical after roll');
+}
 for (const r of [18, 6, 3, 2.1, 2, 1.7, 1.000001, 1, 0.999999, 0.6, 0.21]) {
   const ur = radialVelocity(r),
     f = fallingFrame(r, ur, FLIGHT_L),
