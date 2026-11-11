@@ -39,6 +39,21 @@ for (const p of [0, 0.25, 0.52, 0.88, 1]) {
   close(dot(yaw.fwd, base.right) / e, 1, 1e-8, 'yaw follows screen horizontal after roll');
   close(dot(yaw.fwd, base.up), 0, 1e-10, 'yaw does not drift vertically');
   close(dot(pitch.fwd, base.up) / e, 1, 1e-8, 'pitch follows screen vertical after roll');
+  for (const key of ['r', 'phi', 'tau', 'cam', 'beta', 'gamma']) {
+    assert.deepEqual(yaw[key], base[key], 'looking around preserves physical observer state');
+    assert.deepEqual(pitch[key], base[key], 'looking around preserves physical observer state');
+  }
+}
+// 镜头的主动倾侧 / 变焦保持缓慢连续；这里不限制轨道本身产生的运动。
+for (let i = 1; i <= 720; i++) {
+  const a = flightCamera(coarse, (i - 1) / 720),
+    b = flightCamera(coarse, i / 720);
+  assert.ok(
+    Math.abs(b.roll - a.roll) / 0.1 < 0.04,
+    'camera roll stays below 2.3 degrees per second',
+  );
+  assert.ok(Math.abs(b.lens - a.lens) / 0.1 < 0.04, 'lens changes gradually without cuts');
+  assert.ok(b.lens >= 0.2 && b.lens <= 1.1, 'finite cinematic view field');
 }
 for (const r of [18, 6, 3, 2.1, 2, 1.7, 1.000001, 1, 0.999999, 0.6, 0.21]) {
   const ur = radialVelocity(r),

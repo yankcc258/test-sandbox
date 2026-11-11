@@ -134,14 +134,16 @@ export function flightCamera(samples, progress, yaw = 0, pitch = 0) {
   // 只改变取景，不改变测地线或相机速度；用户转头叠加在此基础上。
   const smooth = (a, b) => {
     const t = Math.max(0, Math.min(1, (progress - a) / (b - a)));
-    return t * t * (3 - 2 * t);
+    return t * t * t * (t * (t * 6 - 15) + 10);
   };
-  const heading = 0.45 * (1 - smooth(0, 0.3)) - 0.55 * smooth(0.12, 0.6) - 1.1 * smooth(0.72, 1);
+  const heading =
+    0.45 * (1 - smooth(0.02, 0.38)) - 0.48 * smooth(0.18, 0.72) - 1.1 * smooth(0.72, 1);
   const directed = forward.map((x, j) => Math.cos(heading) * x + Math.sin(heading) * side[j]);
   const sideView = norm(cross(directed, axis)),
     vertical = cross(sideView, directed);
   // 摄影机滚转把视野中的外部天空置于上方；这是取景，不是陀螺仪姿态。
-  const roll = (Math.PI / 2) * (0.8 * smooth(0.12, 0.42) + 0.2 * smooth(0.72, 0.95));
+  // 小幅、缓慢的倾侧保留盘面的横向尺度；五次过渡让角速度和角加速度在端点归零。
+  const roll = 0.12 + 0.32 * smooth(0.08, 0.65) + 0.36 * smooth(0.65, 1);
   const screenRight = sideView.map((x, j) => Math.cos(roll) * x + Math.sin(roll) * vertical[j]);
   const screenUp = vertical.map((x, j) => Math.cos(roll) * x - Math.sin(roll) * sideView[j]);
   // 用户转头在屏幕标架中施加，滚转后水平拖动仍然沿屏幕水平方向。
@@ -149,7 +151,8 @@ export function flightCamera(samples, progress, yaw = 0, pitch = 0) {
   const right = screenRight.map((x, j) => Math.cos(yaw) * x - Math.sin(yaw) * directed[j]);
   const fwd = horizontal.map((x, j) => Math.cos(pitch) * x + Math.sin(pitch) * screenUp[j]);
   const up = screenUp.map((x, j) => Math.cos(pitch) * x - Math.sin(pitch) * horizontal[j]);
-  const lens = 0.78 + 0.18 * smooth(0.12, 0.45) - 0.25 * smooth(0.85, 1);
+  // 开场长焦截取盘面；靠近时缓慢展宽，保留前景跨出画框的尺度感。
+  const lens = 0.29 + 0.4 * smooth(0.06, 0.38) + 0.1 * smooth(0.6, 0.88) - 0.15 * smooth(0.88, 1);
   return { ...s, cam, radial, tangent, ur, beta, gamma: frame.gamma, fwd, right, up, roll, lens };
 }
 

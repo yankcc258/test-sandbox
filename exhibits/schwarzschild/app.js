@@ -1,9 +1,9 @@
 // 史瓦西黑洞展品的页面逻辑（露娜）：WebGL 画面、拖动 / 缩放、读数，以及下面那张「光线怎么弯」的二维示意图。
 // geodesic.js 是笛卡尔参考积分；orbit.js / shader.js 用等价的轨道平面方程。
-import { VERTEX, FRAGMENT } from './shader.js?v=5';
-import { createCinema, createScore } from './cinema.js?v=1';
+import { VERTEX, FRAGMENT } from './shader.js?v=7';
+import { createCinema, createScore } from './cinema.js?v=2';
 import { initMission } from './mission.js?v=1';
-import { buildFlight, flightCamera, FLIGHT_MASS, FLIGHT_DURATION } from './flight.js?v=3';
+import { buildFlight, flightCamera, FLIGHT_MASS, FLIGHT_DURATION } from './flight.js?v=4';
 import { scales } from './infall.js?v=1';
 import {
   RS,
@@ -31,7 +31,19 @@ const HOME = { r: 22, incl: (80 * Math.PI) / 180, az: 0.6 };
 const view = { ...HOME, disk: true, shift: true, stars: true };
 const flight = { active: false, running: false, progress: 0, yaw: 0, pitch: 0, half: 0.94 };
 const trajectory = buildFlight();
-const flightFrame = () => flightCamera(trajectory, flight.progress, flight.yaw, flight.pitch);
+// 开场与航行共用取景，起航不跳切；早段缓慢收回构图偏移，用户转头独立叠加。
+const framedCamera = (progress, yaw = 0, pitch = 0) => {
+  const t = clamp(progress / 0.18, 0, 1);
+  const hold = 1 - t * t * t * (t * (t * 6 - 15) + 10);
+  const wide = canvas.clientWidth > canvas.clientHeight;
+  return flightCamera(
+    trajectory,
+    progress,
+    yaw - (wide ? 0.1 : 0) * hold,
+    pitch - (wide ? 0.015 : 0.22) * hold,
+  );
+};
+const flightFrame = () => framedCamera(flight.progress, flight.yaw, flight.pitch);
 const flightLocked = () => reduceMotion || params.get('motion') === '0';
 const score = createScore();
 let cinema = null;
@@ -110,12 +122,14 @@ function setup() {
     'u_debug',
     'u_res',
     'u_probe',
+    'u_hdr',
     'u_beta',
     'u_gamma',
   ])
     uniforms[name] = gl.getUniformLocation(program, name);
   try {
-    cinema = createCinema(gl, VERTEX);
+    // ?hdr=0：检查用，强制走不带高动态范围的旧成像层
+    cinema = createCinema(gl, VERTEX, { allowHdr: params.get('hdr') !== '0' });
   } catch (error) {
     cinema = null;
     console.warn('Cinema lens unavailable:', error);
@@ -163,24 +177,26 @@ function draw(time, diagnostic = false) {
     fwd = norm(cam.map((x) => -x)),
     right = norm(cross(fwd, [0, 1, 0])),
     up = cross(right, fwd);
-  const probe = flight.active
-    ? flightFrame()
-    : landing
-      ? flightCamera(trajectory, 0, innerWidth > 820 ? -0.25 : 0)
-      : null;
+  const probe = flight.active ? flightFrame() : landing ? framedCamera(0) : null;
   if (probe) ({ cam, fwd, right, up } = probe);
-  // 视场：短边上能看到整个盘的外沿（离得近时最多放到 100°）
+  // 电影取景允许盘面出画；宽屏限制横向扩张，避免手机横屏把黑洞缩回小模型。
+  // 外部观察仍保留能看全盘面的原视场。
   const half = probe
       ? ((flight.active ? flight.half : 0.94) * probe.lens) / 0.94
       : clamp(Math.atan((R_OUT * 1.35) / r), 0.42, 0.87),
     aspect = canvas.width / canvas.height,
-    tanV = aspect >= 1 ? Math.tan(half) : Math.tan(half) / aspect,
+    tanV = probe
+      ? (Math.tan(half) * Math.min(1.35, Math.max(1, aspect))) / aspect
+      : aspect >= 1
+        ? Math.tan(half)
+        : Math.tan(half) / aspect,
     tanH = tanV * aspect;
   gl.uniform3fv(uniforms.u_cam, cam);
   gl.uniform3fv(uniforms.u_right, right);
   gl.uniform3fv(uniforms.u_up, up);
   gl.uniform3fv(uniforms.u_fwd, fwd);
   gl.uniform1i(uniforms.u_probe, filmLook ? 1 : 0);
+  gl.uniform1i(uniforms.u_hdr, useCinema && cinema.hdr ? 1 : 0);
   gl.uniform3fv(uniforms.u_beta, probe ? probe.beta : [0, 0, 0]);
   gl.uniform1f(uniforms.u_gamma, probe ? probe.gamma : 1);
   gl.uniform2f(uniforms.u_tan, tanH, tanV);

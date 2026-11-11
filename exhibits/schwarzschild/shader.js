@@ -13,7 +13,7 @@ out vec4 color;
 uniform vec3 u_cam, u_right, u_up, u_fwd;
 uniform vec2 u_tan, u_res;
 uniform float u_time, u_rin, u_rout, u_disk, u_shift, u_stars;
-uniform int u_aa, u_debug, u_probe;
+uniform int u_aa, u_debug, u_probe, u_hdr;
 uniform vec3 u_beta;
 uniform float u_gamma;
 const float PI = 3.141592653589793;
@@ -76,6 +76,7 @@ vec3 stars(vec3 d) {
   // 很淡的冷色光雾，让吸积盘占主导；不是额外加出的黑洞光环。
   c += (0.00045 + band * (0.0015 + 0.018 * cloud * cloud)) * vec3(0.58, 0.70, 1.0);
   if (u_probe == 1) {
+    c *= 0.45;
     // 固定在天球上的合成银河与尘埃带；同样经由测地线采样，重复像不是屏幕叠图。
     vec3 axis = normalize(vec3(0.12, 0.75, 0.65));
     float latitude = dot(d, axis);
@@ -86,13 +87,13 @@ vec3 stars(vec3 d) {
     float dust = noise3(d * 34.0 + 51.0) * noise3(d * 71.0 + 9.0);
     float lanes = smoothstep(0.08, 0.42, dust);
     vec3 haze = mix(vec3(0.38, 0.46, 0.64), vec3(1.0, 0.80, 0.57), mist);
-    c += haze * (halo * 0.018 + core * (0.045 + 0.26 * mist * mist) * lanes);
+    c += haze * (halo * 0.004 + core * (0.010 + 0.060 * mist * mist) * lanes);
     float grains = pow(noise3(d * 260.0 + 23.0), 12.0);
-    c += vec3(0.76, 0.82, 1.0) * core * grains * 0.7;
+    c += vec3(0.76, 0.82, 1.0) * core * grains * 0.20;
     // 两团遥远星云为旋转 / 透镜提供辨认参照，不对应真实星图。
     float a = max(0.0, dot(d, normalize(vec3(-0.82, 0.20, -0.54))));
     float b = max(0.0, dot(d, normalize(vec3(-0.72, -0.02, -0.69))));
-    c += vec3(0.43, 0.57, 0.82) * (pow(a, 450.0) + 0.6 * pow(b, 800.0)) * (0.08 + 0.22 * mist);
+    c += vec3(0.43, 0.57, 0.82) * (pow(a, 450.0) + 0.6 * pow(b, 800.0)) * (0.016 + 0.044 * mist);
   }
   return c;
 }
@@ -104,8 +105,10 @@ vec3 blackbody(float T) {
   float b = t >= 66.0 ? 1.0 : (t <= 19.0 ? 0.0 : clamp(0.543207 * log(t - 10.0) - 1.196254, 0.0, 1.0));
   return vec3(r, g, b);
 }
-// 无限薄、光学厚的示意盘：首次与盘相交即停止追踪，避免透过盘叠出伪像。
-vec3 disk(vec3 pos, float ly, float energy) {
+// 外部观察：无限薄、光学厚的示意盘，首次与盘相交即停止追踪（cover = 1）。
+// 影像模式（猫猫，2026-11-11）：同一张无限薄的盘面，但当成半透明的发光气体——
+// cover 是光线这一次穿过盘面被挡住的比例，稀薄处能透出后面的光；光线继续追踪，后面的像按透过率叠加。
+vec3 disk(vec3 pos, float ly, float energy, out float cover) {
   float r = length(pos.xz);
   float omega = sqrt(0.5 / (r * r * r));
   float g = sqrt(1.0 - 1.5 / r) / (energy - omega * ly);
@@ -115,7 +118,10 @@ vec3 disk(vec3 pos, float ly, float energy) {
   float fmax = (1.0 - sqrt(u_rin / peak)) / (peak * peak * peak);
   float f = max(0.0, flux / fmax);
   // 探测器影像采用暖色示意色温；保留频移和辐射强度的独立计算。
-  float T = (u_probe == 1 ? 2900.0 : 5100.0) * pow(max(f, 1e-4), 0.25) * g;
+  // 影像模式把色温的层次拉开（示意）：内沿黄白、外沿暗红，频移照常乘上去。
+  float T = (u_probe == 1 ? 4300.0 * pow(max(f, 1e-4), 0.42) : 5100.0 * pow(max(f, 1e-4), 0.25)) * g;
+  // 镜头离盘面这一点有多近：贴着掠过时再加两层细丝
+  float nearby = u_probe == 1 ? 1.0 - smoothstep(1.2, 8.0, length(pos - u_cam)) : 0.0;
   float period = 60.0, ph = u_time / period, w = 0.0, tex = 0.0;
   for (int k = 0; k < 2; k++) {
     float t = fract(ph + float(k) * 0.5);
@@ -134,12 +140,29 @@ vec3 disk(vec3 pos, float ly, float energy) {
       vec2 unit = q / r;
       float streams = noise3(vec3(unit * 6.0, r * 9.0 + warp * 2.0));
       detail = 0.08 + 0.85 * eddy * eddy + 0.20 * fibers + 0.65 * streams * streams + 0.6 * knots;
+      if (nearby > 0.0) {
+        // 沿着转动方向拉长的细丝；unit 是连续的平面方向，没有角度接缝
+        float threads = noise3(vec3(unit * 15.0, r * 52.0 + warp * 4.0));
+        float grain = noise3(vec3(unit * 37.0 + 5.0, r * 140.0 + eddy * 6.0));
+        detail *= 1.0 + nearby * (1.5 * threads * threads + 0.9 * grain * threads - 0.55);
+      }
     }
     tex += weight * detail;
     w += weight;
   }
   tex = u_probe == 1 ? 0.12 + 1.25 * tex / w : 0.65 + 0.8 * tex / w;
   float edge = smoothstep(u_rin, u_rin + 0.22, r) * (1.0 - smoothstep(u_rout - 2.0, u_rout, r));
+  cover = 1.0;
+  if (u_probe == 1) {
+    // 外沿不再一刀切：从 6 r_s 起越来越稀，边界跟着纹理起伏成絮状；内沿也带一点起伏
+    float ragged = tex - 0.75;
+    float thin = smoothstep(u_rin, u_rin + 0.45, r - 0.2 * ragged)
+               * (1.0 - smoothstep(u_rout - 6.5, u_rout, r + 2.4 * ragged));
+    // 气体多的地方不透明，少的地方透光；里面比外面厚
+    float amount = thin * (0.22 + tex * tex) * mix(2.6, 0.7, smoothstep(3.5, 10.5, r));
+    cover = (1.0 - exp(-2.6 * amount)) * edge;
+    edge = 1.0;
+  }
   float bright = f * tex * edge * pow(g, 4.0) * 1.8;
   vec3 tint = blackbody(T);
   // 经验色温近似返回显示 RGB；影像模式先转回线性光，避免最后伽马映射把橙色洗成黄白。
@@ -194,6 +217,10 @@ vec4 trace(vec2 q) {
   vec3 tangent = transverse / nt;
   vec2 s = vec2(1.0 / r0, -kr / (r0 * nt));
   bool exterior = r0 >= 1.0;
+  // 影像模式的半透明盘：light 是已经收集到的光，through 是还能透过去的比例
+  vec3 light = vec3(0.0);
+  float through = 1.0;
+  bool touched = false;
   float phi = 0.0;
   float crossing = atan(-radial.y, tangent.y);
   if (crossing <= 1e-7) crossing += PI;
@@ -203,11 +230,11 @@ vec4 trace(vec2 q) {
     // 准确走到赤道面，再判断半径是否在盘内；不因接近盘面而无限缩步。
     float h = min(ORBIT_STEP / max(1.0, s.x), crossing - phi);
     vec2 next = orbitStep(s, h);
-    if (exterior && next.x >= 1.0) return vec4(0.0);
+    if (exterior && next.x >= 1.0) return vec4(light, touched ? 2.0 : 0.0);
     if (next.x < 1.0) exterior = true;
     if (next.x <= 0.0) {
       float end = phi + escapeStep(s, h);
-      return vec4(sky(directionAt(radial, tangent, end), energy), 1.0);
+      return vec4(light + through * sky(directionAt(radial, tangent, end), energy), touched ? 2.0 : 1.0);
     }
     phi += h;
     s = next;
@@ -215,13 +242,20 @@ vec4 trace(vec2 q) {
       float r = 1.0 / s.x;
       if (r >= u_rin && r <= u_rout) {
         vec3 hit = r * directionAt(radial, tangent, phi);
-        return vec4(disk(hit, ly, energy), 2.0);
+        float cover;
+        vec3 glow = disk(hit, ly, energy, cover);
+        // 外部观察和光路诊断照旧：第一次碰到盘就停
+        if (u_probe != 1 || u_debug == 1) return vec4(glow, 2.0);
+        light += through * cover * glow;
+        through *= 1.0 - cover;
+        touched = true;
+        if (through < 0.03) return vec4(light, 2.0);
       }
       crossing += PI;
     }
   }
   // 只有浮点精度下极接近临界的轨道可能未收敛；保留独立状态供回归检查。
-  return vec4(0.0, 0.0, 0.0, 3.0);
+  return vec4(light, touched ? 2.0 : 3.0);
 }
 void main() {
   if (u_debug == 1) {
@@ -246,6 +280,15 @@ void main() {
   if (u_probe == 1) {
     // 对数肩部保留高亮中的纹理。仅显示映射，不改 g 或轨道；暗区保持零。
     float exposure = 1.6 / (1.0 + 3.0 / dot(u_cam, u_cam));
+    if (u_hdr == 1) {
+      // 成像层（cinema.js）支持高动态范围：这里只做曝光，交出线性光；辉光和胶片曲线在那边做，
+      // 最亮的地方才有超出 1 的能量可以溢出来。
+      // 迎面而来的光被频移放大几十上百倍（g⁴）。亮度超过白点以后按平方根继续涨：
+      // 颜色不变，最亮的地方仍然比白点亮很多倍、能溢出辉光，但不至于整片烧成白色。
+      float lit = max(col.r, max(col.g, col.b)) * exposure;
+      color = vec4(col * exposure / pow(1.0 + lit * lit, 0.25), 1.0);
+      return;
+    }
     float peak = max(col.r, max(col.g, col.b));
     float shoulder = log2(1.0 + peak * exposure);
     col *= shoulder / (1.7 + shoulder) / max(peak, 1e-6);
