@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="洛希极限：两颗虚构的行星站在彼此的洛希极限上，被潮汐拉成泪滴，尖端之间架着一道物质桥，外面的行星带被它们来回拉扯。从远处的观测站看。"
+    />
+    <title>洛希极限 · 知序实验展品</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./binary.css?v=1" />
+    <script type="module" src="./main.js?v=1"></script>
+  </head>
+  <body>
+    <main class="exhibit">
+      <section class="deck" aria-label="从观测站看两颗行星的实时画面">
+        <canvas
+          id="view"
+          tabindex="0"
+          aria-label="两颗互相潮汐拉扯的行星和它们之间的碎屑；拖动转动观测方向，滚轮或双指调望远镜倍率，方向键和加减号也可以"
+        ></canvas>
+        <svg id="overlay" aria-hidden="true">
+          <path id="lobe-line" />
+          <g id="marks"></g>
+        </svg>
+        <!-- 观测舱的窗框：纯装饰 -->
+        <div class="window" aria-hidden="true">
+          <i class="brow"></i><i class="sill"></i><i class="jamb left"></i><i class="jamb right"></i>
+          <i class="glass"></i>
+        </div>
+        <p class="fallback" id="fallback" hidden>
+          这台设备画不了三维画面（需要 WebGL2）。下面「两颗行星各自的地盘」的示意图仍然可以看。
+        </p>
+        <header class="title">
+          <p class="eyebrow">知序 · 第二研究室<br /><span>02 / ROCHE LIMIT</span></p>
+          <h1>洛希极限</h1>
+          <p class="lead">两颗行星，站在彼此的极限上。<br />谁也没有撞上谁。</p>
+        </header>
+        <div class="hud station" aria-hidden="true">
+          <b>观测舱 · 守夜三号</b>
+          <span>距双星质心 <i id="range-out">—</i> 万千米</span>
+          <span id="scope-out">望远镜 —</span>
+          <span id="clock-out">时间流速 —</span>
+        </div>
+        <dl class="hud readout" aria-label="两颗行星现在的状态">
+          <div>
+            <dt>两星间距</dt>
+            <dd><b id="gap-out">—</b> 千米</dd>
+          </div>
+          <div>
+            <dt>互绕一圈</dt>
+            <dd><b id="period-out">—</b> 小时</dd>
+          </div>
+          <div>
+            <dt>尖端之间</dt>
+            <dd><b id="tips-out">—</b> 千米</dd>
+          </div>
+          <div>
+            <dt>尖端伸到 L₁ 的</dt>
+            <dd><b id="fill-out">—</b> %</dd>
+          </div>
+        </dl>
+        <div class="console" role="group" aria-label="观测控制">
+          <label class="near"
+            ><span>两星靠得多近</span>
+            <input id="fill" type="range" min="0.6" max="1" step="0.002" aria-label="两颗行星靠得多近" />
+          </label>
+          <div class="row" role="group" aria-label="望远镜对准哪里">
+            <span class="tag">望远镜</span>
+            <button type="button" data-scope="wide">全景</button>
+            <button type="button" data-scope="pair">双星</button>
+            <button type="button" data-scope="bridge">物质桥</button>
+          </div>
+          <div class="row">
+            <span class="tag">时间</span>
+            <button type="button" id="opt-speed">×1</button>
+            <button type="button" id="opt-motion" aria-pressed="false">暂停</button>
+            <label><input type="checkbox" id="opt-lobes" checked /> 洛希瓣</label>
+            <label><input type="checkbox" id="opt-marks" checked /> 标注</label>
+          </div>
+        </div>
+      </section>
+
+      <section class="notes" aria-labelledby="lobes-title">
+        <div class="lobe-box">
+          <p class="section-kicker">01 / 各自的地盘</p>
+          <h2 id="lobes-title">两颗行星各自的地盘</h2>
+          <p>
+            跟着两颗行星一起转着看，每颗行星周围有一块泪滴形的地盘（洛希瓣），两块地盘在 L₁
+            这一点相接。行星越近，地盘越小；行星长到碰到 L₁，尖端的东西就归了对方。
+          </p>
+          <canvas id="lobes" aria-label="共转系里的等势线：两个洛希瓣在 L1 相接成 8 字形"></canvas>
+          <label class="pick"
+            ><span>两星靠得多近：尖端伸到 L₁ 的 <b id="fill2-out">—</b> %</span>
+            <input id="fill2" type="range" min="0.6" max="1" step="0.002" />
+          </label>
+          <p class="result" id="lobes-result" role="status"></p>
+          <ul class="legend">
+            <li><i class="k-lobe"></i>洛希瓣：过 L₁ 的那条等势线，8 字形</li>
+            <li><i class="k-outer"></i>过 L₂、L₃ 的等势线：碎屑越过它才能离开这个系统</li>
+            <li><i class="k-a"></i>烛阴　<i class="k-b"></i>望舒：它们的表面也是等势面，所以是泪滴形</li>
+          </ul>
+        </div>
+        <div class="text">
+          <p class="section-kicker">02 / 读懂这片景象</p>
+          <h2>画面里在看什么</h2>
+          <ul>
+            <li>
+              <b>两颗行星都是泪滴形。</b
+              >它们靠得太近，又始终同一面朝着对方。每颗行星的表面都顺着引力和离心力合起来的等势面，朝着对方的那一端被拉出一个尖。
+            </li>
+            <li>
+              <b>尖端之间的物质桥。</b
+              >尖端伸到 L₁ 附近，那里的东西几乎不受任何一方约束。烛阴被扯出来的是炽热的岩屑，望舒被扯出来的是水汽和冰晶，它们越过
+              L₁ 落向对方，被转动带偏，划出一道弯。
+            </li>
+            <li>
+              <b>烛阴的裂缝在发光。</b
+              >潮汐把地壳反复揉搓，越靠近尖端越厉害。裂缝的亮度是示意，但潮汐加热是真的：木卫一就是这样成了太阳系里火山最多的天体。
+            </li>
+            <li>
+              <b>外面的行星带。</b
+              >离得够远的碎屑把两颗行星当成一个整体来绕，是稳定的。带子的内缘不稳定：碎屑被两颗行星轮流拉扯，有的落到行星上，有的被甩出去。
+            </li>
+            <li>
+              <b>互相的影子。</b>恒星几乎就在轨道面里，每转一圈，两颗行星各把对方遮住一次。
+            </li>
+          </ul>
+          <h2>用的方程</h2>
+          <p class="formula">
+            Ω = ½ (u² + w²) + (1 − μ) / r<sub>A</sub> + μ / r<sub>B</sub>
+          </p>
+          <p>
+            这是跟着两颗行星一起转的坐标里的有效势：两颗行星的引力，加上转动带来的离心力。行星的表面是它的等值面，画面里每个像素沿视线去找这个面。碎屑是几十万粒试验粒子，只受两颗行星的引力，逐粒积分；它们能去哪里、不能去哪里，由同一个势决定。
+          </p>
+          <p class="small">
+            两颗行星完全是虚构的：烛阴（质量占 65%）和望舒（占 35%），大小按烛阴等体积半径 6,400
+            千米换算，周期由此算出。示意的部分：行星的地貌、云、裂缝的亮度和大气的辉边；碎屑的数量、大小和颜色；尖端在伸到
+            L₁ 的九成时就开始有碎屑被扯出来（真实里要等充满洛希瓣）；行星带内缘被扯走的碎屑会补回来；时间被加快了。等势面模型把每颗行星的质量当成集中在中心，这是洛希模型的标准近似。
+          </p>
+          <p class="small">
+            另一个实验：<a href="./moon/">把一颗碎石堆成的卫星推过洛希极限</a
+            >，看它被拉长、撕开、抹成环。那一页里每颗碎石之间的引力都是算的。
+          </p>
+        </div>
+      </section>
+      <footer class="foot">
+        <a href="../../">↙ 沙盒目录</a>
+        <span>知序 ZHIXU · 实验展品 02 · 样稿</span>
+      </footer>
+    </main>
+  </body>
+</html>

@@ -16,7 +16,7 @@
 | B1 复习区      | [recall.html](recall.html?i=1&workbench=1)                 | `recall.html`、`recall/` | [docs/recall/](docs/recall/)                     |
 | 2F 工作台      | [workstation/](workstation/)                               | `workstation/`           | [docs/workstation/](docs/workstation/)           |
 | 星空           | [preview/starfield/](preview/starfield/?from=catalog&v=29) | `preview/starfield/`     | [docs/starfield/](docs/starfield/)               |
-| 实验展品       | [exhibits/schwarzschild/](exhibits/schwarzschild/)         | `exhibits/`              | [docs/exhibits/](docs/exhibits/schwarzschild.md) |
+| 实验展品       | [exhibits/schwarzschild/](exhibits/schwarzschild/) · [exhibits/roche/](exhibits/roche/) | `exhibits/`              | [docs/exhibits/](docs/exhibits/schwarzschild.md) · [洛希极限](docs/exhibits/roche.md) |
 | 小样与历史原型 | [preview/](preview/)                                       | `preview/`               | [docs/history/](docs/history/)                   |
 
 ## 接手先读
@@ -76,7 +76,7 @@ npm run check
 - `check:laboratory`：数学几何、运动与流程状态，包含 17 章快照、85 题判题、章节隔离、目录状态、组装与五个数学观察对象检查；v35 补查沿环到入口、按到达时间分派、落位展开与同章参数增减。本轮完整检查与浏览器验证已通过，结果见 [v35 验证记录](docs/laboratory/laboratory-observation.md#validation-v35)，历史通过记录不代替本轮验收。
 - `check:pulse`、`check:experience`、`check:terminal`：已有脊柱交互与几何检查；`check-anatomy` 是复习区七个系统的解剖读数。
 - `check-specimen-kit`（在 `check:laboratory` 里）：标本积木的公式解析器，配方在滑杆全范围可生成，并用原题答案核对。
-- `check:exhibits`：史瓦西黑洞展品的光线方程——弱场偏折角、临界瞄准距离、光子球、角动量守恒、静止观察者的阴影角、吸积盘的频移，以及着色器和 JS 用的是同一套公式。画面那一半用 `scripts/check-schwarzschild-browser.mjs`（要浏览器）。
+- `check:exhibits`：史瓦西黑洞展品的光线方程——弱场偏折角、临界瞄准距离、光子球、角动量守恒、静止观察者的阴影角、吸积盘的频移，以及着色器和 JS 用的是同一套公式。画面那一半用 `scripts/check-schwarzschild-browser.mjs`（要浏览器）。同一条命令也跑洛希极限展品：`scripts/check-roche-binary.mjs`（双星观测：拉格朗日点、泪滴形状、雅可比常数、碎屑规则）和 `scripts/check-roche.mjs`（碎石卫星实验：三条极限、颗粒间的力、守恒量、实际解体的位置）；画面那一半是 `scripts/check-roche-binary-browser.mjs` 和 `scripts/check-roche-browser.mjs`。
 - `check:docs`：所有 Markdown 和 HTML 里的相对链接、图片都指向真实存在的文件；挪动文件以后跑一遍就知道哪里断了。
 - `scripts/smoke/` 是早期调试脚本，部分断言过时，不作为当前验收结论。
 
