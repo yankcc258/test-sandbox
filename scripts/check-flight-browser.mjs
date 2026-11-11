@@ -23,7 +23,8 @@ for (const [tag, opts] of [
     errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(origin + '/exhibits/schwarzschild/?motion=0');
-  await page.click('#flight-enter');
+  await page.click('#film-start');
+  await page.click('#film-data');
   assert.equal(await page.locator('#hole').getAttribute('data-flight'), 'true');
   assert.ok(await page.locator('#flight-play').isDisabled());
   if (tag === 'phone') {
@@ -79,10 +80,13 @@ for (const [tag, opts] of [
       if (actual !== 'captured') light++;
     }
     assert.ok(light > 0, `${label} still receives external light`);
-    if (shots)
+    if (shots) {
+      await page.click('#film-data');
       await page
         .locator('.stage')
         .screenshot({ path: `${shots}/probe-${tag}-${label}.png`, scale: 'css' });
+      await page.click('#film-data');
+    }
   }
   await page.click('#flight-horizon');
   assert.ok(Math.abs(Number(await page.locator('#hole').getAttribute('data-r')) - 1) < 1e-10);
@@ -147,7 +151,8 @@ for (const [tag, opts] of [
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } }),
     p = await ctx.newPage();
   await p.goto(origin + '/exhibits/schwarzschild/');
-  await p.click('#flight-enter');
+  await p.click('#film-start');
+  await p.click('#film-data');
   await p.waitForFunction(() => Number(document.querySelector('#hole').dataset.progress) > 0.002);
   await p.click('#flight-play');
   const at = await p.locator('#hole').getAttribute('data-progress');

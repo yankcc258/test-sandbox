@@ -5,7 +5,7 @@ export const FLIGHT_E = 1;
 export const FLIGHT_L = 1.9999;
 export const FLIGHT_END = 0.2;
 export const FLIGHT_MASS = 4.3e6;
-export const FLIGHT_DURATION = 60;
+export const FLIGHT_DURATION = 72;
 export const radialVelocity = (r, E = FLIGHT_E, L = FLIGHT_L) =>
   -Math.sqrt(Math.max(0, E * E - (1 - 1 / r) * (1 + (L * L) / (r * r))));
 
@@ -141,7 +141,7 @@ export function flightCamera(samples, progress, yaw = 0, pitch = 0) {
   const sideView = norm(cross(directed, axis)),
     vertical = cross(sideView, directed);
   // 摄影机滚转把视野中的外部天空置于上方；这是取景，不是陀螺仪姿态。
-  const roll = (Math.PI / 2) * smooth(0.08, 0.42);
+  const roll = (Math.PI / 2) * (0.8 * smooth(0.12, 0.42) + 0.2 * smooth(0.72, 0.95));
   const screenRight = sideView.map((x, j) => Math.cos(roll) * x + Math.sin(roll) * vertical[j]);
   const screenUp = vertical.map((x, j) => Math.cos(roll) * x - Math.sin(roll) * sideView[j]);
   // 用户转头在屏幕标架中施加，滚转后水平拖动仍然沿屏幕水平方向。
@@ -149,7 +149,8 @@ export function flightCamera(samples, progress, yaw = 0, pitch = 0) {
   const right = screenRight.map((x, j) => Math.cos(yaw) * x - Math.sin(yaw) * directed[j]);
   const fwd = horizontal.map((x, j) => Math.cos(pitch) * x + Math.sin(pitch) * screenUp[j]);
   const up = screenUp.map((x, j) => Math.cos(pitch) * x - Math.sin(pitch) * horizontal[j]);
-  return { ...s, cam, radial, tangent, ur, beta, gamma: frame.gamma, fwd, right, up, roll };
+  const lens = 0.78 + 0.18 * smooth(0.12, 0.45) - 0.25 * smooth(0.85, 1);
+  return { ...s, cam, radial, tangent, ur, beta, gamma: frame.gamma, fwd, right, up, roll, lens };
 }
 
 // 相机过去指向的零矢量 (-1,n) 先 Lorentz boost 到自由落体 PG 正交标架。

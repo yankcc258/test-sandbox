@@ -1,7 +1,7 @@
 // 每个像素在自己的轨道平面内求解史瓦西零测地线；颜色最后才做曝光映射。
 import { ORBIT_STEP, ORBIT_MAX_STEPS, ORBIT_GLSL, DISK_TIME_SCALE } from './orbit.js?v=2';
 export const VERTEX = `#version 300 es
-in vec2 p;
+layout(location=0) in vec2 p;
 out vec2 uv;
 void main() { uv = p; gl_Position = vec4(p, 0.0, 1.0); }
 `;
@@ -129,9 +129,11 @@ vec3 disk(vec3 pos, float ly, float energy) {
     float detail = 0.55 * eddy + 0.45 * ribbons;
     if (u_probe == 1) {
       float warp = fbm(q * 1.3 + float(k) * 17.0);
-      float fibers = pow(0.5 + 0.5 * sin(r * 24.0 + 6.0 * warp + 2.0 * eddy), 3.0);
+      float fibers = pow(0.5 + 0.5 * sin(r * 24.0 + 9.0 * warp + 3.0 * eddy), 3.0);
       float knots = smoothstep(0.50, 0.82, fbm(q * 3.7 + float(k) * 13.0));
-      detail = 0.20 + 0.7 * eddy + 0.55 * fibers + 0.4 * knots;
+      vec2 unit = q / r;
+      float streams = noise3(vec3(unit * 6.0, r * 9.0 + warp * 2.0));
+      detail = 0.08 + 0.85 * eddy * eddy + 0.20 * fibers + 0.65 * streams * streams + 0.6 * knots;
     }
     tex += weight * detail;
     w += weight;

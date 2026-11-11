@@ -74,6 +74,7 @@ for (const [tag, opts] of [
   p.on('pageerror', (e) => errs.push(e.message));
   p.on('console', (m) => m.type() === 'error' && errs.push(m.text()));
   await p.goto(origin + '/exhibits/schwarzschild/?motion=0');
+  await p.click('#film-observe');
   await p.waitForFunction(() => document.documentElement.dataset.ready, null, { timeout: 60000 });
   assert.equal(
     await p.evaluate(() => document.documentElement.dataset.ready),
@@ -220,6 +221,7 @@ for (const failure of ['unavailable', 'compile']) {
     errs = [];
   p.on('pageerror', (e) => errs.push(e.message));
   await p.goto(origin + '/exhibits/schwarzschild/');
+  await p.click('#film-observe');
   await p.waitForFunction(() => document.documentElement.dataset.ready === 'fallback');
   await p.click('#view-near');
   await setDistance(p, 60);
@@ -241,6 +243,7 @@ for (const failure of ['unavailable', 'compile']) {
     errs = [];
   p.on('pageerror', (e) => errs.push(e.message));
   await p.goto(origin + '/exhibits/schwarzschild/');
+  await p.click('#film-observe');
   await p.waitForFunction(() => document.documentElement.dataset.ready === 'true');
   const time = () =>
     p.evaluate(() => {

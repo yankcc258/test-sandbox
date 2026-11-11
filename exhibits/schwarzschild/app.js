@@ -1,8 +1,9 @@
 // 史瓦西黑洞展品的页面逻辑（露娜）：WebGL 画面、拖动 / 缩放、读数，以及下面那张「光线怎么弯」的二维示意图。
 // geodesic.js 是笛卡尔参考积分；orbit.js / shader.js 用等价的轨道平面方程。
-import { VERTEX, FRAGMENT } from './shader.js?v=4';
+import { VERTEX, FRAGMENT } from './shader.js?v=5';
+import { createCinema, createScore } from './cinema.js?v=1';
 import { initMission } from './mission.js?v=1';
-import { buildFlight, flightCamera, FLIGHT_MASS, FLIGHT_DURATION } from './flight.js?v=2';
+import { buildFlight, flightCamera, FLIGHT_MASS, FLIGHT_DURATION } from './flight.js?v=3';
 import { scales } from './infall.js?v=1';
 import {
   RS,
@@ -32,6 +33,18 @@ const flight = { active: false, running: false, progress: 0, yaw: 0, pitch: 0, h
 const trajectory = buildFlight();
 const flightFrame = () => flightCamera(trajectory, flight.progress, flight.yaw, flight.pitch);
 const flightLocked = () => reduceMotion || params.get('motion') === '0';
+const score = createScore();
+let cinema = null;
+let filmIdleTimer = 0;
+function wakeFilm() {
+  clearTimeout(filmIdleTimer);
+  $('film-ui').classList.remove('is-quiet');
+  if (flight.active && flight.running)
+    filmIdleTimer = setTimeout(() => {
+      if (flight.running && !document.activeElement?.closest('.film-ui'))
+        $('film-ui').classList.add('is-quiet');
+    }, 2600);
+}
 const R_MIN = 1.6,
   R_MAX = 60,
   R_IN = ISCO,
@@ -101,6 +114,14 @@ function setup() {
     'u_gamma',
   ])
     uniforms[name] = gl.getUniformLocation(program, name);
+  try {
+    cinema = createCinema(gl, VERTEX);
+  } catch (error) {
+    cinema = null;
+    console.warn('Cinema lens unavailable:', error);
+  }
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.useProgram(program);
 }
 function resize() {
   const settled = flight.active ? !flight.running : still() || !view.disk;
@@ -126,6 +147,12 @@ const norm = (a) => {
 function draw(time, diagnostic = false) {
   if (rendererState !== 'ready') return;
   resize();
+  const landing = document.querySelector('.stage').classList.contains('cinema-landing');
+  const filmLook = flight.active || landing;
+  const useCinema = filmLook && !diagnostic && cinema;
+  if (useCinema) cinema.begin(canvas.width, canvas.height);
+  else gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.useProgram(program);
   const { r, incl, az } = view;
   // 盘的轴是 +y；incl 是视线和轴的夹角（90° = 正侧面）
   let cam = [
@@ -136,10 +163,16 @@ function draw(time, diagnostic = false) {
     fwd = norm(cam.map((x) => -x)),
     right = norm(cross(fwd, [0, 1, 0])),
     up = cross(right, fwd);
-  const probe = flight.active ? flightFrame() : null;
+  const probe = flight.active
+    ? flightFrame()
+    : landing
+      ? flightCamera(trajectory, 0, innerWidth > 820 ? -0.25 : 0)
+      : null;
   if (probe) ({ cam, fwd, right, up } = probe);
   // 视场：短边上能看到整个盘的外沿（离得近时最多放到 100°）
-  const half = flight.active ? flight.half : clamp(Math.atan((R_OUT * 1.35) / r), 0.42, 0.87),
+  const half = probe
+      ? ((flight.active ? flight.half : 0.94) * probe.lens) / 0.94
+      : clamp(Math.atan((R_OUT * 1.35) / r), 0.42, 0.87),
     aspect = canvas.width / canvas.height,
     tanV = aspect >= 1 ? Math.tan(half) : Math.tan(half) / aspect,
     tanH = tanV * aspect;
@@ -147,7 +180,7 @@ function draw(time, diagnostic = false) {
   gl.uniform3fv(uniforms.u_right, right);
   gl.uniform3fv(uniforms.u_up, up);
   gl.uniform3fv(uniforms.u_fwd, fwd);
-  gl.uniform1i(uniforms.u_probe, flight.active ? 1 : 0);
+  gl.uniform1i(uniforms.u_probe, filmLook ? 1 : 0);
   gl.uniform3fv(uniforms.u_beta, probe ? probe.beta : [0, 0, 0]);
   gl.uniform1f(uniforms.u_gamma, probe ? probe.gamma : 1);
   gl.uniform2f(uniforms.u_tan, tanH, tanV);
@@ -161,6 +194,10 @@ function draw(time, diagnostic = false) {
   gl.uniform1i(uniforms.u_debug, diagnostic ? 1 : 0);
   gl.uniform2f(uniforms.u_res, canvas.width, canvas.height);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
+  if (useCinema) {
+    cinema.finish(flight.active ? flight.progress : 0);
+    gl.useProgram(program);
+  }
 }
 let last = 0,
   clock = 0;
@@ -248,6 +285,7 @@ function readout() {
   $('shadow-label').textContent = flight.active ? '船上已过时间' : '阴影的视直径';
   $('shadow-unit').textContent = flight.active ? ' 分' : '°';
   $('flight-enter').disabled = rendererState !== 'ready';
+  $('film-start').disabled = rendererState !== 'ready';
   $('flight-play').disabled = flightLocked() || rendererState !== 'ready';
   $('flight-play').textContent = flightLocked()
     ? '拖动进度体验'
@@ -260,6 +298,31 @@ function readout() {
   $('flight-quick-pause').textContent = $('flight-play').textContent;
   $('flight-quick-pause').disabled = $('flight-play').disabled;
   $('flight-quick-pause').setAttribute('aria-pressed', String(flight.running));
+  $('film-play').disabled = flightLocked() || rendererState !== 'ready';
+  $('film-play').textContent = flightLocked()
+    ? '拖动进度体验'
+    : flight.running
+      ? 'Ⅱ 暂停'
+      : flight.progress === 1
+        ? '↻ 重播'
+        : '▷ 继续';
+  $('film-play').setAttribute('aria-pressed', String(flight.running));
+  $('film-progress').value = String(flight.progress);
+  $('film-progress').style.setProperty('--progress', flight.progress * 100 + '%');
+  const seconds = Math.round(flight.progress * FLIGHT_DURATION),
+    stamp = (n) =>
+      String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0');
+  $('film-time').textContent = stamp(seconds) + ' / ' + stamp(FLIGHT_DURATION);
+  $('film-end').hidden = !flight.active || flight.progress < 1;
+  if (!flight.active || !flight.running) wakeFilm();
+  score.update(
+    flight.progress,
+    flight.active &&
+      flight.running &&
+      !document.hidden &&
+      stageVisible &&
+      rendererState === 'ready',
+  );
   if (flight.active) {
     const s = flightFrame();
     $('r-out').textContent = s.r.toFixed(3);
@@ -280,6 +343,23 @@ function readout() {
               : s.r < 3
                 ? '绕行 · 最后的弯道'
                 : '接近黑洞';
+    $('film-phase').textContent = $('flight-phase').textContent;
+    const chapters = [
+      [0, 'I / APPROACH', '驶向黑暗', '远处的光，正在绕过它。'],
+      [0.3, 'II / ORBIT', '最后的绕行', '同一片星空，出现在不同方向。'],
+      [0.72, 'III / DESCENT', '向内，向前', '引擎关闭。轨迹不再返回。'],
+      [0.88, 'IV / BEYOND', '越过视界', '这里没有墙。外部的光仍会抵达。'],
+    ];
+    const chapter = chapters.findLast((c) => flight.progress >= c[0]);
+    $('film-chapter-index').textContent = chapter[1];
+    $('film-chapter').textContent = chapter[2];
+    $('film-line').textContent = chapter[3];
+    const elapsed = (flight.progress - chapter[0]) * FLIGHT_DURATION;
+    const opacity =
+      flight.progress >= 1
+        ? 0
+        : Math.min(1, elapsed / 0.7) * Math.max(0, Math.min(1, (5.5 - elapsed) / 1.5));
+    document.querySelector('.stage').style.setProperty('--chapter-opacity', String(opacity));
   }
   const locked = reduceMotion || params.get('motion') === '0';
   $('opt-motion').disabled = locked || rendererState !== 'ready';
@@ -321,7 +401,13 @@ function setView(patch) {
   invalidate();
 }
 function bindControls() {
+  const stage = document.querySelector('.stage');
+  const landing = (active) => {
+    stage.classList.toggle('cinema-landing', active);
+    $('film-intro').hidden = !active;
+  };
   const toggleFlight = (active) => {
+    landing(false);
     flight.active = active;
     flight.running = active && !flightLocked();
     $('static-controls').hidden = active;
@@ -334,6 +420,10 @@ function bindControls() {
     $('flight-hud').setAttribute('aria-expanded', 'true');
     $('flight-explanation').hidden = !active;
     document.querySelector('.stage').classList.toggle('in-flight', active);
+    $('film-ui').hidden = !active;
+    stage.classList.remove('film-data-open');
+    $('film-data').setAttribute('aria-expanded', 'false');
+    $('film-data').textContent = '仪表 ＋';
     $('view-hint').textContent = active
       ? '拖动转头 · 滚轮或双指调视野'
       : '拖动改视角 · 滚轮或双指改距离';
@@ -345,6 +435,8 @@ function bindControls() {
     );
     last = 0;
     invalidate();
+    if (active) canvas.focus({ preventScroll: true });
+    wakeFilm();
   };
   const seekFlight = (p) => {
     flight.progress = p;
@@ -353,6 +445,60 @@ function bindControls() {
     invalidate();
   };
   $('flight-enter').onclick = () => toggleFlight(true);
+  $('film-start').onclick = () => {
+    flight.progress = 0;
+    flight.yaw = flight.pitch = 0;
+    flight.half = 0.94;
+    toggleFlight(true);
+  };
+  $('film-observe').onclick = () => {
+    landing(false);
+    invalidate();
+  };
+  $('film-exit').onclick = () => {
+    toggleFlight(false);
+    landing(true);
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+  };
+  $('film-play').onclick = () => $('flight-play').click();
+  $('film-progress').oninput = (e) => seekFlight(Number(e.target.value));
+  $('film-replay').onclick = () => {
+    flight.yaw = flight.pitch = 0;
+    flight.half = 0.94;
+    flight.progress = 0;
+    flight.running = !flightLocked();
+    invalidate();
+    wakeFilm();
+  };
+  $('film-data').onclick = () => {
+    const open = stage.classList.toggle('film-data-open');
+    $('film-data').setAttribute('aria-expanded', String(open));
+    $('film-data').textContent = open ? '仪表 −' : '仪表 ＋';
+    document.querySelector('.panel').classList.remove('compact');
+    $('flight-hud').textContent = '收起面板';
+    $('flight-hud').setAttribute('aria-expanded', 'true');
+  };
+  $('film-sound').onclick = async () => {
+    try {
+      const on = await score.toggle();
+      $('film-sound').textContent = on ? '配乐 开启' : '配乐 关闭';
+      $('film-sound').setAttribute('aria-pressed', String(on));
+      readout();
+    } catch {
+      $('film-sound').textContent = '配乐不可用';
+    }
+  };
+  $('film-fullscreen').disabled = !document.fullscreenEnabled;
+  $('film-fullscreen').onclick = async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await stage.requestFullscreen();
+    } catch {}
+  };
+  document.addEventListener('fullscreenchange', () => {
+    $('film-fullscreen').textContent = document.fullscreenElement ? '退出全屏' : '全屏';
+    invalidate();
+  });
   $('flight-quick-pause').onclick = () => $('flight-play').click();
   $('flight-hud').onclick = () => {
     const compact = document.querySelector('.panel').classList.toggle('compact');
@@ -372,17 +518,22 @@ function bindControls() {
     flight.running = !flight.running;
     last = 0;
     invalidate();
+    wakeFilm();
   };
   $('flight-orbit').onclick = () => seekFlight(0.52);
   $('flight-horizon').onclick = () => seekFlight(0.88);
   $('flight-inside').onclick = () => seekFlight(0.96);
   const pointers = new Map();
+  stage.addEventListener('pointermove', wakeFilm);
+  stage.addEventListener('pointerdown', wakeFilm);
+  $('film-ui').addEventListener('focusin', wakeFilm);
   let pinch = 0;
   const spread = () => {
     const [a, b] = [...pointers.values()];
     return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
   };
   canvas.addEventListener('pointerdown', (e) => {
+    if (stage.classList.contains('cinema-landing')) return;
     if (e.button !== 0) return;
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     canvas.setPointerCapture(e.pointerId);
@@ -434,6 +585,9 @@ function bindControls() {
           flight.half = 0.94;
           invalidate();
         } else setView({ ...HOME });
+      },
+      ' ': () => {
+        if (flight.active) $('film-play').click();
       },
     }[e.key];
     if (act) {

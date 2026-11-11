@@ -5,21 +5,75 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="史瓦西黑洞：按史瓦西度规实时积分每一条光线，画出引力透镜、光子环和被弯到黑洞上下的吸积盘。"
+      content="越过最后的光：72 秒探测器第一视角黑洞之旅。接近、绕行、坠入与穿越视界，光线按施瓦西度规实时计算。"
     />
-    <title>史瓦西黑洞 · 知序实验展品</title>
+    <title>越过最后的光 · 史瓦西黑洞 | 知序</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="./blackhole.css?v=6" />
-    <script type="module" src="./app.js?v=6"></script>
+    <link rel="stylesheet" href="./blackhole.css?v=7" />
+    <link rel="stylesheet" href="./film.css?v=1" />
+    <script type="module" src="./app.js?v=7"></script>
   </head>
   <body>
     <main class="exhibit">
-      <section class="stage" aria-label="史瓦西黑洞的实时画面">
+      <section class="stage cinema-landing" aria-label="史瓦西黑洞的实时画面">
         <canvas
           id="hole"
           tabindex="0"
           aria-label="黑洞的实时画面；拖动改变视角，滚轮或双指改变距离，方向键和加减号也可以"
         ></canvas>
+        <div class="film-shade" aria-hidden="true"></div>
+        <div class="film-intro" id="film-intro">
+          <div class="film-brand">
+            <span>知序 / 第二研究室</span><span>AN EXPEDITION INTO THE UNKNOWN</span>
+          </div>
+          <div class="film-intro-copy">
+            <p class="film-kicker">EXPERIMENT 001 — SCHWARZSCHILD</p>
+            <h2>越过<br /><em>最后的光。</em></h2>
+            <p class="film-deck">关闭引擎。让时空带你前行。<br />一次无法返航的黑洞之旅。</p>
+            <div class="film-launch">
+              <button id="film-start" type="button">开始坠入 <span>↗</span></button
+              ><button id="film-observe" type="button">自由观察</button>
+            </div>
+          </div>
+          <div class="film-intro-foot">
+            <span>430 万太阳质量 · 探测器第一视角</span><span>72 秒 / 可暂停、转头</span>
+          </div>
+        </div>
+        <div class="film-ui" id="film-ui" hidden>
+          <header class="film-top">
+            <span>ZHIXU <i>/</i> PROBE 01</span>
+            <div>
+              <button id="film-sound" type="button" aria-pressed="false">配乐 关闭</button
+              ><button id="film-fullscreen" type="button">全屏</button
+              ><button id="film-exit" type="button">退出 ↗</button>
+            </div>
+          </header>
+          <div class="film-chapter-card" aria-hidden="true">
+            <p id="film-chapter-index">I / APPROACH</p>
+            <h2 id="film-chapter">驶向黑暗</h2>
+            <p id="film-line">远处的光，正在绕过它。</p>
+          </div>
+          <div class="film-end" id="film-end" hidden>
+            <p class="film-kicker">END OF OBSERVATION</p>
+            <h2>仍在坠落。</h2>
+            <p>影像止于 0.2 rₛ，尚未到达奇点。<br />船上的时间，仍向前流动。</p>
+            <button id="film-replay" type="button">再航行一次 ↗</button>
+          </div>
+          <div class="film-transport" role="group" aria-label="电影播放控制">
+            <div class="film-transport-meta">
+              <span id="film-phase">接近黑洞</span><span id="film-time">00:00 / 01:12</span>
+            </div>
+            <label class="film-timeline"
+              ><span class="sr-only">影片进度</span
+              ><input id="film-progress" type="range" min="0" max="1" step="0.0001" value="0"
+            /></label>
+            <div class="film-transport-actions">
+              <button id="film-play" type="button" aria-pressed="false">暂停</button
+              ><span class="film-gesture">拖动转头 <i>·</i> 空格暂停</span
+              ><button id="film-data" type="button" aria-expanded="false">仪表 ＋</button>
+            </div>
+          </div>
+        </div>
         <p class="fallback" id="fallback" hidden>
           这台设备画不了三维画面（需要 WebGL2）。下面「光线怎么弯」的示意图仍然可以看。
         </p>
@@ -100,7 +154,7 @@
               ><button id="flight-inside" type="button">视界内</button>
             </div>
             <p class="flight-note">
-              430 万太阳质量 · 自由落体<br />约 60 秒航程 · 视界内慢放 · 示意配色
+              430 万太阳质量 · 自由落体<br />约 72 秒航程 · 视界内慢放 · 示意配色
             </p>
           </div>
           <div class="toggles">
@@ -126,12 +180,12 @@
             <a href="https://svs.gsfc.nasa.gov/14576/" target="_blank" rel="noreferrer"
               >NASA 2024 年的坠入可视化</a
             >，采用独立计算的施瓦西自由落体捕获轨道，E = 1、L = 1.9999 rₛc，从 18 rₛ
-            开始，轨道平面倾斜 10°，停在 0.2 rₛ；未到奇点。约 60
+            开始，轨道平面倾斜 10°，停在 0.2 rₛ；未到奇点。约 72
             秒的演示使用连续变速，视界内慢放；船上时间始终来自同一条轨迹。镜头先对准黑洞，绕行时平滑转向、滚转，让外部天空位于画面上方；可自由转头，不是陀螺仪无转动相机。靠近时自动调整曝光，使用保留高亮层次的显示映射，频率比不受影响。相机频移与光行差用视界规则的自由落体标架计算，光线仍沿零测地线追踪。黑暗区域表示本模型中没有外部光源连接，不是视界表面。
           </p>
           <p>
             这是浏览器中的理想化重现，不使用 NASA 原片轨迹或图像数据。暖橙色盘面采用峰值约 2900 K
-            的示意色温，银河、尘埃带和两团星云都是合成背景，不是真实星图。背景与盘像都经同一套光线弯曲计算，未叠加假光子环。忽略盘的加热、阻力及探测器破坏；盘面纹理与可见光配色为示意，未计算盘面纹理的传播时延。下方径向释放实验是另一条零角动量轨迹。
+            的示意色温，银河、尘埃带和两团星云都是合成背景，不是真实星图。背景与盘像都经同一套光线弯曲计算，未叠加假光子环。忽略盘的加热、阻力及探测器破坏；盘面纹理与可见光配色为示意，未计算盘面纹理的传播时延。电影镜头的光晕来自亮像素扩散，颗粒和暗角属于成像效果，不改变光路；可在「自由观察」中查看不带电影成像的画面。配乐为原创合成氛围声，默认关闭，不代表太空中的真实声音。下方径向释放实验是另一条零角动量轨迹。
           </p>
         </details>
       </aside>
