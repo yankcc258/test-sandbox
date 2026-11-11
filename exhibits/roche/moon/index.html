@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="洛希极限：几千颗碎石靠自身引力聚成一颗卫星。一分钟的影片里，它螺旋靠近行星，被潮汐拉长、撕开，抹成一道逆光发亮的环；也可以自己动手改距离和密度。"
+    />
+    <title>碎石卫星实验 · 洛希极限 · 知序实验展品</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./roche.css?v=2" />
+    <script type="module" src="./app.js?v=2"></script>
+  </head>
+  <body>
+    <main class="exhibit">
+      <section class="stage" aria-label="洛希极限的实时画面">
+        <canvas
+          id="scene"
+          tabindex="0"
+          aria-label="一颗碎石堆卫星绕行星运行的实时画面；影片播放时拖动可以稍微拨开镜头，自己动手时拖动改变视角，滚轮或双指缩放，方向键和加减号也可以"
+        ></canvas>
+        <div class="line-labels" aria-hidden="true">
+          <span id="label-fluid" class="line-label warm"></span>
+          <span id="label-rigid" class="line-label cool"></span>
+        </div>
+        <p class="fallback" id="fallback" hidden>
+          这台设备画不了三维画面（需要 WebGL2）。下面「卫星守得住多大一块地方」的示意图仍然可以看。
+        </p>
+        <header class="title">
+          <p class="eyebrow">知序 · 第二研究室<br /><span>02 / ROCHE LIMIT · 碎石卫星实验</span></p>
+          <h1>洛希极限</h1>
+          <p class="lead">没有东西撞上它。<br />只是近的一侧，被拉得比远的一侧更紧。</p>
+          <p class="live-state" id="state-out">正在准备画面</p>
+        </header>
+        <div class="film" id="film">
+          <p class="caption" id="caption" role="status"></p>
+          <div class="film-bar" role="group" aria-label="影片">
+            <button type="button" id="film-play" class="primary">开始 · 坠向洛希极限</button>
+            <div class="film-track" aria-hidden="true"><i id="film-progress"></i></div>
+            <span class="film-act" id="film-act"></span>
+            <button type="button" id="film-free">自己动手</button>
+          </div>
+        </div>
+        <dl class="readout" aria-label="卫星现在的状态">
+          <div>
+            <dt>轨道距离</dt>
+            <dd><b id="d-out">—</b> R</dd>
+          </div>
+          <div>
+            <dt>流体洛希极限</dt>
+            <dd><b id="fluid-out">—</b> R</dd>
+          </div>
+          <div>
+            <dt>仍聚在一起</dt>
+            <dd><b id="bound-out">—</b> %</dd>
+          </div>
+        </dl>
+        <div class="panel" role="group" aria-label="卫星与观察设置">
+          <div class="panel-heading">
+            <span>卫星与观察</span>
+            <span
+              ><button type="button" id="opt-speed">速度 ×1</button
+              ><button type="button" id="opt-motion" aria-pressed="false">暂停</button></span
+            >
+          </div>
+          <label
+            >距离
+            <input
+              id="dist"
+              type="range"
+              min="1.15"
+              max="4.5"
+              step="0.01"
+              aria-label="卫星的轨道距离，单位是行星半径"
+            />
+          </label>
+          <label
+            >密度
+            <input id="rho" type="range" step="any" aria-label="卫星的密度" />
+          </label>
+          <div class="materials" role="group" aria-label="卫星的材质">
+            <button type="button" data-rho="0.5">疏松的冰 0.5</button>
+            <button type="button" data-rho="0.93">冰 0.93</button>
+            <button type="button" data-rho="3">岩石 3.0</button>
+            <span class="unit">g/cm³</span>
+          </div>
+          <div class="views">
+            <button type="button" id="view-follow">跟随卫星</button>
+            <button type="button" id="view-wide">全景</button>
+            <button type="button" id="view-top">俯视</button>
+            <button type="button" id="reset">重新放一颗</button>
+            <button type="button" id="film-again">重看影片</button>
+          </div>
+          <div class="toggles">
+            <label><input type="checkbox" id="opt-lines" checked /> 极限线</label>
+            <label><input type="checkbox" id="opt-layers" checked /> 按原来的深度着色</label>
+            <label><input type="checkbox" id="opt-stars" checked /> 星空</label>
+          </div>
+          <p class="hint">拖动改视角 · 滚轮或双指缩放</p>
+        </div>
+        <p class="stage-caption">
+          行星取土星的密度 0.69 g/cm³<br /><span
+            >d = 2.44 R (ρ<sub>行星</sub> / ρ<sub>卫星</sub>)<sup>1/3</sup></span
+          >
+        </p>
+      </section>
+
+      <section class="notes" aria-labelledby="lobe-title">
+        <div class="lobe-box">
+          <p class="section-kicker">01 / 卫星的地盘</p>
+          <h2 id="lobe-title">卫星守得住多大一块地方</h2>
+          <p>
+            跟着卫星一起转着看，它周围有一块泪滴形的区域（希尔球）：里面的东西归它，外面的归行星。离行星越近，这块地方越小。
+          </p>
+          <canvas id="lobe" aria-label="卫星和它的希尔球：距离越近，希尔球越小"></canvas>
+          <label class="d-pick"
+            ><span>轨道距离 d = <b id="d2-out">—</b> R</span>
+            <input id="dist2" type="range" min="1.15" max="4.5" step="0.01" />
+          </label>
+          <p class="d-result" id="lobe-result" role="status"></p>
+          <canvas
+            id="ruler"
+            aria-label="以行星半径为单位的标尺：三条极限、卫星的位置，以及土星环和几颗卫星的实际位置"
+          ></canvas>
+          <ul class="legend">
+            <li><i class="k-fluid"></i>流体极限 2.44：同步自转的液态卫星，找不到平衡的形状</li>
+            <li><i class="k-hill"></i>1.44：希尔球缩到和卫星一样大，两端表面的石头也留不住</li>
+            <li><i class="k-rigid"></i>刚体极限 1.26：不考虑自转时，同一件事发生的位置</li>
+          </ul>
+        </div>
+        <div class="text">
+          <p class="section-kicker">02 / 读懂这颗卫星</p>
+          <h2>画面里在看什么</h2>
+          <ul>
+            <li>
+              <b>没有东西在撕它。</b
+              >行星对卫星近的一侧拉得重一些，对远的一侧拉得轻一些。这点差别就是潮汐力，它沿着行星的方向把卫星往两头拉。
+            </li>
+            <li>
+              <b>它先被拉长。</b
+              >卫星始终同一面朝着行星，长轴指向行星。离得越近，拉得越长；被拉长以后两端离中心更远，自己的引力更够不着。
+            </li>
+            <li>
+              <b>从两端漏出去。</b
+              >朝向行星和背向行星的两个尖端最先守不住。里侧漏出去的碎石轨道更低、转得更快，跑到前面；外侧的转得更慢，落在后面。两股碎石越拉越长，最后首尾相接成环。
+            </li>
+            <li>
+              <b>极限只看密度，不看大小。</b
+              >把密度调低，极限线往外移；岩石做的卫星可以走到很近才散。行星用的是土星的密度。
+            </li>
+            <li>
+              <b>碎石堆碎在两条线之间。</b
+              >这颗卫星是一堆没有胶水的碎石，比液体结实一点，比整块石头松得多。数值检查量到它在约 2.2 倍处解体，靠近流体极限那一侧。
+            </li>
+          </ul>
+          <h2>用的方程</h2>
+          <p class="formula">
+            a<sub>i</sub> = −GM r<sub>i</sub> / r<sub>i</sub>³ − Σ<sub>j</sub> Gm<sub>j</sub> (r<sub
+              >i</sub
+            >
+            − r<sub>j</sub>) / |r<sub>i</sub> − r<sub>j</sub>|³ + 接触力
+          </p>
+          <p>
+            只有牛顿引力：行星对每颗碎石的引力，加上碎石两两之间的引力。碎石碰在一起时互相顶住，并损失一部分相对速度。没有任何一行代码写着「过线就碎」，解体是这些力自己算出来的。
+          </p>
+          <p>
+            同一个公式也管着掉向黑洞的恒星：把行星换成黑洞，极限就是恒星被撕碎的距离。黑洞超过大约一亿倍太阳质量时，这个距离落到视界里面，像太阳这样的恒星会被整个吞掉，外面什么也看不到。
+          </p>
+          <p class="small">
+            示意的部分：卫星画得比真实的大得多（极限位置不受影响），碎石的数量、大小、软硬和颜色，行星的条纹和星空，以及时间被加快了。影片里卫星螺旋向内的那一段，是把几千万年的轨道衰减压成了十几秒。碎石带着的细冰尘只用来把环画得连续：它们不参与受力，碎石离群后散开，只受行星引力。辉光、逆光时冰尘的亮度和影子的浓淡是按观感调的。行星固定不动、不带扁率；碎石之间没有摩擦和黏性。成环很快是真的；环被压成一张薄片，在真实里要慢得多。标尺上土星环和卫星的实际距离取自维基百科的土星、土星环和土星卫星条目，按土星的体积平均半径
+            58,232 km 折算。
+          </p>
+        </div>
+      </section>
+      <footer class="foot">
+        <a href="../">↙ 回到双星观测</a>
+        <span>知序 ZHIXU · 实验展品 02 · 碎石卫星实验</span>
+      </footer>
+    </main>
+  </body>
+</html>

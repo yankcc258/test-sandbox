@@ -14,6 +14,8 @@ const queue = [
   'laboratory/index.html',
   'laboratory/specimens/index.html',
   'exhibits/schwarzschild/index.html',
+  'exhibits/roche/index.html',
+  'exhibits/roche/moon/index.html',
 ];
 const visited = new Set(),
   failures = [];
