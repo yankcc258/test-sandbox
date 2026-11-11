@@ -1,6 +1,6 @@
 // 史瓦西黑洞展品的页面逻辑（露娜）：WebGL 画面、拖动 / 缩放、读数，以及下面那张「光线怎么弯」的二维示意图。
 // geodesic.js 是笛卡尔参考积分；orbit.js / shader.js 用等价的轨道平面方程。
-import { VERTEX, FRAGMENT } from './shader.js?v=7';
+import { VERTEX, FRAGMENT } from './shader.js?v=8';
 import { createCinema, createScore } from './cinema.js?v=2';
 import { initMission } from './mission.js?v=1';
 import { buildFlight, flightCamera, FLIGHT_MASS, FLIGHT_DURATION } from './flight.js?v=4';

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
+import { localPreview } from './roche-browser-utils.mjs';
 const { chromium, devices } = await import(process.env.PLAYWRIGHT_PATH || 'playwright');
 const origin = process.env.PREVIEW_URL || 'http://127.0.0.1:8080',
   shots = process.env.SHOTS;
@@ -13,6 +14,7 @@ for (const [tag, opts] of [
   ['phone', devices['iPhone 13']],
 ]) {
   const ctx = await browser.newContext(opts);
+  await localPreview(ctx, origin);
   ctx.setDefaultTimeout(20000);
   await ctx.addInitScript(() => {
     window.testAudio = [];

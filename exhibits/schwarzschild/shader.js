@@ -59,24 +59,28 @@ float skyCloud(vec3 d) {
 // 无经纬接缝：连续三维噪声在单位球面取值，星点核在格子边界前归零。
 vec3 stars(vec3 d) {
   vec3 c = vec3(0.0);
-  for (int layer = 0; layer < 2; layer++) {
-    float k = layer == 0 ? 120.0 : 46.0;
+  for (int layer = 0; layer < 3; layer++) {
+    // 电影背景增加一层细星和可辨认的亮星；科学视图保留原来的两层。
+    if (layer == 2 && u_probe == 0) continue;
+    float k = layer == 0 ? 120.0 : (layer == 1 ? 46.0 : 225.0);
     vec3 q = d * k, id = floor(q), f = fract(q) - 0.5;
     float rnd = hash13(id + float(layer) * 17.0);
     vec3 off = vec3(hash13(id + 1.7), hash13(id + 5.3), hash13(id + 9.1)) - 0.5;
     float dist = length(f - off * 0.6);
-    float on = step(layer == 0 ? 0.86 : 0.95, rnd);
-    float size = layer == 0 ? 0.10 : 0.15;
+    float threshold = layer == 0 ? 0.86 : 0.95;
+    if (u_probe == 1) threshold = layer == 0 ? 0.67 : (layer == 1 ? 0.85 : 0.84);
+    float on = step(threshold, rnd);
+    float size = layer == 0 ? 0.10 : (layer == 1 ? 0.15 : 0.105);
     float glow = 1.0 - smoothstep(0.0, size, dist);
     vec3 tint = mix(vec3(0.70, 0.82, 1.0), vec3(1.0, 0.88, 0.72), hash13(id + 3.3));
-    c += on * glow * glow * tint * (layer == 0 ? 0.8 : 1.25);
+    c += on * glow * glow * tint * (layer == 0 ? 0.8 : (layer == 1 ? 1.25 : 0.52));
   }
   float lat = dot(d, normalize(vec3(0.35, 0.86, 0.36)));
   float band = exp(-lat * lat * 18.0), cloud = skyCloud(d);
   // 很淡的冷色光雾，让吸积盘占主导；不是额外加出的黑洞光环。
   c += (0.00045 + band * (0.0015 + 0.018 * cloud * cloud)) * vec3(0.58, 0.70, 1.0);
   if (u_probe == 1) {
-    c *= 0.45;
+    c *= 0.88;
     // 固定在天球上的合成银河与尘埃带；同样经由测地线采样，重复像不是屏幕叠图。
     vec3 axis = normalize(vec3(0.12, 0.75, 0.65));
     float latitude = dot(d, axis);

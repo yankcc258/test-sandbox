@@ -10,8 +10,9 @@
     <title>洛希极限 · 知序实验展品</title>
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="./binary.css?v=7" />
-    <link rel="stylesheet" href="../shared/observation-report.css?v=1" />
+    <link rel="stylesheet" href="../shared/observation-report.css?v=2" />
     <script type="module" src="./main.js?v=8"></script>
+    <script type="module" src="../shared/gravity-atlas.js?v=1"></script>
   </head>
   <body data-report="roche">
     <main class="exhibit">
@@ -79,7 +80,7 @@
             <figure class="report-plate"><img src="../../docs/exhibits/shots/roche.jpg" alt="观景舱内，右侧蓝色星云向左下方红色光核汇流" width="1600" height="1000" loading="lazy" /><figcaption><span>FIG. 02 / 守夜三号</span><span>合成观景影像</span></figcaption></figure>
           </div>
           <dl class="report-facts"><div><dt>观察主题</dt><dd>潮汐与物质转移</dd></div><div><dt>影像视角</dt><dd>全景 / 星云 / 光源</dd></div><div><dt>模型坐标系</dt><dd>双星共转系</dd></div><div><dt>模型质量比</dt><dd>65 : 35</dd></div></dl>
-          <nav class="report-index" aria-label="洛希极限报告目录"><a href="#field-notes"><span>01</span> 影像判读</a><a href="#lobe-model"><span>02</span> 洛希瓣实验</a><a href="#roche-method"><span>03</span> 模型与边界</a><a href="#deck" class="report-back">返回观景舱 ↑</a></nav>
+          <nav class="report-index" aria-label="洛希极限报告目录"><a href="#field-notes"><span>01</span> 影像判读</a><a href="#lobe-model"><span>02</span> 洛希瓣实验</a><a href="#roche-method"><span>03</span> 模型与边界</a><a href="#gravity-atlas"><span>04</span> 引力剖面</a><a href="#deck" class="report-back">返回观景舱 ↑</a></nav>
         </header>
 
         <section class="report-findings" id="field-notes" aria-labelledby="findings-title">
@@ -131,6 +132,12 @@
           <a class="report-related" href="./moon/"><span>继续实验 / N 体引力</span><b>把一颗碎石卫星推过洛希极限 ↗</b></a>
         </div>
       </section>
+        <section class="gravity-atlas" id="gravity-atlas" data-atlas="roche" aria-labelledby="atlas-title">
+          <canvas tabindex="0" aria-label="可旋转的双星有效势地形；拖动或方向键旋转，空格暂停巡航，Home 复位"></canvas>
+          <header class="atlas-copy"><p class="report-kicker">04 / LANDSCAPE OF POTENTIAL</p><h2 id="atlas-title">两个引力深处，<br />一道相接的鞍点。</h2><p>把共转有效势化作起伏的地形。转动视角，寻找两座势阱之间的 L₁；这里也是两个洛希瓣相接的位置。</p><span class="atlas-equation">Φ<sub>eff</sub> = −Ω &nbsp; / &nbsp; μ = 0.35</span></header>
+          <div class="atlas-controls"><span class="atlas-gesture">拖动旋转 <i>·</i> 方向键微调</span><button type="button" data-atlas-play aria-pressed="false">暂停巡航</button><button type="button" data-atlas-reset>复位视角</button></div>
+          <p class="atlas-caption">势能地形示意 / 高度按 −Ω 缩放，星体中心附近的深度截断；颜色与扫描亮纹仅帮助读图。与上方洛希瓣模型使用相同质量比，不是星云的物理形状。</p>
+        </section>
         <nav class="report-end" aria-label="展品档案导航"><div><span>END OF REPORT / 002</span><p>从物质的边界，走向光的边界。</p></div><a href="../schwarzschild/#observation-report"><small>另一份观测档案</small><b>施瓦西黑洞 ↗</b></a></nav>
       </article>
       <footer class="foot">

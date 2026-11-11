@@ -7,6 +7,7 @@
 import assert from 'node:assert/strict';
 import { B_CRIT } from '../exhibits/schwarzschild/geodesic.js';
 import { traceObserverRay } from '../exhibits/schwarzschild/orbit.js';
+import { localPreview } from './roche-browser-utils.mjs';
 const { chromium, devices } = await import(process.env.PLAYWRIGHT_PATH || 'playwright');
 const origin = process.env.PREVIEW_URL || 'http://127.0.0.1:8080';
 const shots = process.env.SHOTS;
@@ -68,6 +69,7 @@ for (const [tag, opts] of [
   ['phone', devices['iPhone 13']],
 ]) {
   const ctx = await b.newContext(opts);
+  await localPreview(ctx, origin);
   ctx.setDefaultTimeout(15000);
   const p = await ctx.newPage();
   const errs = [];
@@ -204,6 +206,7 @@ for (const [tag, opts] of [
 // 无 WebGL2 和初始化失败都不能再调度三维绘制；二维示意图仍可交互。
 for (const failure of ['unavailable', 'compile']) {
   const ctx = await b.newContext({ viewport: { width: 1000, height: 700 } });
+  await localPreview(ctx, origin);
   ctx.setDefaultTimeout(15000);
   await ctx.addInitScript((failure) => {
     if (failure === 'unavailable') {
@@ -238,6 +241,7 @@ for (const failure of ['unavailable', 'compile']) {
 // 动画暂停 / 恢复、系统减弱动效、GPU 上下文丢失后交互与恢复。
 {
   const ctx = await b.newContext({ viewport: { width: 1280, height: 800 } });
+  await localPreview(ctx, origin);
   ctx.setDefaultTimeout(15000);
   const p = await ctx.newPage(),
     errs = [];

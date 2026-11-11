@@ -11,8 +11,9 @@
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="./blackhole.css?v=7" />
     <link rel="stylesheet" href="./film.css?v=3" />
-    <link rel="stylesheet" href="../shared/observation-report.css?v=1" />
-    <script type="module" src="./app.js?v=10"></script>
+    <link rel="stylesheet" href="../shared/observation-report.css?v=2" />
+    <script type="module" src="./app.js?v=11"></script>
+    <script type="module" src="../shared/gravity-atlas.js?v=1"></script>
   </head>
   <body data-report="schwarzschild">
     <main class="exhibit">
@@ -183,10 +184,10 @@
               <p class="report-abstract">从远处接近、绕行，直到穿过视界。记录一艘探测器所见的光，再通过径向释放实验，对照船上的时钟与远处接收器收到的信号。</p>
               <div class="report-classification"><span>轨迹 / 相对论计算</span><span>成像 / 示意配色</span></div>
             </div>
-            <figure class="report-plate"><img src="../../docs/exhibits/shots/schwarzschild-report.jpg" alt="探测器接近黑洞时，发光盘面在阴影边缘弯曲" width="1600" height="1000" loading="lazy" /><figcaption><span>FIG. 01 / 光线追踪</span><span>探测器模拟影像</span></figcaption></figure>
+            <figure class="report-plate"><img src="../../docs/exhibits/shots/schwarzschild-report.jpg?v=2" alt="探测器接近黑洞时，发光盘面在阴影边缘弯曲" width="1600" height="1000" loading="lazy" /><figcaption><span>FIG. 01 / 光线追踪</span><span>探测器模拟影像</span></figcaption></figure>
           </div>
           <dl class="report-facts"><div><dt>时空模型</dt><dd>不旋转 / 不带电</dd></div><div><dt>主影片黑洞质量</dt><dd>430 万 M<sub>☉</sub></dd></div><div><dt>影片播放时长</dt><dd>约 72 秒</dd></div><div><dt>长度单位</dt><dd>r<sub>s</sub> = 2GM / c²</dd></div></dl>
-          <nav class="report-index" aria-label="黑洞报告目录"><a href="#infall"><span>01</span> 自由落体实验</a><a href="#light-record"><span>02</span> 光路图解</a><a href="#blackhole-method"><span>03</span> 影像与模型</a><a href="#hole" class="report-back">返回观察窗口 ↑</a></nav>
+          <nav class="report-index" aria-label="黑洞报告目录"><a href="#infall"><span>01</span> 自由落体实验</a><a href="#light-record"><span>02</span> 光路图解</a><a href="#blackhole-method"><span>03</span> 影像与模型</a><a href="#gravity-atlas"><span>04</span> 引力剖面</a><a href="#hole" class="report-back">返回观察窗口 ↑</a></nav>
         </header>
 
       <aside class="flight-explanation" id="flight-explanation" hidden>
@@ -368,6 +369,12 @@
           </p>
         </div>
       </section>
+        <section class="gravity-atlas" id="gravity-atlas" data-atlas="schwarzschild" aria-labelledby="atlas-title">
+          <canvas tabindex="0" aria-label="可旋转的施瓦西等时空间剖面；拖动或方向键旋转，空格暂停巡航，Home 复位"></canvas>
+          <header class="atlas-copy"><p class="report-kicker">04 / GEOMETRY OF GRAVITY</p><h2 id="atlas-title">让弯曲的空间，<br />显露形状。</h2><p>沿网格向内，圆周与径向距离的关系逐渐偏离平直空间。转动剖面，观察靠近视界时陡峭的变化。</p><span class="atlas-equation">z / rₛ = 2√(r / rₛ − 1)</span></header>
+          <div class="atlas-controls"><span class="atlas-gesture">拖动旋转 <i>·</i> 方向键微调</span><button type="button" data-atlas-play aria-pressed="false">暂停巡航</button><button type="button" data-atlas-reset>复位视角</button></div>
+          <p class="atlas-caption">空间几何示意 / 施瓦西等时赤道面的嵌入图，r ≥ rₛ；高度用于表达内禀曲率，不是黑洞表面或物体下落路径。流动的亮纹仅用于扫描形状。</p>
+        </section>
         <nav class="report-end" aria-label="展品档案导航"><div><span>END OF REPORT / 001</span><p>从光的边界，回到物质的迁徙。</p></div><a href="../roche/#observation-report"><small>另一份观测档案</small><b>星云潮汐 · 洛希极限 ↗</b></a></nav>
       </article>
       <footer class="foot">
