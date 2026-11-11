@@ -1,7 +1,7 @@
 // 史瓦西黑洞展品的页面逻辑（露娜）：WebGL 画面、拖动 / 缩放、读数，以及下面那张「光线怎么弯」的二维示意图。
 // geodesic.js 是笛卡尔参考积分；orbit.js / shader.js 用等价的轨道平面方程。
-import { VERTEX, FRAGMENT } from './shader.js?v=5';
-import { createCinema, createScore } from './cinema.js?v=1';
+import { VERTEX, FRAGMENT } from './shader.js?v=6';
+import { createCinema, createScore } from './cinema.js?v=2';
 import { initMission } from './mission.js?v=1';
 import { buildFlight, flightCamera, FLIGHT_MASS, FLIGHT_DURATION } from './flight.js?v=3';
 import { scales } from './infall.js?v=1';
@@ -110,12 +110,14 @@ function setup() {
     'u_debug',
     'u_res',
     'u_probe',
+    'u_hdr',
     'u_beta',
     'u_gamma',
   ])
     uniforms[name] = gl.getUniformLocation(program, name);
   try {
-    cinema = createCinema(gl, VERTEX);
+    // ?hdr=0：检查用，强制走不带高动态范围的旧成像层
+    cinema = createCinema(gl, VERTEX, { allowHdr: params.get('hdr') !== '0' });
   } catch (error) {
     cinema = null;
     console.warn('Cinema lens unavailable:', error);
@@ -181,6 +183,7 @@ function draw(time, diagnostic = false) {
   gl.uniform3fv(uniforms.u_up, up);
   gl.uniform3fv(uniforms.u_fwd, fwd);
   gl.uniform1i(uniforms.u_probe, filmLook ? 1 : 0);
+  gl.uniform1i(uniforms.u_hdr, useCinema && cinema.hdr ? 1 : 0);
   gl.uniform3fv(uniforms.u_beta, probe ? probe.beta : [0, 0, 0]);
   gl.uniform1f(uniforms.u_gamma, probe ? probe.gamma : 1);
   gl.uniform2f(uniforms.u_tan, tanH, tanV);
