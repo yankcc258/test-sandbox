@@ -10,9 +10,10 @@
     <title>洛希极限 · 知序实验展品</title>
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="./binary.css?v=7" />
+    <link rel="stylesheet" href="../shared/observation-report.css?v=1" />
     <script type="module" src="./main.js?v=7"></script>
   </head>
-  <body>
+  <body data-report="roche">
     <main class="exhibit">
       <section class="deck" id="deck" aria-label="从观景舱看巨大星云向红色星体汇流">
         <canvas
@@ -22,7 +23,7 @@
         ></canvas>
         <p class="fallback loading" id="loading" role="status">正在展开星云…</p>
         <p class="fallback" id="fallback" hidden>
-          这台设备画不了三维画面（需要 WebGL2）。下面「两颗行星各自的地盘」的示意图仍然可以看。
+          这台设备画不了三维画面（需要 WebGL2）。下方观测报告中的洛希瓣示意图仍然可以看。
         </p>
         <header class="title">
           <p class="eyebrow">知序 · 第二研究室<br /><span>02 / ROCHE LIMIT</span></p>
@@ -30,10 +31,10 @@
           <p class="lead">庞然的星云，被一个小小的光点牵走。<br />缓慢旋转，向红光深处坠落。</p>
         </header>
         <dl class="hud readout" aria-label="观景舱状态">
-          <div><dt>右侧</dt><dd>巨型星云 · 破碎光丝</dd></div>
-          <div><dt>左下方</dt><dd>致密星体 · 红色光核</dd></div>
-          <div><dt>物质流向</dt><dd>星云 → 红色光源</dd></div>
-          <div><dt>观察时间</dt><dd><b id="elapsed-out">00:00</b></dd></div>
+          <div><dt>01 / 供给区</dt><dd>巨型星云 · 破碎光丝</dd></div>
+          <div><dt>02 / 汇入区</dt><dd>致密星体 · 红色光核</dd></div>
+          <div><dt>流动方向</dt><dd>星云 → 红色光源</dd></div>
+          <div><dt>影像时间 · 分:秒</dt><dd><b id="elapsed-out">00:00</b></dd></div>
         </dl>
         <div class="console" id="observation-console" role="group" aria-label="观测仪表">
           <p class="where" aria-live="polite">
@@ -49,7 +50,7 @@
         </div>
         <!-- 底部工具条：平时只留镜头、暂停和仪表入口，读数和控制按需展开 -->
         <div class="deck-toolbar" role="group" aria-label="观景舱控制">
-          <span class="call">守夜三号 <i>/</i> OBSERVATION 02</span>
+          <a class="call report-entry" href="#observation-report">OBS. 02 <i>/</i> 阅读观测报告 ↓</a>
           <div class="stations" role="group" aria-label="镜头对准哪里">
             <button type="button" data-scope="vista">全景</button>
             <button type="button" data-scope="nebula">星云</button>
@@ -65,13 +66,39 @@
         </div>
       </section>
 
-      <section class="notes" aria-labelledby="lobes-title">
+      <article class="observation-report" id="observation-report" aria-labelledby="report-title">
+        <header class="report-cover">
+          <div class="report-masthead"><a href="../../">知序 · 观测档案</a><span>FIELD REPORT / 002</span><span>星云潮汐</span></div>
+          <div class="report-cover-grid">
+            <div>
+              <p class="report-kicker">ROCHE LIMIT / OBSERVATION NOTES</p>
+              <h2 id="report-title">引力之间，<br />物质开始迁徙。</h2>
+              <p class="report-abstract">一片超出视野的星云，正被远处的红色光核牵引。先记录这场缓慢的迁徙，再用一个可调的洛希瓣模型，理解引力与旋转如何划出物质的边界。</p>
+              <div class="report-classification"><span>影像 / 艺术化演绎</span><span>图解 / 理想化模型</span></div>
+            </div>
+            <figure class="report-plate"><img src="../../docs/exhibits/shots/roche.jpg" alt="观景舱内，右侧蓝色星云向左下方红色光核汇流" width="1600" height="1000" loading="lazy" /><figcaption><span>FIG. 02 / 守夜三号</span><span>合成观景影像</span></figcaption></figure>
+          </div>
+          <dl class="report-facts"><div><dt>观察主题</dt><dd>潮汐与物质转移</dd></div><div><dt>影像视角</dt><dd>全景 / 星云 / 光源</dd></div><div><dt>模型坐标系</dt><dd>双星共转系</dd></div><div><dt>模型质量比</dt><dd>65 : 35</dd></div></dl>
+          <nav class="report-index" aria-label="洛希极限报告目录"><a href="#field-notes"><span>01</span> 影像判读</a><a href="#lobe-model"><span>02</span> 洛希瓣实验</a><a href="#roche-method"><span>03</span> 模型与边界</a><a href="#deck" class="report-back">返回观景舱 ↑</a></nav>
+        </header>
+
+        <section class="report-findings" id="field-notes" aria-labelledby="findings-title">
+          <div class="report-section-heading"><p class="report-kicker">01 / VISUAL RECORD</p><h2 id="findings-title">沿着光丝，读懂这片景象。</h2></div>
+          <div class="report-findings-grid">
+            <div><span class="finding-number">A</span><h3>供给区 · 右侧星云</h3><p>星体只露出一段轮廓。明暗交错的云层和不连续的细丝占据视野，给出远超观景舱的尺度。</p></div>
+            <div><span class="finding-number">B</span><h3>转移区 · 弯曲流束</h3><p>细丝沿弯曲路径向左下方汇聚。切到「星云」近景，观察疏密变化与缓慢旋转的方向。</p></div>
+            <div><span class="finding-number">C</span><h3>汇入区 · 红色光核</h3><p>微小的发光点构成视线终点。红色光柱、银河与舱体共同建立画面的方向和远近层次。</p></div>
+          </div>
+          <p class="report-caption">影像记录 / 星云、光柱和流动路径为视觉设计；没有为主画面设定可测量的质量或距离。</p>
+        </section>
+
+      <section class="notes" id="lobe-model" aria-labelledby="lobes-title">
         <div class="lobe-box">
-          <p class="section-kicker">01 / 独立教学模型</p>
-          <h2 id="lobes-title">两颗行星各自的地盘</h2>
+          <p class="section-kicker">02 / INTERACTIVE MODEL</p>
+          <h2 id="lobes-title">物质的边界，在哪里相接？</h2>
           <p>
-            跟着两颗行星一起转着看，每颗行星周围有一块泪滴形的地盘（洛希瓣），两块地盘在 L₁
-            这一点相接。行星越近，地盘越小；行星长到碰到 L₁，尖端的东西就归了对方。
+            在随双星一起旋转的坐标系中，临界等势面围成两个泪滴形的洛希瓣，在 L₁ 点相接。
+            调整下方填充率，观察表面接近这个边界的过程；实际物质如何流过 L₁，还需要流体动力学描述。
           </p>
           <dl class="model-readout" aria-label="下方洛希瓣模型的计算读数">
             <div><dt>两星间距</dt><dd><b id="gap-out">—</b> 千米</dd></div>
@@ -80,35 +107,35 @@
           </dl>
           <canvas id="lobes" aria-label="共转系里的等势线：两个洛希瓣在 L1 相接成 8 字形"></canvas>
           <label class="pick"
-            ><span>两星靠得多近：尖端伸到 L₁ 的 <b id="fill2-out">—</b> %</span>
+            ><span>模型填充率 · 尖端到 L₁ 距离的 <b id="fill2-out">—</b> %</span>
             <input id="fill2" type="range" min="0.6" max="1" step="0.002" />
           </label>
           <p class="result" id="lobes-result" role="status"></p>
           <ul class="legend">
-            <li><i class="k-lobe"></i>洛希瓣：过 L₁ 的那条等势线，8 字形</li>
-            <li><i class="k-outer"></i>过 L₂、L₃ 的等势线：碎屑越过它才能离开这个系统</li>
-            <li><i class="k-a"></i>烛阴　<i class="k-b"></i>望舒：它们的表面也是等势面，所以是泪滴形</li>
+            <li><i class="k-lobe"></i>内侧临界等势线 · 两个洛希瓣在 L₁ 相接</li>
+            <li><i class="k-outer"></i>外侧临界等势线 · 经过 L₂ 或 L₃</li>
+            <li><i class="k-a"></i>烛阴　<i class="k-b"></i>望舒 · 模型表面沿等势面构造</li>
           </ul>
         </div>
-        <div class="text">
-          <p class="section-kicker">02 / 读懂这片景象</p>
-          <h2>画面里在看什么</h2>
-          <ul>
-            <li><b>右侧是一片超出视野的巨大星云。</b>星球只露出一小段轮廓，周围是明暗交错的云层与破碎的发光细丝。</li>
-            <li><b>左下方的红点，是牵引它的致密星体。</b>云层缓慢旋转，细流沿弯曲路径向它汇聚；红色光核与纵向光柱始终可见。</li>
-            <li><b>窗框、地平线与观测者给出尺度。</b>全景保留完整构图；「星云」看云层近景，「光源」看物质汇入的位置。</li>
-          </ul>
-          <p class="small">主画面是潮汐拉扯的艺术化想象：星体尺度、云层、流动与光柱为视觉设计，不对应某个真实系统。观察时间和倍速控制这段景象的播放。</p>
-          <h2>洛希瓣教学模型</h2>
+        <div class="text" id="roche-method">
+          <p class="section-kicker">03 / METHOD & SCOPE</p>
+          <h2>让每个读数有据可循。</h2>
+          <p>这里的数值只描述左侧教学模型。它们不会随观景舱转头或播放而变化，也不是对上方艺术化星云的测量。</p>
+          <h3>01 / 有效势</h3>
           <p class="formula">Ω = ½ (u² + w²) + (1 − μ) / r<sub>A</sub> + μ / r<sub>B</sub></p>
-          <p>左侧示意图独立展示共转坐标系里的有效势：引力与离心项共同决定等势线、洛希瓣和五个拉格朗日点。滑动控件改变模型中行星表面的填充程度，不改变上方星云的构图。</p>
-          <p class="small">教学模型使用虚构的烛阴（质量占 65%）和望舒（占 35%），以烛阴等体积半径 6,400 千米换算距离。读数属于这个模型，不是上方星云的测量值。</p>
-          <p class="small">另一个实验：<a href="./moon/">把一颗碎石堆成的卫星推过洛希极限</a>，看它被拉长、撕开、抹成环。那一页里每颗碎石之间的引力都是算的。</p>
+          <p>引力项与离心项共同决定等势线、洛希瓣和五个拉格朗日点。u、w 为归一化平面坐标，r<sub>A</sub>、r<sub>B</sub> 为到两星的距离，μ = 0.35；两星间距取为单位长度。</p>
+          <h3>02 / 距离与时间</h3>
+          <p>虚构星体烛阴占总质量的 65%，望舒占 35%。模型以烛阴等体积半径 6,400 千米换算距离，互绕周期按模型采用的质量和间距计算。</p>
+          <h3>03 / 适用范围</h3>
+          <p>等势面展示双星系统中的边界形状，不求解星云流体、磁场或真实吸积。观景舱的影像时间、倍速与这组物理读数独立。</p>
+          <a class="report-related" href="./moon/"><span>继续实验 / N 体引力</span><b>把一颗碎石卫星推过洛希极限 ↗</b></a>
         </div>
       </section>
+        <nav class="report-end" aria-label="展品档案导航"><div><span>END OF REPORT / 002</span><p>从物质的边界，走向光的边界。</p></div><a href="../schwarzschild/#observation-report"><small>另一份观测档案</small><b>施瓦西黑洞 ↗</b></a></nav>
+      </article>
       <footer class="foot">
         <a href="../../">↙ 沙盒目录</a>
-        <span>知序 ZHIXU · 实验展品 02 · 样稿</span>
+        <span>知序 ZHIXU · 观测档案 002 · 沙盒实验版</span>
       </footer>
     </main>
   </body>

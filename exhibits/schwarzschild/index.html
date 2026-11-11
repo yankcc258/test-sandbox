@@ -11,9 +11,10 @@
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="./blackhole.css?v=7" />
     <link rel="stylesheet" href="./film.css?v=3" />
+    <link rel="stylesheet" href="../shared/observation-report.css?v=1" />
     <script type="module" src="./app.js?v=10"></script>
   </head>
-  <body>
+  <body data-report="schwarzschild">
     <main class="exhibit">
       <section class="stage cinema-landing" aria-label="史瓦西黑洞的实时画面">
         <canvas
@@ -36,7 +37,7 @@
             </div>
           </div>
           <div class="film-intro-foot">
-            <span>430 万太阳质量 · 探测器第一视角</span><span>72 秒 / 可暂停、转头</span>
+            <span>430 万太阳质量 · 探测器第一视角</span><a class="report-entry" href="#observation-report">观测档案 001 / 阅读报告 ↓</a>
           </div>
         </div>
         <div class="film-ui" id="film-ui" hidden>
@@ -165,18 +166,34 @@
             <label><input type="checkbox" id="opt-stars" checked /> 背景星空</label>
           </div>
           <p class="hint" id="view-hint">拖动改视角 · 滚轮或双指改距离</p>
-          <a class="mission-link" href="#infall">释放一艘探测船 <span>↓</span></a>
+          <a class="mission-link" href="#observation-report">阅读观测报告 <span>↓</span></a>
         </div>
         <p class="stage-caption">
           不旋转 · 不带电<br /><span>r<sub>s</sub> = 2GM / c²</span>
         </p>
       </section>
 
+      <article class="observation-report" id="observation-report" aria-labelledby="report-title">
+        <header class="report-cover">
+          <div class="report-masthead"><a href="../../">知序 · 观测档案</a><span>FIELD REPORT / 001</span><span>施瓦西黑洞</span></div>
+          <div class="report-cover-grid">
+            <div>
+              <p class="report-kicker">SCHWARZSCHILD / EXPEDITION RECORD</p>
+              <h2 id="report-title">光的尽头，<br />时间仍在前行。</h2>
+              <p class="report-abstract">从远处接近、绕行，直到穿过视界。记录一艘探测器所见的光，再通过径向释放实验，对照船上的时钟与远处接收器收到的信号。</p>
+              <div class="report-classification"><span>轨迹 / 相对论计算</span><span>成像 / 示意配色</span></div>
+            </div>
+            <figure class="report-plate"><img src="../../docs/exhibits/shots/schwarzschild-report.jpg" alt="探测器接近黑洞时，发光盘面在阴影边缘弯曲" width="1600" height="1000" loading="lazy" /><figcaption><span>FIG. 01 / 光线追踪</span><span>探测器模拟影像</span></figcaption></figure>
+          </div>
+          <dl class="report-facts"><div><dt>时空模型</dt><dd>不旋转 / 不带电</dd></div><div><dt>主影片黑洞质量</dt><dd>430 万 M<sub>☉</sub></dd></div><div><dt>影片播放时长</dt><dd>约 72 秒</dd></div><div><dt>长度单位</dt><dd>r<sub>s</sub> = 2GM / c²</dd></div></dl>
+          <nav class="report-index" aria-label="黑洞报告目录"><a href="#infall"><span>01</span> 自由落体实验</a><a href="#light-record"><span>02</span> 光路图解</a><a href="#blackhole-method"><span>03</span> 影像与模型</a><a href="#hole" class="report-back">返回观察窗口 ↑</a></nav>
+        </header>
+
       <aside class="flight-explanation" id="flight-explanation" hidden>
         <b>你就是探测器的相机。</b
         >无推力绕行并坠入，拖动画面可以转头。船上时间有限，穿过视界时没有发光的边界，也不会突然看不到外部宇宙。
         <details>
-          <summary>航行与画面的物理设定</summary>
+          <summary>航行附录 / 轨迹、镜头与成像设定</summary>
           <p>
             参考
             <a href="https://svs.gsfc.nasa.gov/14576/" target="_blank" rel="noreferrer"
@@ -186,7 +203,7 @@
             秒的演示使用连续变速，视界内慢放；船上时间始终来自同一条轨迹。镜头先对准黑洞，绕行时平滑转向、滚转，让外部天空位于画面上方；可自由转头，不是陀螺仪无转动相机。靠近时自动调整曝光，使用保留高亮层次的显示映射，频率比不受影响。相机频移与光行差用视界规则的自由落体标架计算，光线仍沿零测地线追踪。黑暗区域表示本模型中没有外部光源连接，不是视界表面。
           </p>
           <p>
-            这是浏览器中的理想化重现，不使用 NASA 原片轨迹或图像数据。暖橙色盘面采用峰值约 2900 K
+            这是浏览器中的理想化重现，不使用 NASA 原片轨迹或图像数据。暖色盘面采用峰值约 4300 K
             的示意色温，银河、尘埃带和两团星云都是合成背景，不是真实星图。背景与盘像都经同一套光线弯曲计算，未叠加假光子环。忽略盘的加热、阻力及探测器破坏；盘面纹理与可见光配色为示意，未计算盘面纹理的传播时延。电影镜头的光晕来自亮像素扩散，颗粒和暗角属于成像效果，不改变光路；可在「自由观察」中查看不带电影成像的画面。配乐为原创合成氛围声，默认关闭，不代表太空中的真实声音。下方径向释放实验是另一条零角动量轨迹。
           </p>
         </details>
@@ -195,10 +212,10 @@
       <section class="mission" id="infall" aria-labelledby="mission-title">
         <header class="mission-header">
           <div>
-            <p class="section-kicker">实验 / 01 · 穿越的边界</p>
-            <h2 id="mission-title">让一艘飞船落下去。</h2>
+            <p class="section-kicker">01 / FREE-FALL EXPERIMENT</p>
+            <h2 id="mission-title">一次坠落，两份时间记录。</h2>
           </div>
-          <p>关掉引擎，从静止释放。<br />同一次坠落，两种时钟。</p>
+          <p>独立径向实验 · 从静止释放<br />切换船上时间与接收信号，比较同一条轨迹。</p>
         </header>
         <div class="mission-layout">
           <div class="mission-view">
@@ -227,6 +244,7 @@
             </div>
           </div>
           <aside class="mission-instruments" aria-label="飞船实验读数">
+            <p class="instrument-heading"><span>TELEMETRY</span>实验遥测 / 实时计算</p>
             <div class="mission-modes" role="group" aria-label="播放使用的时钟">
               <button id="ship-proper" type="button" aria-pressed="true">船上时间</button
               ><button id="ship-received" type="button" aria-pressed="false">接收信号</button>
@@ -274,7 +292,7 @@
           船内的钟始终正常走。自由落体的加速度计读零，但船头与船尾仍会受到不同的潮汐拉伸。
         </p>
         <details class="mission-method">
-          <summary>这个实验怎么算，哪些只是示意？</summary>
+          <summary>计算附录 / 径向轨迹、信号传播与潮汐近似</summary>
           <p>
             飞船视作不改变黑洞的试验粒子，零角动量、无推力，从 R rₛ 处静止释放。设 rₛ = c = 1，则 E²
             = 1 − 1/R，(dr/dτ)² = 1/r −
@@ -295,10 +313,10 @@
         </details>
       </section>
 
-      <section class="notes" aria-labelledby="rays-title">
+      <section class="notes" id="light-record" aria-labelledby="rays-title">
         <div class="rays-box">
-          <p class="section-kicker">01 / 跟随一束光</p>
-          <h2 id="rays-title">光线怎么弯</h2>
+          <p class="section-kicker">02 / RAY-TRACING RECORD</p>
+          <h2 id="rays-title">沿一束光，寻找临界轨迹。</h2>
           <p>
             从左边平行射来的一束光，离中心线的距离（瞄准距离
             b）各不相同。和上面的画面用的是同一个方程。
@@ -317,29 +335,28 @@
             </li>
           </ul>
         </div>
-        <div class="text">
-          <p class="section-kicker">02 / 读懂这片光</p>
-          <h2>画面里在看什么</h2>
+        <div class="text" id="blackhole-method">
+          <p class="section-kicker">03 / IMAGE INTERPRETATION</p>
+          <h2>从影像，回到它的物理含义。</h2>
           <ul>
             <li>
-              <b>中间的黑影</b>不是视界本身，而是「瞄准距离小于 2.598 r<sub>s</sub>
-              的光线都回不来」留下的影子，所以比视界大一圈多。
+              <b>01 / 黑洞阴影。</b>视界不发光。对来自远处的平行入射光，临界瞄准距离约为 2.598 r<sub>s</sub>；它决定远处观察者所见阴影的尺度。阴影与视界的坐标半径并不相同。
             </li>
             <li>
-              <b>盘的后半边被弯到了黑洞上方</b
+              <b>02 / 盘面被光路抬起</b
               >：盘其实是平的，后面那部分发出的光绕过黑洞顶上才到你眼里。下方那道细弧是盘的背面，光从底下绕过来。
             </li>
             <li>
-              <b>贴着黑影的细亮弧</b>是吸积盘的高阶像：越接近临界位置，光越可能在 1.5 r<sub>s</sub>
+              <b>03 / 贴近阴影的细亮弧。</b>这是吸积盘的高阶像：越接近临界位置，光越可能在 1.5 r<sub>s</sub>
               附近绕行，再来到眼前。这里的多条高阶像会逐渐逼近光子环。
             </li>
             <li>
-              <b>一边亮一边暗</b
+              <b>04 / 不对称的明暗</b
               >：盘上的气体绕着黑洞高速转，朝你转过来的那一边变亮变蓝，远离的那一边变暗变红；越靠里，引力红移也越强。关掉「多普勒和引力红移」可以对比。
             </li>
-            <li><b>背景的星星</b>在黑洞旁边被拉成弧线，同一颗星能在两边各出现一次。</li>
+            <li><b>05 / 背景星像。</b>引力透镜让背景星光发生偏折，同一光源可能出现多个像。</li>
           </ul>
-          <h2>用的方程</h2>
+          <h3>计算依据 / 光子轨道</h3>
           <p class="formula">d²u/dφ² + u = (3/2) r<sub>s</sub> u² ， u = 1/r</p>
           <p>
             这是史瓦西度规下光子轨道的方程。右边那一项是广义相对论多出来的，没有它光走直线。画面在每条光线自己的轨道平面内做四阶积分，求到视界、盘面或无穷远。下方示意图用等价的三维加速度方程计算。外部观察模式的相机静止在所选距离，探测器模式则沿自由落体轨道运动；盘的亮度按
@@ -347,13 +364,15 @@
           </p>
           <p class="small">
             盘内沿取在最内稳定圆轨道 3 r<sub>s</sub>，外沿 12
-            r<sub>s</sub>。盘是几何上无限薄、不透明的理想盘；径向发光强度、色温、纹理和转动时间尺度是示意，转向与多普勒频移一致。星空是随机生成的，不是真实星图。距离改变时，视场也会调整以便观察。
+            r<sub>s</sub>。几何上采用薄盘，自由观察按首次盘面交点遮挡；电影模式使用发光气体的示意成像。径向亮度、色温、纹理和转动时间尺度为视觉设定，转向与多普勒频移一致。背景为合成星空；距离变化时视场也会调整。主影片的绕行坠入与上方径向释放实验采用不同轨迹。
           </p>
         </div>
       </section>
+        <nav class="report-end" aria-label="展品档案导航"><div><span>END OF REPORT / 001</span><p>从光的边界，回到物质的迁徙。</p></div><a href="../roche/#observation-report"><small>另一份观测档案</small><b>星云潮汐 · 洛希极限 ↗</b></a></nav>
+      </article>
       <footer class="foot">
         <a href="../../">↙ 沙盒目录</a>
-        <span>知序 ZHIXU · 实验展品 01 · 样稿</span>
+        <span>知序 ZHIXU · 观测档案 001 · 沙盒实验版</span>
       </footer>
     </main>
   </body>
