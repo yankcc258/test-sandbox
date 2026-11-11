@@ -1,7 +1,8 @@
 // 双行星洛希展品的碎屑积分和画面（猫猫）。物理公式在 binary.js；这里决定东西怎么算得快、看起来怎样。
 // 碎屑：几十万粒试验粒子，只受两颗行星的引力（圆型限制性三体问题），在显卡上每帧推进；
 // 没有浮点渲染目标时改在 CPU 上推进少一些的粒子。
-// 画面：背景（星空、恒星、两颗按等势面逐像素求交的行星）→ 碎屑的微光 → 高动态范围辉光和胶片曲线。
+// 画面：背景（星空、恒星、两颗按等势面逐像素求交的行星和它们的大气）→ 碎屑的微光 → 高动态范围辉光、镜头拉丝和胶片曲线。
+// 机位在星系里面、贴着行星，所以行星表面的细节按离镜头的远近分层淡入。
 import { ROCHE_GLSL, PARTICLE_GLSL, roche, accel, axes } from './binary.js?v=1';
 
 export const STREAM_EVERY = 6; // 每 6 粒里有 1 粒是「从行星尖端被扯出来的」，其余是行星带
@@ -49,8 +50,10 @@ void main() {
     vec3 np = p.xyz + nv * u_dt;
     vec3 q = vec3(dot(np, e1), np.y, dot(np, e2));
     float value = roche(q, u_mu);
-    bool hit = (length(q + vec3(u_mu, 0.0, 0.0)) < u_reach.x && value > u_level.x)
-            || (length(q - vec3(1.0 - u_mu, 0.0, 0.0)) < u_reach.y && value > u_level.y);
+    // 哪一颗：看在两个尖端中间那个面的哪一侧（同一个势值在对面那颗行星里也围着一圈等值面）
+    float mid = 0.5 * (u_tip.x + u_tip.y);
+    bool hit = (q.x < mid && length(q + vec3(u_mu, 0.0, 0.0)) < u_reach.x && value > u_level.x)
+            || (q.x > mid && length(q - vec3(1.0 - u_mu, 0.0, 0.0)) < u_reach.y && value > u_level.y);
     if (hit || dot(np, np) > (stream ? 22.0 : 49.0)) respawn = true; // 落到行星上，或者被甩远了
     else { o_pos = vec4(np, p.w); o_vel = vec4(nv, v.w + u_dt); return; }
   }
@@ -59,7 +62,7 @@ void main() {
     if (rnd(state) >= u_emit) { o_pos = vec4(0.0, 0.0, 0.0, 3.0); o_vel = vec4(0.0); return; }
     bool fromB = (index / ${STREAM_EVERY}) % 2 == 1;
     float tip = fromB ? u_tip.y : u_tip.x, toward = fromB ? -1.0 : 1.0, reach = fromB ? u_reach.y : u_reach.x;
-    float spread = 0.16 * reach * sqrt(rnd(state)), angle = 6.2831853 * rnd(state);
+    float spread = 0.07 * reach * sqrt(rnd(state)), angle = 6.2831853 * rnd(state);
     vec3 q = vec3(tip + toward * 0.004, spread * cos(angle), spread * sin(angle));
     vec3 at = q.x * e1 + q.y * vec3(0.0, 1.0, 0.0) + q.z * e2;
     // 跟着行星表面一起转，再加向外的速度（示意）：多数很慢，直接落向对方；少数快的会绕着行星甩出一道弧
@@ -96,6 +99,18 @@ float fbm(vec3 p) {
   for (int i = 0; i < 5; i++) { sum += weight * noise3(p); p = p * 2.03 + 11.7; weight *= 0.5; }
   return sum;
 }
+// 贴近了看也要有细节：最多 9 层，比一个像素还细的层淡出（fp 是一个像素在 p 这套坐标里有多大）
+float fbmG(vec3 p, float fp, int layers, float gain) {
+  float sum = 0.0, weight = 1.0 - gain, scale = 1.0;
+  for (int i = 0; i < layers; i++) {
+    float fade = 1.0 - smoothstep(0.22, 0.6, fp * scale);
+    if (fade <= 0.0) break;
+    sum += weight * fade * (noise3(p) - 0.5);
+    p = p * 2.03 + 11.7; weight *= gain; scale *= 2.03;
+  }
+  return 0.5 + sum;
+}
+float fbmL(vec3 p, float fp, int layers) { return fbmG(p, fp, layers, 0.5); }
 vec3 filmic(vec3 x) { return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
 uniform float u_direct;
 vec3 finish(vec3 c) { return u_direct > 0.5 ? pow(filmic(c), vec3(1.0 / 2.2)) : c; }
@@ -104,9 +119,10 @@ vec3 finish(vec3 c) { return u_direct > 0.5 ? pow(filmic(c), vec3(1.0 / 2.2)) : 
 const BACK_FRAGMENT = `#version 300 es
 precision highp float;
 uniform vec3 u_eye, u_right, u_up, u_fwd, u_sun;
-uniform vec2 u_tan, u_res, u_level, u_reach;
+uniform vec2 u_tan, u_res, u_level, u_reach, u_tip;
 uniform mat4 u_vp;
-uniform float u_theta, u_mu, u_heat, u_time, u_steps, u_l1;
+uniform float u_theta, u_mu, u_heat, u_bridge, u_time, u_steps, u_pixel;
+uniform vec2 u_radii;
 out vec4 o;
 ${COMMON}
 ${ROCHE_GLSL}
@@ -127,63 +143,186 @@ vec3 sky(vec3 rd) {
   }
   float cloud = fbm(rd * 3.1 + 4.0) * fbm(rd * 8.3);
   float lane = smoothstep(0.42, 0.62, fbm(rd * 5.7 + 9.0)) * band;
-  col += vec3(0.42, 0.50, 0.68) * band * (0.010 + 0.16 * cloud * cloud);
-  col += vec3(0.75, 0.52, 0.36) * band * band * 0.022 * fbm(rd * 2.2);
+  col += vec3(0.42, 0.50, 0.68) * band * (0.012 + 0.20 * cloud * cloud);
+  col += vec3(0.75, 0.52, 0.36) * band * band * 0.026 * fbm(rd * 2.2);
+  // 两片很淡的星云，一片青、一片洋红，给夜空一点颜色
+  float veil = fbm(rd * 1.7 + 2.0);
+  col += vec3(0.04, 0.24, 0.30) * pow(veil, 3.0) * 0.16;
+  col += vec3(0.34, 0.05, 0.22) * pow(fbm(rd * 2.3 - 5.0), 4.0) * 0.30;
   return col * (1.0 - 0.7 * lane);
 }
-// 沿视线找行星表面：行星是有效势的等值面，在它的包围球里等步长走，过了面就二分。
-// gap 记下一路上离表面最近时的势差，给大气的辉边用。
-float surface(vec3 ro, vec3 rd, vec3 center, float reach, float level, out float gap) {
+// 沿视线找行星表面。行星是有效势的等值面：用「势差 / 梯度」估计离表面还有多远，按这个距离往前走，越贴近走得越细；
+// 越过表面就二分。gap 记下一路上离表面最近时的高度（以两星间距为单位），at 是那一刻沿视线走了多远——给大气用。
+float surface(vec3 ro, vec3 rd, vec3 center, float reach, float level, out float gap, out float at) {
   gap = 1e3;
+  at = 0.0;
   vec3 oc = ro - center;
-  float b = dot(oc, rd), c = dot(oc, oc) - reach * reach * 1.03, h = b * b - c;
+  float b = dot(oc, rd), c = dot(oc, oc) - reach * reach * 1.08, h = b * b - c;
   if (h < 0.0) return -1.0;
   h = sqrt(h);
-  float t0 = max(-b - h, 0.0), t1 = -b + h;
-  if (t1 <= t0) return -1.0;
-  float stride = (t1 - t0) / u_steps, before = t0;
-  for (float i = 1.0; i <= u_steps; i += 1.0) {
-    float t = t0 + stride * i, f = level - roche(ro + rd * t, u_mu);
+  float t = max(-b - h, 0.0), t1 = -b + h;
+  if (t1 <= t) return -1.0;
+  // 只在两个尖端中间那个面的这一侧找：同一个势值在对面那颗行星里也围着一圈等值面，不能把它当成这一颗
+  float side = center.x < 0.5 * (u_tip.x + u_tip.y) ? 1.0 : -1.0;
+  float room = (0.5 * (u_tip.x + u_tip.y) - ro.x) * side, lean = rd.x * side;
+  if (lean > 1e-6) t1 = min(t1, room / lean);
+  else if (lean < -1e-6) t = max(t, room / lean);
+  else if (room < 0.0) return -1.0;
+  if (t1 <= t) return -1.0;
+  float before = t;
+  for (float i = 0.0; i < u_steps; i += 1.0) {
+    vec3 q = ro + rd * t;
+    float f = level - roche(q, u_mu);
     if (f < 0.0) {
       float lo = before, hi = t;
-      for (int k = 0; k < 7; k++) {
+      for (int k = 0; k < 9; k++) {
         float mid = 0.5 * (lo + hi);
         if (level - roche(ro + rd * mid, u_mu) < 0.0) hi = mid; else lo = mid;
       }
       gap = 0.0;
-      return 0.5 * (lo + hi);
+      at = 0.5 * (lo + hi);
+      return at;
     }
-    gap = min(gap, f);
+    vec3 g = rocheGradient(q, u_mu);
+    float height = f / sqrt(dot(g, g) + 12.0 * f);
+    if (height < gap) { gap = height; at = t; }
     before = t;
+    t += clamp(0.6 * height, 0.0012 + 0.005 * t, 0.05);
+    if (t > t1) break;
+  }
+  if (gap < 0.25) {
+    float lo = max(at - 0.06, 0.0), hi = min(at + 0.06, t1);
+    for (int k = 0; k < 6; k++) {
+      float a = mix(lo, hi, 0.382), b = mix(lo, hi, 0.618);
+      vec3 qa = ro + rd * a, qb = ro + rd * b;
+      vec3 ga = rocheGradient(qa, u_mu), gb = rocheGradient(qb, u_mu);
+      float fa = max(level - roche(qa, u_mu), 0.0), fb = max(level - roche(qb, u_mu), 0.0);
+      if (fa / sqrt(dot(ga, ga) + 12.0 * fa) < fb / sqrt(dot(gb, gb) + 12.0 * fb)) hi = b; else lo = a;
+    }
+    at = 0.5 * (lo + hi);
+    vec3 q = ro + rd * at, g = rocheGradient(q, u_mu);
+    float f = max(level - roche(q, u_mu), 0.0);
+    gap = f / sqrt(dot(g, g) + 12.0 * f + 1e-9);
   }
   return -1.0;
 }
-// 烛阴：干热的岩石行星，潮汐把地壳扯开，裂缝里是熔岩；越靠近朝着望舒的尖端裂得越厉害
-vec3 zhuyin(vec3 d, vec3 n, float tipward, out vec3 glow) {
-  float plains = fbm(d * 5.0 + 3.0), ridged = abs(fbm(d * 11.0 + plains * 2.0) - 0.5) * 2.0;
-  vec3 rock = mix(vec3(0.17, 0.12, 0.09), vec3(0.52, 0.36, 0.22), smoothstep(0.25, 0.75, plains));
-  rock = mix(rock, vec3(0.70, 0.55, 0.38), smoothstep(0.62, 0.9, fbm(d * 19.0)) * 0.5);
-  float cracks = 1.0 - smoothstep(0.0, 0.085 + 0.10 * tipward, ridged);
-  float fine = 1.0 - smoothstep(0.0, 0.05, abs(fbm(d * 31.0 + 7.0) - 0.5) * 2.0);
-  float heat = u_heat * (0.10 + 1.6 * pow(tipward, 2.2)) * (0.6 + 0.4 * sin(u_time * 0.7 + plains * 20.0));
-  glow = vec3(3.2, 0.95, 0.22) * (cracks + 0.5 * fine * tipward) * heat;
-  return rock * (1.0 - 0.6 * cracks);
+// 把空间切成一格格不规则的小块，返回离最近的块缝有多远：用来画裂成一块块的地壳
+vec3 hash33(vec3 p) {
+  p = fract(p * vec3(0.1031, 0.1030, 0.0973));
+  p += dot(p, p.yxz + 33.33);
+  return fract((p.xxy + p.yxx) * p.zyx);
 }
-// 望舒：冰和海的行星，云被潮汐沿连线方向拉成长条
-vec3 wangshu(vec3 d, vec3 n, float tipward, out float clouds) {
-  vec3 stretched = vec3(d.x * mix(1.0, 0.35, tipward), d.y, d.z);
-  float warp = fbm(stretched * 4.0 + 1.7);
-  float land = smoothstep(0.52, 0.60, fbm(d * 3.3 + 20.0));
-  vec3 sea = mix(vec3(0.02, 0.09, 0.20), vec3(0.05, 0.26, 0.36), fbm(d * 9.0));
-  vec3 ground = mix(sea, vec3(0.50, 0.58, 0.62), land * 0.75);
-  ground = mix(ground, vec3(0.86, 0.92, 0.97), smoothstep(0.70, 0.92, abs(n.y)));
-  clouds = smoothstep(0.46, 0.74, fbm(stretched * 8.0 + warp * 2.6 + vec3(0.0, 0.0, u_time * 0.01)));
-  return mix(ground, vec3(0.93, 0.96, 1.0), clouds * 0.9);
+float plates(vec3 p) {
+  vec3 cell = floor(p), f = fract(p);
+  float first = 8.0, second = 8.0;
+  for (int x = -1; x <= 1; x++) for (int y = -1; y <= 1; y++) for (int z = -1; z <= 1; z++) {
+    vec3 g = vec3(float(x), float(y), float(z)), r = g + hash33(cell + g) - f;
+    float d = dot(r, r);
+    if (d < first) { second = first; first = d; } else if (d < second) second = d;
+  }
+  return sqrt(second) - sqrt(first);
+}
+// 一道缝：比一个像素还细的时候不让它闪，画成一个像素宽、相应地变淡
+float seam(float edge, float width, float pixel) {
+  float w = max(width, pixel * 1.5);
+  return (1.0 - smoothstep(0.0, w, edge)) * width / w;
+}
+// 烛阴：干热的岩石行星，潮汐把地壳扯成一块块的板，板缝里是熔岩；越靠近朝着望舒的尖端裂得越宽、越亮。
+// glow 是板缝自己发的光（亮度是示意）。
+vec3 zhuyin(vec3 d, float tipward, float fp, vec3 slope, out vec3 glow) {
+  float plains = fbmL(d * 8.0 + 3.0, fp * 8.0, 6), tone = fbmG(d * 6.0 + 13.0, fp * 6.0, 9, 0.6);
+  float rough = fbmL(d * 40.0 + 5.0, fp * 40.0, 7);
+  float lifted = fbmL(d * 40.0 + 5.0 + slope * 0.10, fp * 40.0, 5);
+  float grit = fbmL(d * 170.0 + 2.0, fp * 170.0, 6), gritLifted = fbmL(d * 170.0 + 2.0 + slope * 0.10, fp * 170.0, 4);
+  float fine = fbmL(d * 800.0 + 4.0, fp * 800.0, 5) - fbmL(d * 800.0 + 4.0 + slope * 0.10, fp * 800.0, 4);
+  float relief = clamp(1.0 + (rough - lifted) * 8.0 + (grit - gritLifted) * 9.0 + fine * 9.0, 0.3, 1.7);
+  vec3 rock = mix(vec3(0.21, 0.155, 0.125), vec3(0.36, 0.275, 0.20), smoothstep(0.15, 0.85, tone));
+  rock *= 0.82 + 0.36 * rough;
+  vec3 warped = d + 0.05 * (vec3(fbmL(d * 9.0, fp * 9.0, 4), fbmL(d * 9.0 + 31.0, fp * 9.0, 4), fbmL(d * 9.0 + 67.0, fp * 9.0, 4)) - 0.5);
+  float near = pow(smoothstep(0.86, 1.0, tipward), 1.5);
+  // 三层：大板、小板、贴近才看得见的碎纹。板很小、很多——一块大板也有几百千米宽
+  float rift = seam(plates(warped * 44.0), 0.016 + 0.11 * near, fp * 44.0);
+  float net = seam(plates(warped * 150.0 + 3.0), 0.024 + 0.08 * near, fp * 150.0);
+  float hair = seam(plates(warped * 520.0 + 9.0), 0.06, fp * 520.0) * (1.0 - smoothstep(0.2, 0.6, fp * 520.0));
+  float pulse = 0.65 + 0.35 * sin(u_time * 0.7 + plains * 20.0);
+  float region = smoothstep(0.42, 0.62, plains + 0.25 * near); // 有的地方裂得厉害，有的地方是整块的旧地壳
+  float ember = exp(-plates(warped * 44.0) * 7.0) * (1.0 - smoothstep(0.3, 0.9, fp * 44.0)); // 板缝两边被烤热的一圈
+  float molten = (rift * (0.22 + 0.9 * near) + net * (0.07 + 0.6 * near) + hair * (0.03 + 0.35 * near) + ember * (0.05 + 0.35 * near)) * (0.12 + 0.88 * max(region, near));
+  glow = (vec3(2.4, 0.50, 0.07) * molten + vec3(1.8, 1.1, 0.45) * rift * rift * near * near) * u_heat * pulse * 1.2;
+  return rock * relief * (1.0 - 0.7 * min(molten * 1.5, 1.0));
+}
+// 望舒：冰和海的行星，云被潮汐沿连线方向拉成长条。clouds 是云量，wet 是露出来的海面（给反光用）。
+vec3 wangshu(vec3 d, vec3 n, float tipward, float fp, vec3 slope, out float clouds, out float wet) {
+  vec3 stretched = vec3(d.x * mix(1.0, 0.6, tipward), d.y, d.z);
+  float warp = fbmL(stretched * 4.0 + 1.7, fp * 4.0, 4);
+  vec3 cp = stretched * 9.0 + warp * 2.6 + vec3(0.0, 0.0, u_time * 0.004);
+  float puffs = 0.10 * (fbmG(d * 75.0 + 40.0, fp * 75.0, 6, 0.6) - 0.5) + 0.07 * (fbmG(d * 330.0 + 12.0, fp * 330.0, 5, 0.6) - 0.5);
+  float cover = fbmG(cp, fp * 9.0, 9, 0.62) + puffs, toward = fbmG(cp + slope * 0.16, fp * 9.0, 7, 0.62) + puffs;
+  clouds = smoothstep(0.475, 0.575, cover);
+  float shadow = smoothstep(0.475, 0.575, toward);
+  float land = smoothstep(0.525, 0.560, fbmG(d * 3.3 + 20.0, fp * 3.3, 9, 0.56));
+  float depth = fbmL(d * 9.0, fp * 9.0, 5);
+  vec3 sea = mix(vec3(0.008, 0.045, 0.13), vec3(0.03, 0.22, 0.30), smoothstep(0.35, 0.75, depth));
+  sea *= 0.85 + 0.3 * fbmL(d * 140.0 + 9.0, fp * 140.0, 5);
+  vec3 soil = mix(vec3(0.20, 0.24, 0.22), vec3(0.70, 0.76, 0.80), smoothstep(0.35, 0.65, fbmG(d * 31.0 + 5.0, fp * 31.0, 7, 0.6)));
+  vec3 ground = mix(sea, soil, land);
+  float ice = smoothstep(0.70, 0.90, abs(n.y) + 0.10 * (depth - 0.5));
+  ground = mix(ground, vec3(0.86, 0.92, 0.97), ice);
+  wet = (1.0 - land) * (1.0 - ice) * (1.0 - clouds);
+  // 云顶：朝着恒星那一侧的云更厚就更暗一点，显出起伏；云把影子投在地面上
+  float body = clamp(0.82 + (cover - toward) * 3.2, 0.42, 1.2);
+  return mix(ground * (1.0 - 0.6 * shadow * (1.0 - clouds)), vec3(0.94, 0.97, 1.0) * body, clouds * 0.94);
+}
+// 行星带：轨道面里一圈很薄的碎屑盘。半径方向的疏密和 seedDust 里撒碎屑用的是同一个函数，再叠一层更细的环缝（示意）。
+// 斜着看穿过的碎屑多，所以越接近侧视越亮、越不透明。limit 是视线打到行星的距离（没打到就是负的）。
+float ringlets(float r) {
+  return 0.18 + 0.82 * pow(0.5 + 0.5 * sin(r * 9.0 + 1.3 * sin(r * 3.1)), 2.0) * (0.6 + 0.4 * sin(r * 23.0 + 2.0));
+}
+float shadeAt(vec3 p, vec3 center, float radius, vec3 sun) {
+  vec3 d = p - center;
+  float along = dot(d, sun);
+  return along < 0.0 ? smoothstep(radius * 0.94, radius * 1.05, length(d - along * sun)) : 1.0;
+}
+vec4 belt(vec3 ro, vec3 dir, vec3 sun, float facing, float limit) {
+  if (abs(dir.y) < 1e-5) return vec4(0.0);
+  float s = -ro.y / dir.y;
+  if (s <= 0.0 || (limit > 0.0 && s > limit)) return vec4(0.0);
+  vec3 p = ro + dir * s;
+  float r = length(p.xz);
+  float band = smoothstep(1.95, 2.5, r) * (1.0 - smoothstep(4.3, 5.6, r));
+  if (band <= 0.0) return vec4(0.0);
+  float pixel = s * u_pixel / max(abs(dir.y), 0.03); // 一个像素在半径方向上盖住多宽：比它还细的环缝淡出
+  float fine = 1.0 - 0.30 * (0.5 + 0.5 * sin(r * 150.0 + 4.0 * sin(r * 13.0))) * (1.0 - smoothstep(0.004, 0.02, pixel));
+  float hair = 1.0 - 0.25 * (0.5 + 0.5 * sin(r * 900.0 + 6.0 * sin(r * 61.0))) * (1.0 - smoothstep(0.0007, 0.0035, pixel));
+  float dens = ringlets(r) * fine * hair * band;
+  float alpha = 1.0 - exp(-dens * 0.20 / max(abs(dir.y), 0.02));
+  float lit = shadeAt(p, vec3(-u_mu, 0.0, 0.0), u_radii.x, sun) * shadeAt(p, vec3(1.0 - u_mu, 0.0, 0.0), u_radii.y, sun);
+  float k = 0.42, lobe = (1.0 - k * k) / pow(1.0 + k * k - 2.0 * k * facing, 1.5);
+  vec3 tint = mix(vec3(0.86, 0.66, 0.46), vec3(0.66, 0.80, 1.0), 0.5 + 0.5 * sin(r * 5.3 + 1.0));
+  return vec4(tint * (0.11 + 0.30 * lobe) * lit * alpha + tint * 0.004 * alpha, alpha);
+}
+// 贴着行星边缘的那一圈大气。c 是视线离表面最近的那一点，height 是那里的高度。
+vec3 limb(vec3 c, float height, float along, bool isB, vec3 sun, float facing) {
+  float thick = isB ? 0.013 : 0.007;
+  float dens = max(exp(-height / thick) + 0.16 * exp(-height / (3.0 * thick)) - 0.006, 0.0) * smoothstep(0.0, 0.05, along);
+  float bound = (isB ? u_reach.y : u_reach.x) * 1.039;
+  dens *= smoothstep(0.0, 0.10, 1.0 - length(c - (isB ? vec3(1.0 - u_mu, 0.0, 0.0) : vec3(-u_mu, 0.0, 0.0))) / bound);
+  if (dens < 0.004) return vec3(0.0);
+  vec3 n = -normalize(rocheGradient(c, u_mu));
+  float ndl = dot(n, sun), day = smoothstep(-0.32, 0.22, ndl);
+  // 另一颗行星的影子
+  float miss, unused;
+  float blocked = surface(c, sun, isB ? vec3(-u_mu, 0.0, 0.0) : vec3(1.0 - u_mu, 0.0, 0.0), isB ? u_reach.x : u_reach.y, isB ? u_level.x : u_level.y, miss, unused);
+  day *= blocked > 0.0 ? 0.0 : smoothstep(0.0, 0.07, miss);
+  vec3 noon = isB ? vec3(0.30, 0.62, 1.0) : vec3(1.0, 0.52, 0.26);
+  vec3 dusk = isB ? vec3(1.0, 0.36, 0.46) : vec3(1.0, 0.26, 0.08); // 晨昏线附近：光穿过很厚的大气，剩下的偏红
+  vec3 tint = mix(dusk, noon, smoothstep(-0.10, 0.42, ndl));
+  float through = 0.38 + 3.4 * pow(max(facing, 0.0), 6.0); // 逆光时向前散射，亮得多
+  return tint * dens * day * through * (isB ? 0.95 : 0.42 * (0.5 + u_heat));
 }
 void main() {
   vec2 uv = gl_FragCoord.xy / u_res * 2.0 - 1.0;
   vec3 rd = normalize(u_fwd + uv.x * u_tan.x * u_right + uv.y * u_tan.y * u_up);
-  vec3 col = sky(rd);
   float depth = 0.9999999;
   float facing = dot(rd, u_sun);
   // 换到跟着两星一起转的坐标：q = (沿连线, 垂直轨道面, 轨道面内垂直连线)
@@ -191,11 +330,12 @@ void main() {
   vec3 ro = vec3(dot(u_eye, e1), u_eye.y, dot(u_eye, e2)), dir = vec3(dot(rd, e1), rd.y, dot(rd, e2));
   vec3 sun = vec3(dot(u_sun, e1), u_sun.y, dot(u_sun, e2));
   vec3 ca = vec3(-u_mu, 0.0, 0.0), cb = vec3(1.0 - u_mu, 0.0, 0.0);
-  float gapA, gapB;
-  float ta = surface(ro, dir, ca, u_reach.x, u_level.x, gapA);
-  float tb = surface(ro, dir, cb, u_reach.y, u_level.y, gapB);
+  float gapA, gapB, atA, atB;
+  float ta = surface(ro, dir, ca, u_reach.x, u_level.x, gapA, atA);
+  float tb = surface(ro, dir, cb, u_reach.y, u_level.y, gapB, atB);
   bool isB = tb > 0.0 && (ta < 0.0 || tb < ta);
   float t = isB ? tb : ta;
+  vec3 col;
   if (t > 0.0) {
     vec3 q = ro + dir * t;
     vec3 n = -normalize(rocheGradient(q, u_mu));
@@ -204,42 +344,70 @@ void main() {
     float reach = isB ? u_reach.y : u_reach.x;
     // 离朝向对方的尖端有多近（0 = 背面，1 = 尖端）
     float tipward = smoothstep(-0.2, 1.0, (isB ? -d.x : d.x) / reach);
-    float ndl = dot(n, sun), day = smoothstep(-0.08, 0.22, ndl);
-    // 互相的影子：从这一点朝恒星看，另一颗行星挡不挡得住
-    float unused;
-    float blocked = surface(q + n * 0.004, sun, isB ? ca : cb, isB ? u_reach.x : u_reach.y, isB ? u_level.x : u_level.y, unused);
-    float lit = blocked > 0.0 ? 0.0 : 1.0;
-    vec3 glow = vec3(0.0), base;
-    float clouds = 0.0;
-    if (isB) base = wangshu(d, n, tipward, clouds); else base = zhuyin(d, n, tipward, glow);
     float view = max(dot(n, -dir), 0.0), fres = pow(1.0 - view, 3.0);
-    vec3 surfaceCol = base * (max(ndl, 0.0) * lit * 1.15 + 0.012);
+    float fp = t * u_pixel / max(view, 0.45);
+    float ndl = dot(n, sun), day = smoothstep(-0.08, 0.22, ndl);
+    vec3 slope = normalize(sun - n * ndl + 1e-4); // 恒星在地面上的方向：给云和地形算明暗
+    // 互相的影子：从这一点朝恒星看，另一颗行星挡不挡得住；擦边的地方是半影
+    float miss, unused;
+    float blocked = surface(q + n * 0.003, sun, isB ? ca : cb, isB ? u_reach.x : u_reach.y, isB ? u_level.x : u_level.y, miss, unused);
+    float lit = blocked > 0.0 ? 0.0 : smoothstep(0.0, 0.07, miss);
+    vec3 glow = vec3(0.0), base;
+    float clouds = 0.0, wet = 0.0;
+    if (isB) base = wangshu(d, n, tipward, fp, slope, clouds, wet); else base = zhuyin(d, tipward, fp, slope, glow);
+    // 晨昏线上的阳光穿过很厚的大气，偏红
+    vec3 sunlight = mix(isB ? vec3(1.0, 0.40, 0.24) : vec3(1.0, 0.55, 0.36), vec3(1.0, 0.96, 0.90), smoothstep(0.0, 0.38, ndl));
+    vec3 surfaceCol = base * (sunlight * max(ndl, 0.0) * lit * 1.25 + 0.010);
     // 另一颗行星的反照：朝着对方的那一面被对方照亮一点
     vec3 other = normalize((isB ? ca : cb) - q);
-    surfaceCol += base * max(dot(n, other), 0.0) * 0.05 * (isB ? vec3(1.0, 0.7, 0.45) : vec3(0.6, 0.8, 1.0));
+    surfaceCol += base * max(dot(n, other), 0.0) * 0.045 * (isB ? vec3(1.0, 0.62, 0.40) : vec3(0.55, 0.78, 1.0));
     // 物质桥的火光照在两颗行星朝着 L1 的那一面上
-    vec3 toBridge = vec3(u_l1, 0.0, 0.0) - q;
+    vec3 toBridge = vec3(0.5 * (u_tip.x + u_tip.y), 0.0, 0.0) - q;
     float span = length(toBridge);
-    surfaceCol += base * vec3(3.0, 1.1, 0.35) * u_heat * 0.035 * max(dot(n, toBridge / span), 0.0) / (span * span + 0.012);
+    surfaceCol += base * vec3(3.0, 1.1, 0.35) * u_bridge * 0.018 * max(dot(n, toBridge / span) + 0.15, 0.0) / (span * span + 0.02);
     if (isB) {
       // 极光：两极附近一圈，只在背光的一面看得见
-      float oval = exp(-pow((abs(n.y) - 0.80) / 0.06, 2.0)) * (0.35 + 0.65 * fbm(d * 13.0 + vec3(u_time * 0.04, 0.0, 0.0)));
-      surfaceCol += vec3(0.10, 0.85, 0.60) * oval * 0.38 * (1.0 - day * lit);
+      float curtain = fbm(d * vec3(40.0, 6.0, 40.0) + vec3(u_time * 0.05, 0.0, 0.0));
+      float oval = exp(-pow((abs(n.y) - 0.84 - 0.05 * (curtain - 0.5)) / 0.022, 2.0)) * smoothstep(0.30, 0.62, curtain);
+      surfaceCol += vec3(0.10, 0.85, 0.60) * oval * 0.22 * (1.0 - day * lit);
+      // 海面上恒星的反光：掠着看时拉成一长条
+      vec3 half_ = normalize(sun - dir);
+      float glint = pow(max(dot(n, half_), 0.0), 320.0) * 9.0 + pow(max(dot(n, half_), 0.0), 60.0) * 0.22;
+      surfaceCol += sunlight * glint * wet * lit * step(0.0, ndl) * (0.25 + 0.75 * fres);
     }
-    vec3 air = isB ? vec3(0.35, 0.62, 1.0) : vec3(1.0, 0.55, 0.30);
-    surfaceCol += air * fres * (0.55 * day * lit + (isB ? 0.02 : 0.05));
-    if (isB) surfaceCol += vec3(1.0) * pow(max(dot(reflect(-sun, n), -dir), 0.0), 60.0) * (1.0 - clouds) * lit * 0.5;
-    col = surfaceCol + glow * (0.35 + 0.65 * (1.0 - day * lit));
+    surfaceCol += glow * (0.35 + 0.65 * (1.0 - day * lit));
+    // 大气：掠着看时视线穿过的空气更厚，远处的地面沉进一层雾里
+    vec3 noon = isB ? vec3(0.30, 0.60, 1.0) : vec3(1.0, 0.52, 0.26);
+    vec3 dusk = isB ? vec3(1.0, 0.36, 0.46) : vec3(1.0, 0.26, 0.08);
+    vec3 air = mix(dusk, noon, smoothstep(-0.10, 0.42, ndl)) * smoothstep(-0.32, 0.22, ndl) * lit;
+    float haze = 1.0 - exp(-(isB ? 0.105 : 0.05) / (view + 0.085));
+    float through = 0.38 + 3.4 * pow(max(facing, 0.0), 6.0);
+    surfaceCol = surfaceCol * (1.0 - 0.75 * haze) + air * haze * through * (isB ? 0.62 : 0.34 * (0.5 + u_heat));
+    col = surfaceCol;
     vec3 world = q.x * e1 + q.y * vec3(0.0, 1.0, 0.0) + q.z * e2;
     vec4 clip = u_vp * vec4(world, 1.0);
     depth = clip.z / clip.w * 0.5 + 0.5;
   } else {
+    col = sky(rd);
     // 恒星：一个很亮的小圆面，光晕交给辉光
-    col += vec3(1.0, 0.94, 0.84) * (60.0 * smoothstep(0.99997, 0.999993, facing) + 0.4 * pow(max(facing, 0.0), 1400.0) + 0.03 * pow(max(facing, 0.0), 60.0));
-    // 贴着行星边缘的一圈大气：势差换成高度，越贴近越亮；逆光时更亮
-    float back = 0.25 + 2.4 * pow(max(facing, 0.0), 4.0);
-    col += vec3(1.0, 0.52, 0.28) * exp(-gapA * 22.0) * 0.20 * back * (0.4 + u_heat);
-    col += vec3(0.35, 0.62, 1.0) * exp(-gapB * 26.0) * 0.30 * back;
+    col += vec3(1.0, 0.94, 0.84) * (70.0 * smoothstep(0.99997, 0.999993, facing) + 0.4 * pow(max(facing, 0.0), 1400.0) + 0.03 * pow(max(facing, 0.0), 60.0));
+  }
+  // 视线擦过的那颗行星（不是打中的那一颗）边上的大气
+  if ((t < 0.0 || isB) && gapA > 0.0 && (t < 0.0 || atA < t)) col += limb(ro + dir * atA, gapA, atA, false, sun, facing);
+  if ((t < 0.0 || !isB) && gapB > 0.0 && (t < 0.0 || atB < t)) col += limb(ro + dir * atB, gapB, atB, true, sun, facing);
+  // 行星带
+  vec4 ring = belt(ro, dir, sun, facing, t);
+  col = col * (1.0 - ring.a) + ring.rgb;
+  // 物质桥的光芯：两个尖端之间一道发光的柱，烛阴这头是火，望舒那头是冰汽（示意；碎屑另外逐粒画在它上面）
+  if (u_bridge > 0.0) {
+    vec3 w0 = ro - vec3(u_tip.x, 0.0, 0.0);
+    float len = u_tip.y - u_tip.x, b = dir.x, e = w0.x, s = (b * e - dot(dir, w0)) / max(1.0 - b * b, 1e-3), x = e + b * s;
+    if (s > 0.0 && (t < 0.0 || s < t)) {
+      float off = length(w0 + dir * s - vec3(x, 0.0, 0.0)), along = x / len;
+      float width = 0.016 + 0.05 * abs(along - 0.5);
+      float core = exp(-off * off / (width * width)) * smoothstep(-0.25, 0.05, along) * smoothstep(1.25, 0.95, along);
+      col += mix(vec3(3.2, 1.0, 0.25), vec3(0.45, 0.85, 1.5), smoothstep(0.25, 0.85, along)) * core * u_bridge * 0.55;
+    }
   }
   o = vec4(finish(col), 1.0);
   gl_FragDepth = depth;
@@ -253,7 +421,7 @@ uniform ivec2 u_size;
 uniform mat4 u_view, u_proj;
 uniform vec3 u_sun, u_eye, u_shadowA, u_shadowB; // 行星中心；影子半径放在 u_radii
 uniform vec2 u_radii;
-uniform float u_px, u_grain, u_gain;
+uniform float u_px, u_grain, u_stream, u_gain;
 out vec3 v_tint;
 out float v_cover;
 float hash(float n) { return fract(sin(n * 12.9898) * 43758.5453); }
@@ -272,9 +440,9 @@ void main() {
   if (p.w > 2.5) return;
   float age = texelFetch(u_vel, at, 0).w, seed = hash(float(gl_VertexID) + 0.37);
   vec4 view = u_view * vec4(p.xyz, 1.0);
-  float size = mix(0.5, 2.2, seed * seed * seed) * u_grain * (p.w > 0.5 ? 2.4 : 1.0);
+  float size = mix(0.5, 2.2, seed * seed * seed) * u_grain * (p.w > 0.5 ? u_stream : 1.0);
   float px = 2.0 * size * u_px / max(-view.z, 1e-4);
-  float spot = max(px * 2.2, 2.6);
+  float spot = clamp(px * 2.2, p.w < 0.5 ? 5.0 : 2.6, 56.0); // 行星带的每一粒画得大而淡，叠起来是一片连续的光
   float lit = shade(p.xyz, u_shadowA, u_radii.x) * shade(p.xyz, u_shadowB, u_radii.y);
   // 冰尘向前散射：正对恒星看过去时最亮
   float facing = dot(normalize(p.xyz - u_eye), u_sun);
@@ -286,14 +454,18 @@ void main() {
     thin = 0.22;
   } else if (p.w < 1.5) {
     // 从烛阴扯出来的：刚离开时是炽热的，几分之一圈内冷下来变成暗红的尘
-    float hot = exp(-age * 0.6);
-    tint = vec3(0.55, 0.30, 0.18) * (0.20 + 0.30 * lobe) * lit + vec3(4.2, 1.25, 0.28) * hot * hot + vec3(1.6, 1.3, 0.9) * exp(-age * 5.0);
+    float hot = exp(-age * 1.6);
+    tint = vec3(0.50, 0.26, 0.15) * (0.15 + 0.25 * lobe) * lit + vec3(2.4, 0.55, 0.09) * hot * hot + vec3(1.0, 0.7, 0.35) * exp(-age * 5.0);
+    thin = 0.3;
   } else {
     // 从望舒扯出来的：水汽和冰晶，受光时很亮
-    tint = vec3(0.72, 0.88, 1.0) * (0.35 + 0.8 * lobe) * lit + vec3(0.16, 0.34, 0.60) * exp(-age * 0.9);
+    tint = vec3(0.82, 0.90, 1.0) * (0.16 + 0.4 * lobe) * lit + vec3(0.10, 0.20, 0.34) * exp(-age * 1.6);
+    thin = 0.3;
   }
-  v_tint = tint * u_gain * smoothstep(0.0, 0.25, age + (p.w > 0.5 ? 0.25 : 0.0));
-  v_cover = min(4.1 * px * px / (spot * spot), 1.0) * thin;
+  // 贴到镜头跟前的碎屑淡出，免得一粒糊住半个画面
+  float close = smoothstep(0.04, 0.16, -view.z);
+  v_tint = tint * u_gain * (p.w > 0.5 ? 1.7 : 1.0) * smoothstep(0.0, 0.25, age + (p.w > 0.5 ? 0.25 : 0.0));
+  v_cover = min(4.1 * px * px / (spot * spot), 1.0) * thin * close;
   gl_PointSize = spot;
   gl_Position = u_proj * view;
 }`;
@@ -345,18 +517,40 @@ void main() {
   c += texture(u_src, v_uv + vec2(0.0, 2.0) * u_texel).rgb + texture(u_src, v_uv - vec2(0.0, 2.0) * u_texel).rgb;
   o = vec4(c / 16.0, 1.0);
 }`;
+// 最后一步：辉光、镜头的拉丝和鬼影（恒星在画面里或画面边上时）、曝光、胶片曲线、一点分色
 const FINAL_FRAGMENT = `#version 300 es
 precision highp float;
 uniform sampler2D u_scene, u_bloom;
-uniform float u_exposure, u_bloomGain, u_time;
+uniform float u_exposure, u_bloomGain, u_time, u_aspect;
+uniform vec3 u_flare; // 恒星在画面上的位置（0–1）和露出来多少
 in vec2 v_uv;
 out vec4 o;
 ${COMMON}
 void main() {
   vec3 c = texture(u_scene, v_uv).rgb + texture(u_bloom, v_uv).rgb * u_bloomGain;
+  if (u_flare.z > 0.0) {
+    vec2 p = (v_uv - u_flare.xy) * vec2(u_aspect, 1.0);
+    float streak = exp(-abs(p.y) * 80.0) / (1.0 + 9.0 * p.x * p.x);   // 变形镜头的横向拉丝
+    float pillar = exp(-abs(p.x) * 70.0) / (1.0 + 26.0 * p.y * p.y);  // 竖着的一道光柱
+    float halo = 0.012 / (dot(p, p) + 0.006);
+    vec3 flare = vec3(0.36, 0.62, 1.0) * streak * 0.6 + vec3(1.0, 0.82, 0.66) * pillar * 0.22 + vec3(1.0, 0.86, 0.72) * halo;
+    // 沿着「恒星—画面中心」连线的几个鬼影
+    vec2 axis = vec2(0.5) - u_flare.xy;
+    for (int i = 0; i < 3; i++) {
+      float along = i == 0 ? 0.55 : i == 1 ? 1.35 : 1.9, size = i == 0 ? 0.035 : i == 1 ? 0.07 : 0.022;
+      vec2 g = (v_uv - (u_flare.xy + axis * along)) * vec2(u_aspect, 1.0);
+      float ring = smoothstep(size, size * 0.5, length(g));
+      flare += (i == 1 ? vec3(0.30, 0.55, 0.9) : vec3(0.9, 0.45, 0.6)) * ring * (i == 1 ? 0.008 : 0.014);
+    }
+    c += flare * u_flare.z;
+  }
   vec2 q = v_uv - 0.5;
-  c *= u_exposure * (1.0 - 0.7 * dot(q, q));
+  c *= u_exposure * (1.0 - 0.75 * dot(q, q));
   c = pow(filmic(c), vec3(1.0 / 2.2));
+  // 分色：暗部偏青，亮部偏暖
+  float luma = dot(c, vec3(0.2126, 0.7152, 0.0722));
+  c += (1.0 - luma) * (1.0 - luma) * vec3(-0.010, 0.004, 0.020);
+  c *= mix(vec3(1.0), vec3(1.035, 0.995, 0.965), luma);
   c += (hash13(vec3(gl_FragCoord.xy, u_time * 60.0 + u_direct)) - 0.5) * 0.02;
   o = vec4(c, 1.0);
 }`;
@@ -539,6 +733,7 @@ export function createCpuDust(gl, w, h) {
     data: { x, v },
     step(frame, dt) {
       const { mu } = frame,
+        mid = 0.5 * (frame.tip[0] + frame.tip[1]), // 两个尖端中间：这一侧归烛阴，那一侧归望舒
         theta = frame.theta + dt,
         { e1, e2 } = axes(theta);
       for (let i = 0; i < count; i++) {
@@ -557,8 +752,8 @@ export function createCpuDust(gl, w, h) {
             s = x[at] * e2[0] + x[at + 2] * e2[2],
             value = roche(u, s, x[at + 1], mu);
           respawn =
-            (Math.hypot(u + mu, s, x[at + 1]) < frame.reach[0] && value > frame.level[0]) ||
-            (Math.hypot(u - 1 + mu, s, x[at + 1]) < frame.reach[1] && value > frame.level[1]) ||
+            (u < mid && Math.hypot(u + mu, s, x[at + 1]) < frame.reach[0] && value > frame.level[0]) ||
+            (u > mid && Math.hypot(u - 1 + mu, s, x[at + 1]) < frame.reach[1] && value > frame.level[1]) ||
             x[at] ** 2 + x[at + 1] ** 2 + x[at + 2] ** 2 > (stream ? 22 : 49);
           if (!respawn) continue;
         }
@@ -570,7 +765,7 @@ export function createCpuDust(gl, w, h) {
           const fromB = Math.floor(i / STREAM_EVERY) % 2 === 1,
             toward = fromB ? -1 : 1,
             reach = frame.reach[fromB ? 1 : 0],
-            spread = 0.16 * reach * Math.sqrt(rand()),
+            spread = 0.07 * reach * Math.sqrt(rand()),
             angle = 2 * Math.PI * rand(),
             q = [
               frame.tip[fromB ? 1 : 0] + toward * 0.004,
@@ -628,18 +823,11 @@ const unit = (a) => {
   const l = Math.hypot(a[0], a[1], a[2]) || 1;
   return [a[0] / l, a[1] / l, a[2] / l];
 };
-export function cameraBasis(eye, target, roll = 0) {
-  const fwd = unit(sub(target, eye));
-  let right = unit(cross(fwd, [0, 1, 0])),
+// 镜头的三根轴。above 是「哪边算上」：机位贴着一颗行星时，它是离开地面的方向，地平线才是平的。
+export function cameraBasis(eye, target, above = [0, 1, 0]) {
+  const fwd = unit(sub(target, eye)),
+    right = unit(cross(fwd, above)),
     up = cross(right, fwd);
-  if (roll) {
-    const c = Math.cos(roll),
-      s = Math.sin(roll);
-    [right, up] = [
-      right.map((value, i) => value * c + up[i] * s),
-      up.map((value, i) => value * c - right[i] * s),
-    ];
-  }
   return { fwd, right, up };
 }
 // 世界坐标 → 画布上的比例坐标（左上角为 0,0）；在相机后面时返回 null。
@@ -652,7 +840,7 @@ export function project(matrix, [x, y, z]) {
   ];
 }
 
-export const SUN = unit([-0.42, 0.13, 0.90]); // 恒星只比轨道面高一点：两颗行星每一圈都会互相遮住
+export const SUN = unit([-0.42, 0.13, 0.9]); // 恒星只比轨道面高一点：两颗行星每一圈都会互相遮住
 
 export function createRenderer(gl, { allowHdr = true } = {}) {
   const back = link(gl, QUAD, BACK_FRAGMENT),
@@ -703,7 +891,7 @@ export function createRenderer(gl, { allowHdr = true } = {}) {
     if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE)
       throw new Error('scene target is not complete');
     const levels = [];
-    for (let i = 1; i <= 5; i++) levels.push(target(Math.max(2, w >> i), Math.max(2, h >> i)));
+    for (let i = 1; i <= 6; i++) levels.push(target(Math.max(2, w >> i), Math.max(2, h >> i)));
     stage = { w, h, scene, depth, levels };
   }
   const bind = (unit_, tex) => {
@@ -714,8 +902,9 @@ export function createRenderer(gl, { allowHdr = true } = {}) {
     get hdr() {
       return hdr;
     },
-    // scene：eye、target、fov、roll；frame（theta、mu、level、reach、centers、radii、heat）；dust = { pos, vel, size, count }；
-    // grain（碎屑大小）、steps（行星求交的步数）、exposure、bloom、time。
+    // scene：eye、basis（镜头的三根轴）、fov（竖直方向）；frame（theta、mu、level、reach、tip、centers、radii、heat、bridge）；
+    // dust = { pos, vel, size, count }；grain / stream（碎屑大小）、steps（行星求交最多走多少步）、sunlight（恒星露出来多少，0–1）、
+    // exposure、bloom、time。返回投影矩阵，给页面上的标注用。
     draw(scene) {
       const { width, height } = gl.canvas;
       if (hdr) {
@@ -728,8 +917,7 @@ export function createRenderer(gl, { allowHdr = true } = {}) {
         }
       }
       const aspect = width / height,
-        basis = cameraBasis(scene.eye, scene.target, scene.roll),
-        { fwd, right, up } = basis,
+        { fwd, right, up } = scene.basis,
         // prettier-ignore
         view = new Float32Array([
           right[0], up[0], -fwd[0], 0,
@@ -737,9 +925,8 @@ export function createRenderer(gl, { allowHdr = true } = {}) {
           right[2], up[2], -fwd[2], 0,
           -dot(right, scene.eye), -dot(up, scene.eye), dot(fwd, scene.eye), 1,
         ]),
-        span = Math.hypot(...sub(scene.eye, scene.target)),
-        near = Math.max(0.05, span - 12),
-        far = span + 40,
+        near = 0.008,
+        far = 60,
         f = 1 / Math.tan(scene.fov / 2),
         // prettier-ignore
         proj = new Float32Array([
@@ -782,10 +969,13 @@ export function createRenderer(gl, { allowHdr = true } = {}) {
       gl.uniform1f(back.u.u_mu, frame.mu);
       gl.uniform2fv(back.u.u_level, frame.level);
       gl.uniform2fv(back.u.u_reach, frame.reach);
+      gl.uniform2fv(back.u.u_tip, frame.tip);
+      gl.uniform2fv(back.u.u_radii, frame.radii);
       gl.uniform1f(back.u.u_heat, frame.heat);
-      gl.uniform1f(back.u.u_l1, frame.l1);
+      gl.uniform1f(back.u.u_bridge, frame.bridge);
       gl.uniform1f(back.u.u_time, scene.time || 0);
-      gl.uniform1f(back.u.u_steps, scene.steps || 30);
+      gl.uniform1f(back.u.u_steps, scene.steps || 72);
+      gl.uniform1f(back.u.u_pixel, (2 * tanV) / height);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       // 碎屑：只叠加，不写深度
       if (scene.dust) {
@@ -809,6 +999,7 @@ export function createRenderer(gl, { allowHdr = true } = {}) {
         gl.uniform2fv(dust.u.u_radii, frame.radii);
         gl.uniform1f(dust.u.u_px, height / (2 * tanV));
         gl.uniform1f(dust.u.u_grain, scene.grain);
+        gl.uniform1f(dust.u.u_stream, scene.stream ?? 1);
         gl.uniform1f(dust.u.u_gain, scene.gain ?? 1);
         gl.uniform1f(dust.u.u_direct, direct);
         gl.drawArrays(gl.POINTS, 0, scene.dust.count);
@@ -845,9 +1036,20 @@ export function createRenderer(gl, { allowHdr = true } = {}) {
         gl.uniform1i(final.u.u_scene, 0);
         gl.uniform1i(final.u.u_bloom, 1);
         gl.uniform1f(final.u.u_exposure, scene.exposure ?? 1);
-        gl.uniform1f(final.u.u_bloomGain, scene.bloom ?? 0.45);
+        gl.uniform1f(final.u.u_bloomGain, scene.bloom ?? 0.5);
         gl.uniform1f(final.u.u_time, scene.time || 0);
         gl.uniform1f(final.u.u_direct, 0);
+        gl.uniform1f(final.u.u_aspect, aspect);
+        // 恒星在画面上的位置：在镜头前面才有拉丝；离画面越远越淡
+        const ahead = dot(SUN, fwd);
+        let flare = [0, 0, 0];
+        if (ahead > 0.05 && scene.sunlight > 0) {
+          const x = dot(SUN, right) / ahead / (tanV * aspect),
+            y = dot(SUN, up) / ahead / tanV,
+            outside = Math.max(Math.abs(x), Math.abs(y)) - 1;
+          flare = [0.5 + 0.5 * x, 0.5 + 0.5 * y, scene.sunlight * Math.max(0, 1 - Math.max(outside, 0) / 0.5)];
+        }
+        gl.uniform3fv(final.u.u_flare, flare);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       }
       gl.activeTexture(gl.TEXTURE0);
