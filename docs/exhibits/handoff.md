@@ -16,8 +16,8 @@
 
 ## 现在有什么
 
-- **展品 01 · 史瓦西黑洞**（样稿）：[`exhibits/schwarzschild/`](../../exhibits/schwarzschild/)，说明和请特蕾莎审的清单在 [schwarzschild.md](./schwarzschild.md)。Yank 看过，说「黑洞不错」。特蕾莎还没审。
-- 检查：`npm run check:exhibits`（物理）和 `scripts/check-schwarzschild-browser.mjs`（画面，要浏览器）。
+- **展品 01 · 史瓦西黑洞**：[`exhibits/schwarzschild/`](../../exhibits/schwarzschild/)，说明在 [schwarzschild.md](./schwarzschild.md)。露娜做了首版，Yank 看过说「黑洞不错」；**特蕾莎已经审过并改了一轮**（2026-11-11，提交 `74da2ad`、`0f22b74`）：光线改成在轨道平面里用 RK4 积分到无穷远，修掉了首版「离得远时误画成黑」和侧面缩步的问题；盘的纹理转向和频移方向原来不一致，统一了；盘改成首次交点遮挡；星空无缝、临界曲线 4×4 采样、加了暂停、修了 WebGL 失败 / 丢失 / 恢复。她在桌面独显上验过，**手机真机的性能还没验**。接着做之前先读她更新过的说明。
+- 检查：`npm run check:exhibits`（物理，特蕾莎那一轮加了解析阴影、RK4 收敛等）和 `scripts/check-schwarzschild-browser.mjs`（画面，要浏览器）。
 - 沙盒目录首页和资料页有入口。知序正式站的关于页留了一个「IDEAS · 筹备中」的入口（`yank-study-lab` 的 `src/zx-dock.js` 里 `ZX_IDEAS_URL`），网站有了地址再填。
 
 ## 还没定的（要问 Yank，别自己定）
@@ -33,7 +33,7 @@
 
 ## 接下来可以做什么（露娜的想法，给 Yank 挑）
 
-- 先把展品 01 按特蕾莎的审阅意见改完，在真机上看帧率。
+- 展品 01 在手机真机上看帧率和手感（特蕾莎那一轮只在桌面独显上验过）。
 - 第二件展品。和黑洞一个路子（物理上是真的、能动手拨弄）的候选：克尔黑洞（转动的，阴影变成 D 形）、双摆和混沌、洛伦兹吸引子、三体 / N 体、波的干涉和双缝、傅里叶级数的本轮画图、曼德博集合、流体、氢原子轨道的电子云。
 - 一个最简单的首页把展品串起来。
 
