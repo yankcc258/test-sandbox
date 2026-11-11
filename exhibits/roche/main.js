@@ -1,288 +1,137 @@
-// 洛希极限展品 · 双星观测的页面逻辑（猫猫）：两颗虚构的行星、观景舱的镜头和读数，以及下半页的等势线示意图。
-// 物理在 binary.js；主画面在 vista.js。
-import { lagrange, planetShape, volumeRadius, periodHours, roche } from './binary.js?v=1';
-import { createVista, aim, BINARY } from './vista.js?v=1';
-
-const $ = (id) => document.getElementById(id);
-const query = new URLSearchParams(location.search);
-const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
-const smooth = (a, b, x) => {
-  const t = clamp((x - a) / (b - a), 0, 1);
-  return t * t * (3 - 2 * t);
-};
-
-// ---------- 两颗虚构的行星 ----------
-const MU = 0.35, // 望舒占总质量的份额；烛阴占 65%
-  RADIUS_A_KM = 6400, // 烛阴的等体积半径：用它把「间距 = 1」换成千米
-  DENSITY_B = 3.4, // 望舒的密度（g/cm³）：周期由它和形状算出
-  POINTS = lagrange(MU),
-  BELT = 6.4, // 行星带画到大约多少倍间距（画面里外缘是慢慢淡出去的）
-  ORBIT_SECONDS = 120, // 一倍速时，两颗行星互绕一圈用多少秒。大的东西动得慢
-  SPEEDS = [1, 4, 16];
-const model = { fill: 0.97 };
-let shapeA, shapeB, sizeA, sizeB;
-function reshape() {
-  shapeA = planetShape(MU, 'A', model.fill, POINTS);
-  shapeB = planetShape(MU, 'B', model.fill, POINTS);
-  sizeA = volumeRadius(MU, shapeA);
-  sizeB = volumeRadius(MU, shapeB);
+// 观景舱：艺术化星云流场；下半页：独立的洛希瓣教学模型。
+import {lagrange,planetShape,volumeRadius,periodHours,roche} from './binary.js?v=1';
+import {createVista,aim,FOCUS} from './vista.js?v=7';
+const $=id=>document.getElementById(id);
+const query=new URLSearchParams(location.search);
+const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const MU=0.35,RADIUS_A_KM=6400,DENSITY_B=3.4,POINTS=lagrange(MU),SPEEDS=[1,4,16];
+const model={fill:0.97};
+let shapeA,shapeB,sizeA,sizeB;
+function reshape(){
+  shapeA=planetShape(MU,'A',model.fill,POINTS);
+  shapeB=planetShape(MU,'B',model.fill,POINTS);
+  sizeA=volumeRadius(MU,shapeA);sizeB=volumeRadius(MU,shapeB);
 }
 reshape();
-const kilometres = () => RADIUS_A_KM / sizeA; // 一个间距是多少千米
-
-// ---------- 镜头 ----------
-// tan 是 16:9 时横向半视场的正切；toward 是镜头从「正对窗外」转向双星中心的多少（0–1）
-const SCOPES = {
-  vista: { tan: 0.5774, toward: 0 }, // 全景：整条行星带、地平线和恒星
-  pair: { tan: 0.19, toward: 1 }, // 望远镜对准两颗行星：看它们的泪滴形和尖端
+const kilometres=()=>RADIUS_A_KM/sizeA;
+const SCOPES={
+  vista:{tan:0.68,focus:[0,0]},
+  nebula:{tan:0.36,focus:FOCUS.nebula},
+  beacon:{tan:0.24,focus:FOCUS.beacon},
 };
-const view = {
-  scope: SCOPES[query.get('scope')] ? query.get('scope') : 'vista',
-  tan: 0,
-  toward: 0,
-  yaw: 0, // 拖动：稍微转一下头（正切值）
-  pitch: 0,
-};
-view.tan = SCOPES[view.scope].tan;
-view.toward = SCOPES[view.scope].toward;
-
-// ---------- 运行状态 ----------
-const canvas = $('view');
-const gl = (() => {
-  try {
-    return canvas.getContext('webgl2', { antialias: false, powerPreference: 'high-performance' });
-  } catch {
-    return null;
-  }
-})();
-let status = 'loading', // loading | ready | unavailable | lost
-  vista = null,
-  theta = Number(query.get('theta')) || 0.55, // 两星连线的相位
-  clock = 0,
-  paused = reduced.matches || query.get('motion') === '0',
-  speed = 1,
-  quality = 1, // 画布分辨率的折扣，按帧时间自动调
-  frame = 0,
-  last = 0,
-  slow = 0,
-  fast = 0;
-
-// 这一刻两颗行星的样子
-function frameInfo() {
-  return {
-    level: [shapeA.level, shapeB.level],
-    reach: [shapeA.reach, shapeB.reach],
-    tip: [shapeA.tip, shapeB.tip],
-    l1: 0.5 * (shapeA.tip + shapeB.tip),
-    bridge: smooth(0.88, 0.99, model.fill), // 尖端伸到九成左右，中间开始亮起来（示意）
-  };
+const view={scope:SCOPES[query.get('scope')]?query.get('scope'):'vista',yaw:0,pitch:0};
+view.tan=SCOPES[view.scope].tan;view.focus=[...SCOPES[view.scope].focus];
+const canvas=$('view');
+let gl=null;
+try{gl=canvas.getContext('webgl2',{antialias:false,powerPreference:'high-performance'});}catch{}
+let status='loading',vista=null,clock=0,paused=reduced.matches||query.get('motion')==='0',speed=1;
+let quality=1,frame=0,last=0,slow=0,fast=0,generation=0;
+function resize(){
+  const dpr=Math.min(devicePixelRatio||1,2)*quality;
+  const w=Math.max(2,Math.round(canvas.clientWidth*dpr)),h=Math.max(2,Math.round(canvas.clientHeight*dpr));
+  if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
 }
-function advance(seconds) {
-  theta += ((2 * Math.PI) / ORBIT_SECONDS) * speed * seconds;
+function settled(){
+  const goal=SCOPES[view.scope];
+  return Math.abs(Math.log(view.tan/goal.tan))<2e-3&&view.focus.every((n,i)=>Math.abs(n-goal.focus[i])<2e-3);
 }
-
-// ---------- 画面 ----------
-function resize() {
-  const dpr = Math.min(devicePixelRatio || 1, 2) * quality,
-    w = Math.max(2, Math.round(canvas.clientWidth * dpr)),
-    h = Math.max(2, Math.round(canvas.clientHeight * dpr));
-  if (canvas.width !== w || canvas.height !== h) {
-    canvas.width = w;
-    canvas.height = h;
-  }
-}
-const settled = () => {
-  const goal = SCOPES[view.scope];
-  return Math.abs(Math.log(view.tan / goal.tan)) < 2e-3 && Math.abs(view.toward - goal.toward) < 2e-3;
-};
-function draw(seconds) {
+function advance(seconds){clock+=Math.max(0,Number(seconds)||0)*speed;}
+function draw(seconds){
   resize();
-  // 望远镜慢慢推过去、慢慢转过去
-  const goal = SCOPES[view.scope],
-    ease = seconds ? 1 - Math.exp(-seconds * 2.4) : 1;
-  view.tan *= (goal.tan / view.tan) ** ease;
-  view.toward += (goal.toward - view.toward) * ease;
-  // 观景舱有一点很慢的晃动；系统设成「减少动态效果」时不晃
-  const sway = reduced.matches ? 0 : view.tan / SCOPES.vista.tan,
-    x = BINARY[0] * view.toward + view.yaw + 0.004 * sway * Math.sin(clock * 0.11),
-    y = (BINARY[1] - 0.012) * view.toward + view.pitch + 0.003 * sway * Math.sin(clock * 0.07 + 1);
-  vista.draw({ theta, time: clock, ...frameInfo(), tan: view.tan, basis: aim(x, y) });
+  const goal=SCOPES[view.scope],ease=seconds&&!reduced.matches?1-Math.exp(-seconds*2.4):1;
+  view.tan*=(goal.tan/view.tan)**ease;
+  view.focus=view.focus.map((n,i)=>n+(goal.focus[i]-n)*ease);
+  // 固定机位；云层缓慢旋转，细流向左下光源汇入。
+  vista.draw({time:clock,tan:view.tan,basis:aim(view.focus[0]+view.yaw,view.focus[1]+view.pitch)});
 }
-function tick(now) {
-  frame = 0;
-  if (document.hidden || status !== 'ready') return;
-  const seconds = last ? Math.min(now - last, 100) / 1000 : 0;
-  last = now;
-  if (!paused && seconds) {
-    clock += seconds;
+function tick(now){
+  frame=0;
+  if(document.hidden||status!=='ready')return;
+  const seconds=last?Math.min(now-last,100)/1000:0;last=now;
+  if(!paused&&seconds){
     advance(seconds);
-    // 画得慢就降分辨率，快了再升回去
-    if (seconds > 0.03) (slow++, (fast = 0));
-    else if (seconds < 0.019) (fast++, (slow = 0));
-    if (slow > 10) {
-      quality = Math.max(0.5, quality - 0.1);
-      slow = 0;
-    }
-    if (fast > 120) {
-      quality = Math.min(1, quality + 0.05);
-      fast = 0;
-    }
+    if(seconds>0.03){slow++;fast=0;}else if(seconds<0.019){fast++;slow=0;}
+    if(slow>10){quality=Math.max(0.5,quality-0.1);slow=0;}
+    if(fast>120){quality=Math.min(1,quality+0.05);fast=0;}
   }
-  draw(seconds);
-  readout();
-  // 望远镜还在转的时候，即使暂停也接着画
-  if (!paused || !settled()) frame = requestAnimationFrame(tick);
-  else last = 0;
+  draw(seconds);readout();
+  if(!paused||!settled())frame=requestAnimationFrame(tick);else last=0;
 }
-function invalidate() {
+function invalidate(){
   readout();
-  drawLobes();
-  if (status === 'ready' && !frame && !document.hidden) frame = requestAnimationFrame(tick);
+  if(status==='ready'&&!frame&&!document.hidden)frame=requestAnimationFrame(tick);
 }
-
-// 检查用：读出现在的状态。
-window.zhixuRocheBinaryProbe = () =>
-  status === 'ready'
-    ? {
-        hdr: vista.hdr,
-        fill: model.fill,
-        theta,
-        orbits: theta / (2 * Math.PI),
-        speed,
-        paused,
-        scope: view.scope,
-        tan: view.tan,
-        yaw: view.yaw,
-        pitch: view.pitch,
-        quality,
-      }
-    : null;
-
-// 检查用：不等动画帧，直接把时间往前推 seconds 秒（按当前倍速），再画一帧。页面在后台被限速时也能用。
-window.zhixuRocheBinaryAdvance = (seconds) => {
-  if (status !== 'ready') return null;
-  clock += seconds;
-  advance(seconds);
-  view.tan = SCOPES[view.scope].tan;
-  view.toward = SCOPES[view.scope].toward;
-  draw(0);
-  readout();
-  return window.zhixuRocheBinaryProbe();
+window.zhixuRocheProbe=()=>status==='ready'?{
+  hdr:vista.hdr,model:'cinematic-nebula',time:clock,fill:model.fill,speed,paused,
+  scope:view.scope,tan:view.tan,yaw:view.yaw,pitch:view.pitch,quality,
+}:null;
+window.zhixuRocheAdvance=seconds=>{
+  if(status!=='ready')return null;
+  advance(seconds);view.tan=SCOPES[view.scope].tan;view.focus=[...SCOPES[view.scope].focus];
+  draw(0);readout();return window.zhixuRocheProbe();
 };
-
-// ---------- 读数和控件 ----------
-function readout() {
-  const km = kilometres(),
-    pressed = (node, on) => node.setAttribute('aria-pressed', String(on));
-  $('gap-out').textContent = Math.round(km).toLocaleString('en-US');
-  $('period-out').textContent = periodHours(MU, sizeB, DENSITY_B).toFixed(1);
-  $('tips-out').textContent = Math.round((shapeB.tip - shapeA.tip) * km).toLocaleString('en-US');
-  $('fill-out').textContent = (model.fill * 100).toFixed(0);
-  $('fill2-out').textContent = (model.fill * 100).toFixed(0);
-  $('fill').value = $('fill2').value = String(model.fill);
-  $('belt-out').textContent = ((2 * BELT * km) / 1e4).toFixed(0);
-  $('scope-out').textContent = `视场 ${((2 * Math.atan(view.tan) * 180) / Math.PI).toFixed(0)}°`;
-  $('clock-out').textContent = paused
-    ? '时间 已暂停'
-    : `时间流速 ×${Math.round(((periodHours(MU, sizeB, DENSITY_B) * 3600) / ORBIT_SECONDS) * speed).toLocaleString('en-US')}`;
-  for (const button of document.querySelectorAll('.deck-toolbar [data-scope]'))
-    pressed(button, button.dataset.scope === view.scope);
-  $('opt-speed').textContent = `×${speed}`;
-  $('opt-motion').disabled = $('deck-pause').disabled = status !== 'ready';
-  $('opt-motion').textContent = paused ? '继续' : '暂停';
-  $('deck-pause').textContent = paused ? '继续观测' : '暂停时间';
-  pressed($('opt-motion'), paused);
-  pressed($('deck-pause'), paused);
-  canvas.dataset.fill = model.fill.toFixed(3);
-  canvas.dataset.telescope = view.scope;
-  $('deck').dataset.scope = view.scope;
+function readout(){
+  const km=kilometres(),pressed=(node,on)=>node.setAttribute('aria-pressed',String(on));
+  $('gap-out').textContent=Math.round(km).toLocaleString('en-US');
+  $('period-out').textContent=periodHours(MU,sizeB,DENSITY_B).toFixed(1);
+  $('tips-out').textContent=Math.round((shapeB.tip-shapeA.tip)*km).toLocaleString('en-US');
+  $('fill2-out').textContent=(model.fill*100).toFixed(0);$('fill2').value=String(model.fill);
+  $('elapsed-out').textContent=Math.floor(clock/60).toString().padStart(2,'0')+':'+Math.floor(clock%60).toString().padStart(2,'0');
+  $('scope-out').textContent='视场 '+((2*Math.atan(view.tan)*180)/Math.PI).toFixed(0)+'°';
+  $('clock-out').textContent=paused?'时间 已暂停':'播放速度 ×'+speed;
+  for(const b of document.querySelectorAll('[data-scope]'))if(b.tagName==='BUTTON')pressed(b,b.dataset.scope===view.scope);
+  $('opt-speed').textContent='×'+speed;
+  $('opt-motion').disabled=$('deck-pause').disabled=status!=='ready';
+  $('opt-motion').textContent=paused?'继续':'暂停';$('deck-pause').textContent=paused?'继续观测':'暂停时间';
+  pressed($('opt-motion'),paused);pressed($('deck-pause'),paused);
+  canvas.dataset.telescope=view.scope;$('deck').dataset.scope=view.scope;
 }
-function setFill(value) {
-  model.fill = clamp(value, 0.6, 1);
-  reshape();
-  invalidate();
+function setFill(value){model.fill=clamp(value,0.6,1);reshape();drawLobes();readout();}
+function setScope(scope){view.scope=scope;view.yaw=view.pitch=0;invalidate();}
+function setBare(on){
+  $('deck').classList.toggle('bare',on);$('opt-bare').setAttribute('aria-pressed',String(on));
+  $('opt-bare').textContent=on?'显示界面':'隐藏界面';
 }
-function setScope(scope) {
-  view.scope = scope;
-  view.yaw = view.pitch = 0;
-  invalidate();
-}
-function setBare(on) {
-  $('deck').classList.toggle('bare', on);
-  $('opt-bare').setAttribute('aria-pressed', String(on));
-  $('opt-bare').textContent = on ? '显示界面' : '隐藏界面';
-}
-function bindControls() {
-  let held = null;
-  const turn = (dx, dy) => {
-    // 像抓着画面拖；只能稍微转一点头，窗外的东西都很远
-    view.yaw = clamp(view.yaw - dx * view.tan, -0.24 * view.tan, 0.24 * view.tan);
-    view.pitch = clamp(view.pitch + dy * view.tan, -0.14 * view.tan, 0.14 * view.tan);
-    invalidate();
+function bindControls(){
+  let held=null;
+  const turn=(dx,dy)=>{
+    view.yaw=clamp(view.yaw-dx*view.tan,-0.24*view.tan,0.24*view.tan);
+    view.pitch=clamp(view.pitch+dy*view.tan,-0.14*view.tan,0.14*view.tan);invalidate();
   };
-  canvas.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return;
-    held = { id: e.pointerId, x: e.clientX, y: e.clientY };
-    canvas.setPointerCapture(e.pointerId);
-    canvas.classList.add('dragging');
+  canvas.addEventListener('pointerdown',e=>{
+    if(e.button!==0)return;
+    held={id:e.pointerId,x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);canvas.classList.add('dragging');
   });
-  canvas.addEventListener('pointermove', (e) => {
-    if (!held || held.id !== e.pointerId) return;
-    turn(((e.clientX - held.x) * 2) / canvas.clientWidth, ((e.clientY - held.y) * 2) / canvas.clientWidth);
-    held.x = e.clientX;
-    held.y = e.clientY;
+  canvas.addEventListener('pointermove',e=>{
+    if(!held||held.id!==e.pointerId)return;
+    turn((e.clientX-held.x)*2/canvas.clientWidth,(e.clientY-held.y)*2/canvas.clientWidth);
+    held.x=e.clientX;held.y=e.clientY;
   });
-  const release = (e) => {
-    if (!held || held.id !== e.pointerId) return;
-    held = null;
-    if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
-    canvas.classList.remove('dragging');
-  };
-  canvas.addEventListener('pointerup', release);
-  canvas.addEventListener('pointercancel', release);
-  canvas.addEventListener('lostpointercapture', release);
-  canvas.addEventListener('keydown', (e) => {
-    const act = {
-      ArrowLeft: () => turn(0.08, 0),
-      ArrowRight: () => turn(-0.08, 0),
-      ArrowUp: () => turn(0, 0.06),
-      ArrowDown: () => turn(0, -0.06),
-      Home: () => setScope('vista'),
-    }[e.key];
-    if (act) {
-      e.preventDefault();
-      act();
-    }
+  const release=e=>{if(!held||held.id!==e.pointerId)return;held=null;if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);canvas.classList.remove('dragging');};
+  for(const event of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(event,release);
+  canvas.addEventListener('keydown',e=>{
+    const action={ArrowLeft:()=>turn(0.08,0),ArrowRight:()=>turn(-0.08,0),ArrowUp:()=>turn(0,0.06),ArrowDown:()=>turn(0,-0.06),Home:()=>setScope('vista')}[e.key];
+    if(action){e.preventDefault();action();}
   });
-  document.addEventListener('keydown', (e) => {
-    if (e.key.toLowerCase() !== 'h' || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) && e.target.type !== 'range') return;
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){setBare(false);return;}
+    if(e.key.toLowerCase()!=='h'||e.ctrlKey||e.metaKey||e.altKey||/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))return;
     setBare(!$('deck').classList.contains('bare'));
   });
-  for (const id of ['fill', 'fill2']) $(id).oninput = (e) => setFill(Number(e.target.value));
-  for (const button of document.querySelectorAll('.deck-toolbar [data-scope]'))
-    button.onclick = () => setScope(button.dataset.scope);
-  $('opt-speed').onclick = () => {
-    speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length];
-    invalidate();
+  $('fill2').oninput=e=>setFill(Number(e.target.value));
+  for(const b of document.querySelectorAll('.deck-toolbar [data-scope]'))b.onclick=()=>setScope(b.dataset.scope);
+  $('opt-speed').onclick=()=>{speed=SPEEDS[(SPEEDS.indexOf(speed)+1)%SPEEDS.length];invalidate();};
+  $('opt-motion').onclick=()=>{paused=!paused;if(paused)quality=1;last=0;invalidate();};
+  $('deck-pause').onclick=()=>$('opt-motion').click();
+  $('deck-data').onclick=()=>{
+    const open=$('deck').classList.toggle('data-open');$('deck-data').setAttribute('aria-expanded',String(open));
+    $('deck-data').textContent=open?'收起仪表 −':'观测仪表 ＋';
   };
-  $('opt-motion').onclick = () => {
-    paused = !paused;
-    last = 0;
-    invalidate();
-  };
-  $('deck-pause').onclick = () => $('opt-motion').click();
-  // 仪表（读数 + 控制台）按需展开
-  $('deck-data').onclick = () => {
-    const open = $('deck').classList.toggle('data-open');
-    $('deck-data').setAttribute('aria-expanded', String(open));
-    $('deck-data').textContent = open ? '收起仪表 −' : '观测仪表 ＋';
-  };
-  $('opt-bare').onclick = () => setBare(!$('deck').classList.contains('bare'));
+  $('opt-bare').onclick=()=>setBare(!$('deck').classList.contains('bare'));
+  reduced.addEventListener('change',()=>{if(reduced.matches){paused=true;last=0;invalidate();}});
 }
 
-// ---------- 二维示意：共转系里的等势线 ----------
 function drawLobes() {
   const node = $('lobes'),
     dpr = Math.min(devicePixelRatio || 1, 2),
@@ -383,24 +232,37 @@ function drawLobes() {
 // ---------- 启动 / 上下文丢失 / 降级 ----------
 const FALLBACK = '下面「两颗行星各自的地盘」的示意图仍然可以使用。';
 function fallback(message, next = 'unavailable') {
+  generation++;
   status = next;
   cancelAnimationFrame(frame);
   frame = 0;
   last = 0;
   $('fallback').hidden = false;
+  $('loading').hidden = true;
   $('fallback').textContent = message;
   document.documentElement.dataset.ready = 'fallback';
   readout();
 }
-function restore() {
+async function restore() {
+  const token=++generation;
+  status='loading';
+  $('loading').hidden=false;
+  $('fallback').hidden=true;
+  document.documentElement.dataset.ready='loading';
+  // Let the loading state paint even on browsers without parallel shader compilation.
+  await new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve,0)));
   try {
-    vista = createVista(gl);
+    const renderer = await createVista(gl);
+    if(token!==generation)return;
+    vista=renderer;
     status = 'ready';
+    $('loading').hidden = true;
     $('fallback').hidden = true;
     document.documentElement.dataset.ready = 'true';
     invalidate();
   } catch (error) {
-    console.warn('Roche binary:', error);
+    if(token!==generation)return;
+    console.warn('Roche nebula:', error);
     fallback('三维画面暂时无法启动。' + FALLBACK);
   }
 }
@@ -408,7 +270,7 @@ function start() {
   bindControls();
   readout();
   drawLobes();
-  new ResizeObserver(() => invalidate()).observe(document.body);
+  new ResizeObserver(() => { drawLobes(); invalidate(); }).observe(document.body);
   if (!gl) {
     fallback('这台设备画不了三维画面（需要 WebGL2）。' + FALLBACK);
     return;

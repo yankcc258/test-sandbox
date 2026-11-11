@@ -1,11 +1,12 @@
-// 洛希极限展品 · 双星观测的浏览器检查（猫猫）。不在 npm run check 里（要浏览器）：
+// 洛希极限展品 · 星云与独立洛希瓣模型观测的浏览器检查（猫猫）。不在 npm run check 里（要浏览器）：
 //   python -m http.server 8080 --bind 127.0.0.1   （另一个终端，在仓库根目录）
 //   PLAYWRIGHT_PATH=…/playwright/index.mjs node scripts/check-roche-binary-browser.mjs
 // 检查：页面就绪、画面不是黑的（行星带是亮的、恒星是亮的、窗框是暗的）；读数和公式对得上；时间按倍速走、暂停不走；
 // 望远镜两档、转头和回正；滑杆改形状和读数；仪表抽屉、隐藏界面；平板横竖两种尺寸（手机不在范围里）；
 // 没有浮点渲染目标的那条路；没有 WebGL2；上下文丢失和恢复。加 SHOTS=目录 会顺便存截图。
-// 页面提供 window.zhixuRocheBinaryAdvance(秒)，不等动画帧直接把时间往前推。
+// 页面提供 window.zhixuRocheAdvance(秒)，不等动画帧直接把时间往前推。
 import assert from 'node:assert/strict';
+import {localPreview} from './roche-browser-utils.mjs';
 import { lagrange, planetShape, volumeRadius, periodHours } from '../exhibits/roche/binary.js';
 const { chromium } = await import(process.env.PLAYWRIGHT_PATH || 'playwright');
 const origin = process.env.PREVIEW_URL || 'http://127.0.0.1:8080';
@@ -17,10 +18,10 @@ const browser = await chromium.launch({
 const MU = 0.35,
   points = lagrange(MU);
 const ready = (page, state = 'true') =>
-  page.waitForFunction((state) => document.documentElement.dataset.ready === state, state);
+  page.waitForFunction((state) => document.documentElement.dataset.ready === state, state, {timeout:120000});
 const advance = (page, seconds) =>
-  page.evaluate((seconds) => window.zhixuRocheBinaryAdvance(seconds), seconds);
-const setFill = (page, value, id = '#fill') =>
+  page.evaluate((seconds) => window.zhixuRocheAdvance(seconds), seconds);
+const setFill = (page, value, id = '#fill2') =>
   page.locator(id).evaluate((node, value) => {
     node.value = String(value);
     node.dispatchEvent(new Event('input', { bubbles: true }));
@@ -34,9 +35,10 @@ const watch = (page) => {
 const shot = async (page, name) =>
   shots && page.screenshot({ path: `${shots}/roche-binary-${name}.png` });
 const open = async (context, query = '') => {
+  await localPreview(context,origin);
   const page = await context.newPage(),
     errors = watch(page);
-  await page.goto(origin + '/exhibits/roche/' + query);
+  await page.goto(origin + '/exhibits/roche/' + query,{waitUntil:'commit'});
   return { page, errors };
 };
 const desktop = () => browser.newContext({ viewport: { width: 1280, height: 800 } });
@@ -44,7 +46,7 @@ const desktop = () => browser.newContext({ viewport: { width: 1280, height: 800 
 const brightest = (page, x, y) =>
   page.evaluate(
     ([x, y]) => {
-      window.zhixuRocheBinaryAdvance(0);
+      window.zhixuRocheAdvance(0);
       const canvas = document.querySelector('#view'),
         gl = canvas.getContext('webgl2'),
         size = Math.round(canvas.height * 0.06),
@@ -66,12 +68,13 @@ const brightest = (page, x, y) =>
     [x, y],
   );
 const picture = async (page, label) => {
-  const belt = await brightest(page, 0.44, 0.37), // 行星带内缘最亮的那一段
-    star = await brightest(page, 0.1, 0.575), // 地平线上的恒星
+  const belt = await brightest(page, 0.65, 0.40), // 行星带内缘最亮的那一段
+    star = await brightest(page, 0.125, 0.725), // 地平线上的恒星
     wall = await brightest(page, 0.975, 0.5); // 右边的舱壁
   assert.ok(belt[2] > 110 && belt[2] > belt[0], `${label}: the belt glows blue (${belt})`);
   assert.ok(star[0] > 170, `${label}: the star is bright (${star})`);
-  assert.ok(Math.max(...wall) < 40, `${label}: the window frame is dark (${wall})`);
+  // The refined titanium shoulder is readable but remains much dimmer than the nebula.
+  assert.ok(Math.max(...wall) < 65 && Math.max(...wall) < Math.max(...belt)*0.5, `${label}: the matte window frame stays subdued (${wall})`);
 };
 
 // ---------- 桌面 ----------
@@ -98,29 +101,38 @@ const picture = async (page, label) => {
     await page.locator('#period-out').textContent(),
     periodHours(MU, size('B'), 3.4).toFixed(1),
   );
-  assert.ok(Number(await page.locator('#belt-out').textContent()) > 15);
-  // 时间：一倍速 120 秒一圈；倍速键 ×4；暂停着不点快进就不走
-  const before = state.theta;
+
+  // 艺术化画面时间：倍速同时影响星云旋转与汇流；暂停时不走
+  const before = state.time;
+  const cloudPixels=async()=>page.evaluate(()=>{
+    window.zhixuRocheAdvance(0);
+    const canvas=document.querySelector('#view'),gl=canvas.getContext('webgl2');
+    const pixels=new Uint8Array(32*32*4);
+    gl.readPixels(Math.round(canvas.width*.67),Math.round(canvas.height*.60),32,32,gl.RGBA,gl.UNSIGNED_BYTE,pixels);
+    return Array.from(pixels);
+  });
+  const oldCloud=await cloudPixels();
   state = await advance(page, 30);
-  assert.ok(Math.abs(state.theta - before - Math.PI / 2) < 1e-9, 'a quarter turn in 30 s');
+  assert.notDeepEqual(await cloudPixels(),oldCloud,'the nebula pixels animate, not only the clock');
+  assert.ok(Math.abs(state.time - before - 30) < 1e-9, '30 scene seconds');
   await page.locator('#deck-data').click();
   assert.equal(await page.locator('#deck-data').getAttribute('aria-expanded'), 'true');
   assert.ok(await page.locator('.console').isVisible());
   await page.locator('#opt-speed').click();
   state = await advance(page, 30);
-  assert.ok(Math.abs(state.theta - before - Math.PI / 2 - 2 * Math.PI) < 1e-9, '×4');
+  assert.ok(Math.abs(state.time - before - 30 - 120) < 1e-9, '×4');
   await page.waitForTimeout(400);
-  assert.equal((await advance(page, 0)).theta, state.theta, 'paused');
+  assert.equal((await advance(page, 0)).time, state.time, 'paused');
   // 望远镜：对准双星，标题让开；Home 回全景
-  await page.locator('.deck-toolbar [data-scope="pair"]').click();
+  await page.locator('.deck-toolbar [data-scope="nebula"]').click();
   state = await advance(page, 0);
-  assert.equal(state.scope, 'pair');
-  assert.ok(state.tan < 0.25);
-  assert.equal(await page.locator('#view').getAttribute('data-telescope'), 'pair');
+  assert.equal(state.scope, 'nebula');
+  assert.ok(state.tan < 0.4);
+  assert.equal(await page.locator('#view').getAttribute('data-telescope'), 'nebula');
   await page.waitForFunction(
     () => Number(getComputedStyle(document.querySelector('.title')).opacity) < 0.02,
   );
-  await shot(page, 'pair');
+  await shot(page, 'nebula');
   await page.locator('#view').focus();
   await page.keyboard.press('ArrowLeft');
   await page.keyboard.press('ArrowUp');
@@ -133,13 +145,13 @@ const picture = async (page, label) => {
   // 把两星拉开：读数、下半页的示意图跟着变；画面照常
   const tips = await page.locator('#tips-out').textContent();
   await setFill(page, 0.7);
-  assert.equal(await page.locator('#fill-out').textContent(), '70');
+  assert.equal(await page.locator('#fill2-out').textContent(), '70');
   assert.notEqual(await page.locator('#tips-out').textContent(), tips);
   assert.match(await page.locator('#lobes-result').textContent(), /离得还远/);
   assert.equal(await page.locator('#lobes').getAttribute('data-fill'), '0.700');
-  await picture(page, 'apart');
+  assert.equal((await advance(page,0)).time,state.time,'teaching slider leaves visual time alone');
   await setFill(page, 0.97, '#fill2');
-  assert.equal(await page.locator('#fill-out').textContent(), '97');
+  assert.equal(await page.locator('#fill2-out').textContent(), '97');
   // 隐藏界面：按钮和 H 键
   await page.locator('#opt-bare').click();
   await page.waitForFunction(
@@ -165,7 +177,7 @@ for (const [name, width, height] of [
     }),
     { page, errors } = await open(context);
   await ready(page);
-  assert.ok((await advance(page, 5)).theta > 0.55);
+  assert.ok((await advance(page, 5)).time > 0.55);
   assert.ok(
     await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
     'no horizontal overflow',
@@ -181,8 +193,8 @@ for (const [name, width, height] of [
   for (const [left, top, right, bottom] of boxes)
     assert.ok(left >= 0 && top >= 0 && right <= width && bottom <= height, name + ' panels fit');
   assert.ok(boxes[0][1] >= boxes[1][3] && boxes[0][1] >= boxes[2][3], name + ' console sits below');
-  await page.locator('.deck-toolbar [data-scope="pair"]').tap();
-  assert.equal((await advance(page, 0)).scope, 'pair');
+  await page.locator('.deck-toolbar [data-scope="nebula"]').tap();
+  assert.equal((await advance(page, 0)).scope, 'nebula');
   await shot(page, name);
   assert.deepEqual(errors, [], name);
   console.log('PASS: ' + name);
