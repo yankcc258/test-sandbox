@@ -40,7 +40,7 @@ body {
   width: 100%;
   height: 100%;
   cursor: grab;
-  touch-action: none;
+  touch-action: pan-y; /* 竖着划是翻页，横着拖是转头 */
   outline: none;
 }
 #view.dragging {
@@ -87,55 +87,14 @@ body {
   stroke-width: 1;
 }
 
-/* ---------- 观景舱的落地窗：四周是舱壁，下面是地板，窗边站着一个人（用来比大小） ---------- */
-.window {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-.window i {
-  position: absolute;
-  display: block;
-}
-.pane {
-  inset: 3.2% 1.8% 9.5%;
-  border-radius: 30px 30px 8px 8px;
-  box-shadow:
-    0 0 0 200vmax var(--hull),
-    inset 0 0 0 1px #cfe7ff2b,
-    inset 0 1px 0 1px #ffffff14,
-    inset 0 0 140px 30px #000a;
-  background: linear-gradient(112deg, #ffffff09 0%, #ffffff00 22%, #ffffff00 74%, #ffffff05 100%);
-}
-.mullion {
-  top: 3.2%;
-  bottom: 9.5%;
-  right: 18.5%;
-  width: 0.9%;
-  min-width: 8px;
-  background: linear-gradient(90deg, #020305, #121821 45%, #05070a);
-  box-shadow:
-    0 0 30px 6px #0009,
-    inset 1px 0 0 #cfe7ff1f;
-}
-.floor {
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 9.5%;
-  border-top: 1px solid #b9e2ff33;
-  background:
-    linear-gradient(180deg, #7cc8ff24, #7cc8ff00 55%),
-    linear-gradient(90deg, #ff7a5a00 8%, #ff7a5a14 32%, #7cc8ff12 60%, #7cc8ff00 92%),
-    linear-gradient(180deg, #0b1118, #030406 70%);
-}
+/* ---------- 窗边的人影（用来比大小）。落地窗和地板画在画面里，见 vista.js ---------- */
 .watcher {
   position: absolute;
-  right: 9%;
-  bottom: 3.4%;
-  height: max(10.5%, 62px);
-  filter: drop-shadow(0 0 14px #000);
+  right: 15.5%;
+  bottom: 4.2%;
+  height: 13%;
+  pointer-events: none;
+  filter: drop-shadow(0 0 10px #000);
 }
 .fallback {
   position: absolute;
@@ -241,7 +200,7 @@ h1 {
 }
 .console {
   left: 4.6%;
-  bottom: 12.5%;
+  bottom: 14.5%;
   gap: 9px;
   width: min(400px, calc(100% - 48px));
   padding: 13px 16px 14px;
@@ -308,9 +267,9 @@ h1 {
   position: absolute;
   z-index: 2;
   left: 4.6%;
-  right: 17%;
+  right: 23%;
   bottom: 0;
-  height: 9.5%;
+  height: 11.8%;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -537,7 +496,7 @@ h2 {
   }
   .deck-toolbar {
     left: 26px;
-    right: 150px;
+    right: 26%;
     gap: 0 18px;
   }
   .deck-toolbar .call {
@@ -569,4 +528,8 @@ h2 {
   .readout {
     gap: 6px;
   }
+}
+/* 望远镜对准双星的时候，标题让开 */
+.deck[data-scope='pair'] .title {
+  opacity: 0;
 }

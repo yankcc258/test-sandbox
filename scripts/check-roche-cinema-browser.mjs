@@ -1,5 +1,6 @@
-// 洛希极限 · 双星观测的进场和实际播放检查（特蕾莎写的；2026-11-11 猫猫按第四版的机位改过）：
-// 桌面和 iPad 横竖屏下，进场只有标题和工具条、动画真的在走、暂停、仪表抽屉、换机位、洛希瓣、转头回正、没有 WebGL 错误。
+// 洛希极限 · 双星观测的进场和实际播放检查。特蕾莎写的（2026-11-11）；同日猫猫按第五版的画面改过：
+// 桌面和 iPad 横竖屏下，进场只有标题和工具条、动画真的在走（不靠检查用的快进）、暂停、仪表抽屉、
+// 暂停着换望远镜档位镜头照样转过去、回全景、没有 WebGL 错误、不横向溢出。
 import assert from 'node:assert/strict';
 const { chromium } = await import(process.env.PLAYWRIGHT_PATH || 'playwright');
 const origin = process.env.PREVIEW_URL || 'http://127.0.0.1:8080';
@@ -28,8 +29,6 @@ try {
     const click = (selector) => (touch ? p.tap(selector) : p.click(selector));
     assert.ok(await p.locator('.console').isHidden());
     assert.ok(await p.locator('.readout').isHidden());
-    assert.equal(await p.locator('#opt-lobes').isChecked(), false);
-    assert.equal(await p.locator('#opt-marks').isChecked(), true); // 行星的直径标注默认开着：它是用来比大小的
     const before = await state();
     await p.waitForTimeout(2000);
     assert.ok((await state()).theta > before.theta, 'real animation loop advances');
@@ -46,23 +45,22 @@ try {
         `${name}: ${selector} in viewport`,
       );
     }
-    // 换机位是切镜头：暂停着也立刻换过去，时间不走
-    await click('.deck-toolbar [data-station="far"]');
-    await p.waitForFunction(() => window.zhixuRocheBinaryProbe().station === 'far');
-    assert.equal((await state()).theta, paused.theta, 'the cut happens while physics remains paused');
-    await p.locator('#opt-lobes').check();
+    // 暂停着换档：望远镜照样慢慢转过去，时间不走，标题让开
+    await click('.deck-toolbar [data-scope="pair"]');
+    await p.waitForFunction(() => window.zhixuRocheBinaryProbe().tan < 0.2);
     await p.waitForFunction(
-      () => document.querySelector('#lobe-line').getAttribute('d').length > 10,
+      () => Number(getComputedStyle(document.querySelector('.title')).opacity) < 0.02,
     );
+    assert.equal((await state()).theta, paused.theta, 'lens settles while physics remains paused');
     await click('#deck-data');
     assert.ok(await p.locator('.console').isHidden());
-    // 仪表收着的时候，转头、变焦和暂停照样能用
+    // 仪表收着的时候，转头、回全景和暂停照样能用
     const canvas = p.locator('#view');
     await canvas.focus();
     await p.keyboard.press('ArrowLeft');
     await p.waitForFunction(() => window.zhixuRocheBinaryProbe().yaw < 0);
     await p.keyboard.press('Home');
-    await p.waitForFunction(() => window.zhixuRocheBinaryProbe().yaw === 0);
+    await p.waitForFunction(() => window.zhixuRocheBinaryProbe().scope === 'vista');
     await click('#deck-pause');
     assert.equal((await state()).paused, false);
     const glError = await p.evaluate(() =>
@@ -72,9 +70,7 @@ try {
     assert.ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
     assert.deepEqual(errors, []);
     await ctx.close();
-    console.log(
-      `PASS: ${name} cinematic entrance / real playback / drawer / pause / stations / lobes / look / GL`,
-    );
+    console.log(`PASS: ${name} cinematic entrance / real playback / drawer / pause / lens / GL`);
   }
 } finally {
   await browser.close();

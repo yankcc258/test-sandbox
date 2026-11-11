@@ -1,10 +1,10 @@
 // 洛希极限展品 · 双星观测的浏览器检查（猫猫）。不在 npm run check 里（要浏览器）：
 //   python -m http.server 8080 --bind 127.0.0.1   （另一个终端，在仓库根目录）
 //   PLAYWRIGHT_PATH=…/playwright/index.mjs node scripts/check-roche-binary-browser.mjs
-// 检查：页面就绪、显卡后端和高动态范围在用；时间往前走以后尖端有碎屑被扯出来，把两星拉开以后不再有；
-// 读数、四个机位、转头和回正、隐藏界面、暂停、下半页示意图跟着滑杆变；平板横竖两种尺寸不横向溢出（手机不在范围里）；CPU 后端和没有后期的那条路；
-// 没有 WebGL2；上下文丢失和恢复。加 SHOTS=目录 会顺便存截图。
-// 页面提供 window.zhixuRocheBinaryAdvance(秒)，不等动画帧直接把时间往前推，所以软件渲染下也不用干等。
+// 检查：页面就绪、画面不是黑的（行星带是亮的、恒星是亮的、窗框是暗的）；读数和公式对得上；时间按倍速走、暂停不走；
+// 望远镜两档、转头和回正；滑杆改形状和读数；仪表抽屉、隐藏界面；平板横竖两种尺寸（手机不在范围里）；
+// 没有浮点渲染目标的那条路；没有 WebGL2；上下文丢失和恢复。加 SHOTS=目录 会顺便存截图。
+// 页面提供 window.zhixuRocheBinaryAdvance(秒)，不等动画帧直接把时间往前推。
 import assert from 'node:assert/strict';
 import { lagrange, planetShape, volumeRadius, periodHours } from '../exhibits/roche/binary.js';
 const { chromium } = await import(process.env.PLAYWRIGHT_PATH || 'playwright');
@@ -40,20 +40,54 @@ const open = async (context, query = '') => {
   return { page, errors };
 };
 const desktop = () => browser.newContext({ viewport: { width: 1280, height: 800 } });
+// 画一帧，马上读画布上一小块里最亮的颜色（x、y 是比例，y 从上往下）
+const brightest = (page, x, y) =>
+  page.evaluate(
+    ([x, y]) => {
+      window.zhixuRocheBinaryAdvance(0);
+      const canvas = document.querySelector('#view'),
+        gl = canvas.getContext('webgl2'),
+        size = Math.round(canvas.height * 0.06),
+        data = new Uint8Array(4 * size * size);
+      gl.readPixels(
+        Math.round(canvas.width * x - size / 2),
+        Math.round(canvas.height * (1 - y) - size / 2),
+        size,
+        size,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        data,
+      );
+      const peak = [0, 0, 0];
+      for (let i = 0; i < data.length; i += 4)
+        for (let k = 0; k < 3; k++) peak[k] = Math.max(peak[k], data[i + k]);
+      return peak;
+    },
+    [x, y],
+  );
+const picture = async (page, label) => {
+  const belt = await brightest(page, 0.44, 0.37), // 行星带内缘最亮的那一段
+    star = await brightest(page, 0.1, 0.575), // 地平线上的恒星
+    wall = await brightest(page, 0.975, 0.5); // 右边的舱壁
+  assert.ok(belt[2] > 110 && belt[2] > belt[0], `${label}: the belt glows blue (${belt})`);
+  assert.ok(star[0] > 170, `${label}: the star is bright (${star})`);
+  assert.ok(Math.max(...wall) < 40, `${label}: the window frame is dark (${wall})`);
+};
 
 // ---------- 桌面 ----------
 {
   const context = await desktop(),
     { page, errors } = await open(context);
   await ready(page);
+  // 进场只有标题和工具条，仪表收着
+  assert.ok(await page.locator('.console').isHidden());
+  assert.ok(await page.locator('.readout').isHidden());
   await page.locator('#deck-pause').click(); // 先暂停，时间由检查来推
   let state = await advance(page, 0);
-  assert.equal(state.backend, 'gpu');
-  assert.equal(state.count, 1024 * 1024);
+  assert.equal(state.hdr, true);
   assert.equal(state.fill, 0.97);
-  // 点暂停之前页面已经自己走了一小段，所以这里不要求「一粒都没有」，只要求相位没有倒退
-  assert.ok(state.theta >= 3.95, 'time only moves forward');
-  assert.equal(state.station, 'wangshu');
+  assert.equal(state.scope, 'vista');
+  await picture(page, 'desktop');
   // 读数：间距和周期来自同一套公式
   const size = (which) => volumeRadius(MU, planetShape(MU, which, 0.97, points));
   assert.equal(
@@ -64,36 +98,29 @@ const desktop = () => browser.newContext({ viewport: { width: 1280, height: 800 
     await page.locator('#period-out').textContent(),
     periodHours(MU, size('B'), 3.4).toFixed(1),
   );
-  // 往前走 30 秒：两颗行星的尖端都有碎屑被扯出来
+  assert.ok(Number(await page.locator('#belt-out').textContent()) > 15);
+  // 时间：一倍速 120 秒一圈；倍速键 ×4；暂停着不点快进就不走
+  const before = state.theta;
   state = await advance(page, 30);
-  assert.ok(state.census.fromA > 1000 && state.census.fromB > 1000, 'both tips shed debris');
-  assert.ok(state.theta > 3.95 + 1.4, 'the planets went round');
-  await shot(page, 'wangshu');
-  // 把两星拉开：尖端够不着 L1，被扯出来的碎屑落回去以后不再有新的
-  await setFill(page, 0.7);
-  state = await advance(page, 300);
-  assert.ok(state.census.fromA + state.census.fromB < 400, 'shedding stops when they are apart');
-  assert.equal(await page.locator('#fill-out').textContent(), '70');
-  assert.match(await page.locator('#lobes-result').textContent(), /离得还远/);
-  await setFill(page, 0.97, '#fill2');
-  assert.equal(await page.locator('#fill-out').textContent(), '97');
-  // 四个机位：换过去以后读数跟着变，天上那颗行星的张角是个像样的数
-  for (const station of ['zhuyin', 'between', 'far', 'wangshu']) {
-    await page.locator(`.deck-toolbar [data-station="${station}"]`).click();
-    assert.equal(
-      await page.locator(`.deck-toolbar [data-station="${station}"]`).getAttribute('aria-pressed'),
-      'true',
-    );
-    assert.equal((await advance(page, 0)).station, station);
-    assert.equal(await page.locator('#view').getAttribute('data-station'), station);
-    const wide = Number((await page.locator('#span-out').textContent()).match(/(\d+)°/)[1]);
-    assert.ok(wide > 15 && wide < 120, `${station}: the other planet spans ${wide}°`);
-    await shot(page, station);
-  }
-  assert.match(await page.locator('#alt-out').textContent(), /离地 \d+ 千米/);
-  // 贴着望舒的机位：烛阴的直径张开六十多度，一个画面装不下
-  assert.ok(Number((await page.locator('#span-out').textContent()).match(/(\d+)°/)[1]) > 55);
-  // 转头和回正
+  assert.ok(Math.abs(state.theta - before - Math.PI / 2) < 1e-9, 'a quarter turn in 30 s');
+  await page.locator('#deck-data').click();
+  assert.equal(await page.locator('#deck-data').getAttribute('aria-expanded'), 'true');
+  assert.ok(await page.locator('.console').isVisible());
+  await page.locator('#opt-speed').click();
+  state = await advance(page, 30);
+  assert.ok(Math.abs(state.theta - before - Math.PI / 2 - 2 * Math.PI) < 1e-9, '×4');
+  await page.waitForTimeout(400);
+  assert.equal((await advance(page, 0)).theta, state.theta, 'paused');
+  // 望远镜：对准双星，标题让开；Home 回全景
+  await page.locator('.deck-toolbar [data-scope="pair"]').click();
+  state = await advance(page, 0);
+  assert.equal(state.scope, 'pair');
+  assert.ok(state.tan < 0.25);
+  assert.equal(await page.locator('#view').getAttribute('data-telescope'), 'pair');
+  await page.waitForFunction(
+    () => Number(getComputedStyle(document.querySelector('.title')).opacity) < 0.02,
+  );
+  await shot(page, 'pair');
   await page.locator('#view').focus();
   await page.keyboard.press('ArrowLeft');
   await page.keyboard.press('ArrowUp');
@@ -101,28 +128,35 @@ const desktop = () => browser.newContext({ viewport: { width: 1280, height: 800 
   assert.ok(state.yaw < 0 && state.pitch > 0, 'arrow keys turn the camera');
   await page.keyboard.press('Home');
   state = await advance(page, 0);
-  assert.ok(state.yaw === 0 && state.pitch === 0, 'Home looks straight again');
+  assert.ok(state.scope === 'vista' && state.yaw === 0 && state.pitch === 0, 'Home goes back');
+  await shot(page, 'vista');
+  // 把两星拉开：读数、下半页的示意图跟着变；画面照常
+  const tips = await page.locator('#tips-out').textContent();
+  await setFill(page, 0.7);
+  assert.equal(await page.locator('#fill-out').textContent(), '70');
+  assert.notEqual(await page.locator('#tips-out').textContent(), tips);
+  assert.match(await page.locator('#lobes-result').textContent(), /离得还远/);
+  assert.equal(await page.locator('#lobes').getAttribute('data-fill'), '0.700');
+  await picture(page, 'apart');
+  await setFill(page, 0.97, '#fill2');
+  assert.equal(await page.locator('#fill-out').textContent(), '97');
   // 隐藏界面：按钮和 H 键
   await page.locator('#opt-bare').click();
-  assert.ok(await page.locator('#deck').evaluate((node) => node.classList.contains('bare')));
-  await page.waitForTimeout(700);
-  assert.equal(await page.locator('.title').evaluate((node) => getComputedStyle(node).opacity), '0');
-  assert.equal(await page.locator('#deck-data').evaluate((node) => getComputedStyle(node).opacity), '0');
+  await page.waitForFunction(
+    () => Number(getComputedStyle(document.querySelector('.title')).opacity) < 0.02,
+  );
+  assert.equal(await page.locator('#deck-data').evaluate((n) => getComputedStyle(n).opacity), '0');
   await page.keyboard.press('h');
   assert.ok(!(await page.locator('#deck').evaluate((node) => node.classList.contains('bare'))));
-  // 暂停状态下不点快进，时间不走
-  const held = (await advance(page, 0)).theta;
-  await page.waitForTimeout(400);
-  assert.equal((await advance(page, 0)).theta, held, 'paused');
   assert.deepEqual(errors, [], 'desktop');
-  console.log('PASS: desktop gpu backend');
+  console.log('PASS: desktop');
   await context.close();
 }
 
 // ---------- 平板：竖着拿和横着拿 ----------
-for (const [name, width, height, grains] of [
-  ['tablet-portrait', 820, 1180, 512 * 512],
-  ['tablet-landscape', 1180, 820, 1024 * 1024],
+for (const [name, width, height] of [
+  ['tablet-portrait', 820, 1180],
+  ['tablet-landscape', 1180, 820],
 ]) {
   const context = await browser.newContext({
       viewport: { width, height },
@@ -131,15 +165,15 @@ for (const [name, width, height, grains] of [
     }),
     { page, errors } = await open(context);
   await ready(page);
-  assert.equal((await advance(page, 5)).count, grains, name);
+  assert.ok((await advance(page, 5)).theta > 0.55);
   assert.ok(
     await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
     'no horizontal overflow',
   );
-  // 展开仪表：控制台和读数都还在画面里、互不压着
-  await page.locator('#deck-data').click();
+  // 展开仪表：工具条、控制台和读数都还在画面里，控制台不压着标题和读数
+  await page.locator('#deck-data').tap();
   const boxes = await page.evaluate(() =>
-    ['.console', '.readout', '.title'].map((selector) => {
+    ['.console', '.readout', '.title', '.deck-toolbar'].map((selector) => {
       const r = document.querySelector(selector).getBoundingClientRect();
       return [r.left, r.top, r.right, r.bottom];
     }),
@@ -147,23 +181,29 @@ for (const [name, width, height, grains] of [
   for (const [left, top, right, bottom] of boxes)
     assert.ok(left >= 0 && top >= 0 && right <= width && bottom <= height, name + ' panels fit');
   assert.ok(boxes[0][1] >= boxes[1][3] && boxes[0][1] >= boxes[2][3], name + ' console sits below');
+  await page.locator('.deck-toolbar [data-scope="pair"]').tap();
+  assert.equal((await advance(page, 0)).scope, 'pair');
   await shot(page, name);
   assert.deepEqual(errors, [], name);
   console.log('PASS: ' + name);
   await context.close();
 }
 
-// ---------- CPU 后端、没有后期的那条路 ----------
+// ---------- 没有浮点渲染目标：用 8 位目标照样画 ----------
 {
-  const context = await desktop(),
-    { page, errors } = await open(context, '?sim=cpu&hdr=0');
+  const context = await desktop();
+  await context.addInitScript(() => {
+    const original = WebGL2RenderingContext.prototype.getExtension;
+    WebGL2RenderingContext.prototype.getExtension = function (name) {
+      return /color_buffer/.test(name) ? null : original.call(this, name);
+    };
+  });
+  const { page, errors } = await open(context, '?motion=0');
   await ready(page);
-  const state = await advance(page, 30);
-  assert.equal(state.backend, 'cpu');
-  assert.equal(state.hdr, false);
-  assert.ok(state.census.fromA > 50 && state.census.fromB > 50);
-  assert.deepEqual(errors, [], 'cpu');
-  console.log('PASS: cpu backend without the HDR lens');
+  assert.equal((await advance(page, 10)).hdr, false);
+  await picture(page, 'no float targets');
+  assert.deepEqual(errors, [], 'no float targets');
+  console.log('PASS: without float render targets');
   await context.close();
 }
 
@@ -203,7 +243,7 @@ for (const [name, width, height, grains] of [
   await page.evaluate(() => window.testLoss.restoreContext());
   await ready(page);
   assert.ok(await page.locator('#fallback').isHidden());
-  assert.ok((await advance(page, 1)).count > 0);
+  await picture(page, 'restored');
   console.log('PASS: context loss and restore');
   await context.close();
 }
