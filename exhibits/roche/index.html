@@ -9,8 +9,8 @@
     />
     <title>洛希极限 · 知序实验展品</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="./binary.css?v=1" />
-    <script type="module" src="./main.js?v=1"></script>
+    <link rel="stylesheet" href="./binary.css?v=2" />
+    <script type="module" src="./main.js?v=2"></script>
   </head>
   <body>
     <main class="exhibit">
@@ -26,7 +26,8 @@
         </svg>
         <!-- 观测舱的窗框：纯装饰 -->
         <div class="window" aria-hidden="true">
-          <i class="brow"></i><i class="sill"></i><i class="jamb left"></i><i class="jamb right"></i>
+          <i class="brow"></i><i class="sill"></i><i class="jamb left"></i
+          ><i class="jamb right"></i>
           <i class="glass"></i>
         </div>
         <p class="fallback" id="fallback" hidden>
@@ -34,8 +35,8 @@
         </p>
         <header class="title">
           <p class="eyebrow">知序 · 第二研究室<br /><span>02 / ROCHE LIMIT</span></p>
-          <h1>洛希极限</h1>
-          <p class="lead">两颗行星，站在彼此的极限上。<br />谁也没有撞上谁。</p>
+          <h1>彼此的<br /><em>边界。</em></h1>
+          <p class="lead">洛希极限 · 双星观测<br />两颗行星，正在交换自己的天空。</p>
         </header>
         <div class="hud station" aria-hidden="true">
           <b>观测舱 · 守夜三号</b>
@@ -61,10 +62,17 @@
             <dd><b id="fill-out">—</b> %</dd>
           </div>
         </dl>
-        <div class="console" role="group" aria-label="观测控制">
+        <div class="console" id="observation-console" role="group" aria-label="观测控制">
           <label class="near"
             ><span>两星靠得多近</span>
-            <input id="fill" type="range" min="0.6" max="1" step="0.002" aria-label="两颗行星靠得多近" />
+            <input
+              id="fill"
+              type="range"
+              min="0.6"
+              max="1"
+              step="0.002"
+              aria-label="两颗行星靠得多近"
+            />
           </label>
           <div class="row" role="group" aria-label="望远镜对准哪里">
             <span class="tag">望远镜</span>
@@ -76,8 +84,22 @@
             <span class="tag">时间</span>
             <button type="button" id="opt-speed">×1</button>
             <button type="button" id="opt-motion" aria-pressed="false">暂停</button>
-            <label><input type="checkbox" id="opt-lobes" checked /> 洛希瓣</label>
-            <label><input type="checkbox" id="opt-marks" checked /> 标注</label>
+            <label><input type="checkbox" id="opt-lobes" /> 洛希瓣</label>
+            <label><input type="checkbox" id="opt-marks" /> 标注</label>
+          </div>
+        </div>
+        <div class="deck-toolbar" role="group" aria-label="沉浸观测控制">
+          <span>守夜三号 <i>/</i> OBSERVATION 02</span>
+          <div>
+            <button id="deck-pause" type="button" aria-pressed="false">暂停时间</button
+            ><button
+              id="deck-data"
+              type="button"
+              aria-expanded="false"
+              aria-controls="observation-console"
+            >
+              观测仪表 ＋
+            </button>
           </div>
         </div>
       </section>
@@ -99,7 +121,9 @@
           <ul class="legend">
             <li><i class="k-lobe"></i>洛希瓣：过 L₁ 的那条等势线，8 字形</li>
             <li><i class="k-outer"></i>过 L₂、L₃ 的等势线：碎屑越过它才能离开这个系统</li>
-            <li><i class="k-a"></i>烛阴　<i class="k-b"></i>望舒：它们的表面也是等势面，所以是泪滴形</li>
+            <li>
+              <i class="k-a"></i>烛阴　<i class="k-b"></i>望舒：它们的表面也是等势面，所以是泪滴形
+            </li>
           </ul>
         </div>
         <div class="text">
@@ -111,8 +135,8 @@
               >它们靠得太近，又始终同一面朝着对方。每颗行星的表面都顺着引力和离心力合起来的等势面，朝着对方的那一端被拉出一个尖。
             </li>
             <li>
-              <b>尖端之间的物质桥。</b
-              >尖端伸到 L₁ 附近，那里的东西几乎不受任何一方约束。烛阴被扯出来的是炽热的岩屑，望舒被扯出来的是水汽和冰晶，它们越过
+              <b>尖端之间的物质桥。</b>尖端伸到 L₁
+              附近，那里的东西几乎不受任何一方约束。烛阴被扯出来的是炽热的岩屑，望舒被扯出来的是水汽和冰晶，它们越过
               L₁ 落向对方，被转动带偏，划出一道弯。
             </li>
             <li>
@@ -123,21 +147,18 @@
               <b>外面的行星带。</b
               >离得够远的碎屑把两颗行星当成一个整体来绕，是稳定的。带子的内缘不稳定：碎屑被两颗行星轮流拉扯，有的落到行星上，有的被甩出去。
             </li>
-            <li>
-              <b>互相的影子。</b>恒星几乎就在轨道面里，每转一圈，两颗行星各把对方遮住一次。
-            </li>
+            <li><b>互相的影子。</b>恒星几乎就在轨道面里，每转一圈，两颗行星各把对方遮住一次。</li>
           </ul>
           <h2>用的方程</h2>
-          <p class="formula">
-            Ω = ½ (u² + w²) + (1 − μ) / r<sub>A</sub> + μ / r<sub>B</sub>
-          </p>
+          <p class="formula">Ω = ½ (u² + w²) + (1 − μ) / r<sub>A</sub> + μ / r<sub>B</sub></p>
           <p>
             这是跟着两颗行星一起转的坐标里的有效势：两颗行星的引力，加上转动带来的离心力。行星的表面是它的等值面，画面里每个像素沿视线去找这个面。碎屑是几十万粒试验粒子，只受两颗行星的引力，逐粒积分；它们能去哪里、不能去哪里，由同一个势决定。
           </p>
           <p class="small">
             两颗行星完全是虚构的：烛阴（质量占 65%）和望舒（占 35%），大小按烛阴等体积半径 6,400
             千米换算，周期由此算出。示意的部分：行星的地貌、云、裂缝的亮度和大气的辉边；碎屑的数量、大小和颜色；尖端在伸到
-            L₁ 的九成时就开始有碎屑被扯出来（真实里要等充满洛希瓣）；行星带内缘被扯走的碎屑会补回来；时间被加快了。等势面模型把每颗行星的质量当成集中在中心，这是洛希模型的标准近似。
+            L₁
+            的九成时就开始有碎屑被扯出来（真实里要等充满洛希瓣）；行星带内缘被扯走的碎屑会补回来；时间被加快了。等势面模型把每颗行星的质量当成集中在中心，这是洛希模型的标准近似。
           </p>
           <p class="small">
             另一个实验：<a href="./moon/">把一颗碎石堆成的卫星推过洛希极限</a

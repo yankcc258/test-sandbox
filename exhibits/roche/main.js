@@ -14,7 +14,7 @@ import {
   createCpuDust,
   gpuDustAvailable,
   project,
-} from './scene.js?v=1';
+} from './scene.js?v=2';
 
 const $ = (id) => document.getElementById(id);
 const query = new URLSearchParams(location.search);
@@ -48,18 +48,18 @@ const kilometres = () => RADIUS_A_KM / sizeA; // 一个间距是多少千米
 // ---------- 观测 ----------
 const SCOPES = {
   wide: { fov: rad(33), aim: () => [0, 0, 0] },
-  pair: { fov: rad(10.5), aim: () => toInertial([0.14, 0, 0], theta) },
-  bridge: { fov: rad(3.6), aim: () => toInertial([POINTS.L1, 0, 0], theta) },
+  pair: { fov: rad(6.4), aim: () => toInertial([0.12, 0, 0], theta) },
+  bridge: { fov: rad(2.8), aim: () => toInertial([POINTS.L1, 0, 0], theta) },
 };
 const view = {
   scope: 'pair',
   az: 4.19, // 逆着光看：恒星在行星后面偏一侧
-  elev: rad(6.5), // 观测舱只比轨道面高一点，行星带几乎是侧着看的
+  elev: rad(9), // 略高于轨道面，看到前景尘带与远处逆光边缘
   zoom: 1,
   fov: SCOPES.pair.fov,
   aim: [0, 0, 0],
-  lobes: true,
-  marks: true,
+  lobes: false,
+  marks: false,
 };
 
 // ---------- 运行状态 ----------
@@ -134,12 +134,12 @@ function draw(seconds) {
   resize();
   // 望远镜慢慢转向新的目标、慢慢变焦
   const scope = SCOPES[view.scope],
-    ease = seconds ? 1 - Math.exp(-seconds * 4.5) : 1,
+    ease = seconds ? 1 - Math.exp(-seconds * 2.0) : 1,
     goal = scope.aim();
   view.fov += (clamp(scope.fov * view.zoom, rad(1.6), rad(48)) - view.fov) * ease;
   view.aim = view.aim.map((value, i) => value + (goal[i] - value) * ease);
   // 观测舱自己也在很慢地绕着这个系统走
-  const az = view.az + clock * 0.004,
+  const az = view.az + clock * 0.0015,
     c = Math.cos(view.elev),
     eye = [STATION * c * Math.cos(az), STATION * Math.sin(view.elev), STATION * c * Math.sin(az)],
     textures = dust.textures();
@@ -147,11 +147,14 @@ function draw(seconds) {
     eye,
     target: view.aim,
     fov: view.fov,
+    roll: -0.22,
     frame: frameInfo(),
     dust: { pos: textures.pos, vel: textures.vel, size: dust.size, count: dust.count },
     grain: dust.count > 500000 ? 0.0019 : dust.count > 100000 ? 0.0027 : 0.0042,
     steps: quality < 0.8 ? 20 : 30,
     time: clock,
+    exposure: 0.82,
+    bloom: 0.28,
   });
   overlay();
 }
@@ -311,8 +314,12 @@ function readout() {
   $('opt-motion').disabled = status !== 'ready';
   $('opt-motion').textContent = paused ? '继续' : '暂停';
   pressed($('opt-motion'), paused);
+  $('deck-pause').disabled = status !== 'ready';
+  $('deck-pause').textContent = paused ? '继续观测' : '暂停时间';
+  pressed($('deck-pause'), paused);
   canvas.dataset.fill = model.fill.toFixed(3);
   canvas.dataset.telescope = view.scope;
+  document.querySelector('.deck').dataset.scope = view.scope;
 }
 function setFill(value) {
   model.fill = clamp(value, 0.6, 1);
@@ -320,6 +327,12 @@ function setFill(value) {
   invalidate();
 }
 function bindControls() {
+  $('deck-data').onclick = () => {
+    const open = document.querySelector('.deck').classList.toggle('data-open');
+    $('deck-data').setAttribute('aria-expanded', String(open));
+    $('deck-data').textContent = open ? '收起仪表 −' : '观测仪表 ＋';
+  };
+  $('deck-pause').onclick = () => $('opt-motion').click();
   const pointers = new Map();
   let pinch = 0;
   const spread = () => {

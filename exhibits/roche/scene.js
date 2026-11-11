@@ -120,7 +120,7 @@ vec3 sky(vec3 rd) {
     vec3 at = cell + 0.2 + 0.6 * vec3(hash13(cell), hash13(cell + 17.3), hash13(cell + 41.7));
     float pick = hash13(cell + 7.7), need = mix(0.80, 0.55, band);
     if (pick < need) continue;
-    float glow = smoothstep(0.12, 0.0, length(g - at));
+    float glow = 1.0 - smoothstep(0.0, 0.075, length(g - at));
     vec3 tint = mix(vec3(0.66, 0.78, 1.0), vec3(1.0, 0.84, 0.62), hash13(cell + 3.1));
     float power = (pick - need) / (1.0 - need);
     col += tint * glow * (layer == 0 ? 1.2 : layer == 1 ? 0.7 : 0.3) * (0.15 + power * power * 1.4);
@@ -129,7 +129,7 @@ vec3 sky(vec3 rd) {
   float lane = smoothstep(0.42, 0.62, fbm(rd * 5.7 + 9.0)) * band;
   col += vec3(0.42, 0.50, 0.68) * band * (0.010 + 0.16 * cloud * cloud);
   col += vec3(0.75, 0.52, 0.36) * band * band * 0.022 * fbm(rd * 2.2);
-  return col * (1.0 - 0.7 * lane);
+  return col * (1.0 - 0.7 * lane) * 0.35;
 }
 // 沿视线找行星表面：行星是有效势的等值面，在它的包围球里等步长走，过了面就二分。
 // gap 记下一路上离表面最近时的势差，给大气的辉边用。
@@ -142,6 +142,7 @@ float surface(vec3 ro, vec3 rd, vec3 center, float reach, float level, out float
   float t0 = max(-b - h, 0.0), t1 = -b + h;
   if (t1 <= t0) return -1.0;
   float stride = (t1 - t0) / u_steps, before = t0;
+  vec3 nearest = ro + rd * t0;
   for (float i = 1.0; i <= u_steps; i += 1.0) {
     float t = t0 + stride * i, f = level - roche(ro + rd * t, u_mu);
     if (f < 0.0) {
@@ -153,9 +154,11 @@ float surface(vec3 ro, vec3 rd, vec3 center, float reach, float level, out float
       gap = 0.0;
       return 0.5 * (lo + hi);
     }
-    gap = min(gap, f);
+    if (f < gap) { gap = f; nearest = ro + rd * t; }
     before = t;
   }
+  // 势差除以局部梯度才近似高度；L1 附近势平坦，直接用势差会产生大块三角光雾。
+  gap /= max(length(rocheGradient(nearest, u_mu)), 0.05);
   return -1.0;
 }
 // 烛阴：干热的岩石行星，潮汐把地壳扯开，裂缝里是熔岩；越靠近朝着望舒的尖端裂得越厉害
@@ -163,10 +166,10 @@ vec3 zhuyin(vec3 d, vec3 n, float tipward, out vec3 glow) {
   float plains = fbm(d * 5.0 + 3.0), ridged = abs(fbm(d * 11.0 + plains * 2.0) - 0.5) * 2.0;
   vec3 rock = mix(vec3(0.17, 0.12, 0.09), vec3(0.52, 0.36, 0.22), smoothstep(0.25, 0.75, plains));
   rock = mix(rock, vec3(0.70, 0.55, 0.38), smoothstep(0.62, 0.9, fbm(d * 19.0)) * 0.5);
-  float cracks = 1.0 - smoothstep(0.0, 0.085 + 0.10 * tipward, ridged);
+  float cracks = 1.0 - smoothstep(0.0, 0.025 + 0.035 * tipward, ridged);
   float fine = 1.0 - smoothstep(0.0, 0.05, abs(fbm(d * 31.0 + 7.0) - 0.5) * 2.0);
-  float heat = u_heat * (0.10 + 1.6 * pow(tipward, 2.2)) * (0.6 + 0.4 * sin(u_time * 0.7 + plains * 20.0));
-  glow = vec3(3.2, 0.95, 0.22) * (cracks + 0.5 * fine * tipward) * heat;
+  float heat = u_heat * (0.035 + 0.65 * pow(tipward, 2.2)) * (0.85 + 0.15 * sin(u_time * 0.12 + plains * 20.0));
+  glow = vec3(2.6, 0.32, 0.17) * (cracks + 0.2 * fine * tipward) * heat;
   return rock * (1.0 - 0.6 * cracks);
 }
 // 望舒：冰和海的行星，云被潮汐沿连线方向拉成长条
@@ -224,9 +227,9 @@ void main() {
     if (isB) {
       // 极光：两极附近一圈，只在背光的一面看得见
       float oval = exp(-pow((abs(n.y) - 0.80) / 0.06, 2.0)) * (0.35 + 0.65 * fbm(d * 13.0 + vec3(u_time * 0.04, 0.0, 0.0)));
-      surfaceCol += vec3(0.10, 0.85, 0.60) * oval * 0.38 * (1.0 - day * lit);
+      surfaceCol += vec3(0.08, 0.36, 0.65) * oval * 0.16 * (1.0 - day * lit);
     }
-    vec3 air = isB ? vec3(0.35, 0.62, 1.0) : vec3(1.0, 0.55, 0.30);
+    vec3 air = isB ? vec3(0.14, 0.45, 1.0) : vec3(0.85, 0.25, 0.36);
     surfaceCol += air * fres * (0.55 * day * lit + (isB ? 0.02 : 0.05));
     if (isB) surfaceCol += vec3(1.0) * pow(max(dot(reflect(-sun, n), -dir), 0.0), 60.0) * (1.0 - clouds) * lit * 0.5;
     col = surfaceCol + glow * (0.35 + 0.65 * (1.0 - day * lit));
@@ -238,8 +241,8 @@ void main() {
     col += vec3(1.0, 0.94, 0.84) * (60.0 * smoothstep(0.99997, 0.999993, facing) + 0.4 * pow(max(facing, 0.0), 1400.0) + 0.03 * pow(max(facing, 0.0), 60.0));
     // 贴着行星边缘的一圈大气：势差换成高度，越贴近越亮；逆光时更亮
     float back = 0.25 + 2.4 * pow(max(facing, 0.0), 4.0);
-    col += vec3(1.0, 0.52, 0.28) * exp(-gapA * 22.0) * 0.20 * back * (0.4 + u_heat);
-    col += vec3(0.35, 0.62, 1.0) * exp(-gapB * 26.0) * 0.30 * back;
+    col += vec3(0.85, 0.25, 0.36) * exp(-gapA * 180.0) * 0.20 * back * (0.4 + u_heat);
+    col += vec3(0.14, 0.45, 1.0) * exp(-gapB * 180.0) * 0.30 * back;
   }
   o = vec4(finish(col), 1.0);
   gl_FragDepth = depth;
@@ -256,6 +259,8 @@ uniform vec2 u_radii;
 uniform float u_px, u_grain, u_gain;
 out vec3 v_tint;
 out float v_cover;
+out vec2 v_direction;
+out float v_aspect;
 float hash(float n) { return fract(sin(n * 12.9898) * 43758.5453); }
 float shade(vec3 p, vec3 center, float radius) {
   vec3 d = p - center;
@@ -269,12 +274,22 @@ void main() {
   gl_PointSize = 0.0;
   v_tint = vec3(0.0);
   v_cover = 0.0;
+  v_direction = vec2(1.0, 0.0);
+  v_aspect = 1.0;
   if (p.w > 2.5) return;
-  float age = texelFetch(u_vel, at, 0).w, seed = hash(float(gl_VertexID) + 0.37);
+  vec4 velocity = texelFetch(u_vel, at, 0);
+  float age = velocity.w, seed = hash(float(gl_VertexID) + 0.37);
   vec4 view = u_view * vec4(p.xyz, 1.0);
-  float size = mix(0.5, 2.2, seed * seed * seed) * u_grain * (p.w > 0.5 ? 2.4 : 1.0);
+  float size = mix(0.75, 1.3, seed * seed) * u_grain * (p.w > 0.5 ? 1.6 : 1.0);
   float px = 2.0 * size * u_px / max(-view.z, 1e-4);
-  float spot = max(px * 2.2, 2.6);
+  // 面积归一的柔和粒子足迹：用同一批积分粒子重建连续尘带，不额外画固定圆环。
+  float spot = min(max(px * (p.w > 0.5 ? 2.5 : 8.0), p.w > 0.5 ? 3.0 : 8.0), 64.0);
+  // 椭圆足迹沿真实速度的屏幕投影排列，形成细丝；不是新增碎屑轨迹。
+  vec4 clip = u_proj * view;
+  vec4 ahead = u_proj * (view + u_view * vec4(velocity.xyz * 0.01, 0.0));
+  vec2 delta = (ahead.xy / ahead.w - clip.xy / clip.w) * vec2(u_proj[1][1] / u_proj[0][0], -1.0);
+  if (dot(delta, delta) > 1e-12) v_direction = normalize(delta);
+  v_aspect = p.w < 0.5 ? clamp(spot / max(px * 3.0, 3.0), 1.0, 2.7) : 1.0;
   float lit = shade(p.xyz, u_shadowA, u_radii.x) * shade(p.xyz, u_shadowB, u_radii.y);
   // 冰尘向前散射：正对恒星看过去时最亮
   float facing = dot(normalize(p.xyz - u_eye), u_sun);
@@ -282,18 +297,22 @@ void main() {
   float thin = 1.0; // 行星带的每一粒只遮住很少一点，叠起来才显出疏密
   vec3 tint;
   if (p.w < 0.5) {
-    tint = mix(vec3(0.80, 0.62, 0.44), vec3(0.66, 0.80, 1.0), hash(seed * 91.0)) * (0.05 + 0.20 * lobe) * lit;
-    thin = 0.22;
+    tint = mix(vec3(0.18, 0.34, 0.62), vec3(0.36, 0.68, 1.0), hash(seed * 91.0)) * (0.08 + 0.45 * lobe) * lit;
+    thin = 0.26;
   } else if (p.w < 1.5) {
     // 从烛阴扯出来的：刚离开时是炽热的，几分之一圈内冷下来变成暗红的尘
     float hot = exp(-age * 0.6);
-    tint = vec3(0.55, 0.30, 0.18) * (0.20 + 0.30 * lobe) * lit + vec3(4.2, 1.25, 0.28) * hot * hot + vec3(1.6, 1.3, 0.9) * exp(-age * 5.0);
+    tint = vec3(0.35, 0.12, 0.18) * (0.20 + 0.30 * lobe) * lit + vec3(0.85, 0.055, 0.17) * hot * hot;
   } else {
     // 从望舒扯出来的：水汽和冰晶，受光时很亮
-    tint = vec3(0.72, 0.88, 1.0) * (0.35 + 0.8 * lobe) * lit + vec3(0.16, 0.34, 0.60) * exp(-age * 0.9);
+    tint = vec3(0.16, 0.46, 0.85) * (0.20 + 0.45 * lobe) * lit + vec3(0.08, 0.22, 0.50) * exp(-age * 0.9);
   }
   v_tint = tint * u_gain * smoothstep(0.0, 0.25, age + (p.w > 0.5 ? 0.25 : 0.0));
-  v_cover = min(4.1 * px * px / (spot * spot), 1.0) * thin;
+  if (p.w > 0.5) {
+    // 高离面粒子更稀薄；只改变发光权重，位置与受力完全来自积分。
+    v_tint *= (0.20 + 0.80 * exp(-p.y * p.y / 0.00016)) * (0.5 + 0.5 * smoothstep(0.0, 0.08, age));
+  }
+  v_cover = min(4.1 * px * px * v_aspect / (spot * spot), 1.0) * thin * (p.w > 0.5 ? 0.012 : 1.0);
   gl_PointSize = spot;
   gl_Position = u_proj * view;
 }`;
@@ -301,10 +320,13 @@ const DUST_FRAGMENT = `#version 300 es
 precision highp float;
 in vec3 v_tint;
 in float v_cover;
+in vec2 v_direction;
+in float v_aspect;
 out vec4 o;
 uniform float u_direct;
 void main() {
   vec2 c = gl_PointCoord * 2.0 - 1.0;
+  c = vec2(dot(c, v_direction), dot(c, vec2(-v_direction.y, v_direction.x)) * v_aspect);
   float r2 = dot(c, c);
   if (r2 > 1.0) discard;
   // 颜色是「厚厚一层碎屑」该有的亮度，透明度是这一粒遮住的份额：叠得再多也只趋近这个亮度
@@ -357,7 +379,7 @@ void main() {
   vec2 q = v_uv - 0.5;
   c *= u_exposure * (1.0 - 0.7 * dot(q, q));
   c = pow(filmic(c), vec3(1.0 / 2.2));
-  c += (hash13(vec3(gl_FragCoord.xy, u_time * 60.0 + u_direct)) - 0.5) * 0.02;
+  c *= 1.0 + (hash13(vec3(gl_FragCoord.xy, floor(u_time * 24.0) + u_direct)) - 0.5) * 0.008;
   o = vec4(c, 1.0);
 }`;
 

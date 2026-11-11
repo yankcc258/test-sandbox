@@ -1,4 +1,4 @@
-/* 洛希极限展品 · 双星观测（猫猫）。配色沿用展品 01：深色底、象牙白字、暖金点缀；上半屏做成观测舱的舷窗。 */
+/* 洛希极限展品 · 双星观测。沉浸观测舱优先 PC / iPad；仪表按需展开。 */
 @font-face {
   font-family: Inter;
   src: url('../../assets/fonts/inter-latin-wght.woff2') format('woff2');
@@ -519,5 +519,159 @@ h2 {
   h1 {
     font-size: 30px;
     margin: 6px 0;
+  }
+}
+
+/* 观测舱的暗部为画面留白，蓝色窗缘提供近处尺度参照。 */
+.deck .title {
+  top: 13%;
+  left: 6%;
+  text-shadow: 0 3px 30px #000;
+}
+.deck h1 {
+  font:
+    400 clamp(42px, 4.3vw, 68px) / 1.3 'Songti SC',
+    'SimSun',
+    serif;
+  letter-spacing: 0.12em;
+  margin: 22px 0;
+}
+.deck h1 em {
+  color: #a7d9ed;
+  font-style: normal;
+}
+.deck .lead {
+  color: #9baebd;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  line-height: 2.1;
+}
+.deck .eyebrow {
+  font-size: 9px;
+}
+.deck .eyebrow span {
+  color: #8dbace;
+  font-size: 8px;
+}
+.brow {
+  height: 4%;
+}
+.sill {
+  height: 8%;
+}
+.jamb.left {
+  width: 1.8%;
+}
+.jamb.right {
+  width: 2.2%;
+  border-left: 2px solid #8bbcd766;
+  border-radius: 44% 0 0 44% / 14% 0 0 14%;
+  box-shadow:
+    -4px 0 18px #66bde32b,
+    inset 5px 0 10px #83bcd733;
+}
+.glass {
+  background:
+    radial-gradient(110% 100% at 60% 45%, #0000 48%, #000b 100%),
+    linear-gradient(90deg, #0008, transparent 42%);
+}
+.deck::before {
+  display: none;
+}
+.deck::after {
+  opacity: 0.35;
+}
+.deck .hud,
+.deck .console {
+  display: none;
+}
+.deck.data-open .readout {
+  display: flex;
+  background: #080f18e8;
+  border-color: #8bbed52b;
+}
+.deck.data-open .console {
+  display: grid;
+  bottom: 13%;
+  max-height: 48svh;
+  overflow: auto;
+  background: #080f18f2;
+  border-color: #8bbed52b;
+}
+.deck.data-open .station {
+  display: grid;
+}
+.deck-toolbar {
+  position: absolute;
+  z-index: 2;
+  bottom: 3%;
+  left: 6%;
+  right: 5%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  color: #8fa9bb;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+}
+.deck-toolbar i {
+  color: #557083;
+  font-style: normal;
+  margin: 0 14px;
+}
+.deck-toolbar > div {
+  display: flex;
+  gap: 24px;
+}
+.deck-toolbar button {
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: #b7cfdd;
+  padding: 8px 0;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+.deck-toolbar button:focus-visible {
+  outline: 1px solid #8fd0ff;
+  outline-offset: 4px;
+}
+.deck-toolbar button[aria-pressed='true'] {
+  background: transparent;
+  color: #c0e8fa;
+}
+.deck .title {
+  transition: opacity 1s ease;
+}
+.deck[data-scope='bridge'] .title {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .deck .title {
+    transition: none;
+  }
+}
+@media (orientation: portrait) and (min-width: 700px) {
+  .deck .title {
+    top: 10%;
+  }
+  .deck.data-open .console {
+    bottom: 12%;
+    right: 5%;
+  }
+}
+@media (max-width: 699px) {
+  .deck h1 {
+    font-size: 32px;
+  }
+  .deck-toolbar > span {
+    display: none;
+  }
+  .deck-toolbar {
+    justify-content: flex-end;
+  }
+  .deck.data-open .station {
+    display: none;
   }
 }

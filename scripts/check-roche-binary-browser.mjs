@@ -16,8 +16,14 @@ const browser = await chromium.launch({
 });
 const MU = 0.35,
   points = lagrange(MU);
-const ready = (page, state = 'true') =>
-  page.waitForFunction((state) => document.documentElement.dataset.ready === state, state);
+const ready = async (page, state = 'true') => {
+  await page.waitForFunction((state) => document.documentElement.dataset.ready === state, state);
+  if (
+    state === 'true' &&
+    (await page.locator('#deck-data').getAttribute('aria-expanded')) === 'false'
+  )
+    await page.click('#deck-data');
+};
 const advance = (page, seconds) =>
   page.evaluate((seconds) => window.zhixuRocheBinaryAdvance(seconds), seconds);
 const setFill = (page, value, id = '#fill') =>
@@ -79,7 +85,10 @@ const desktop = () => browser.newContext({ viewport: { width: 1280, height: 800 
   // 望远镜按钮
   for (const scope of ['wide', 'bridge', 'pair']) {
     await page.locator(`.console [data-scope="${scope}"]`).click();
-    assert.equal(await page.locator(`.console [data-scope="${scope}"]`).getAttribute('aria-pressed'), 'true');
+    assert.equal(
+      await page.locator(`.console [data-scope="${scope}"]`).getAttribute('aria-pressed'),
+      'true',
+    );
     assert.equal((await advance(page, 0)).scope, scope);
     await shot(page, scope);
   }
