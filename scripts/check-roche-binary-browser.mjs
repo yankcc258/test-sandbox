@@ -73,7 +73,8 @@ const picture = async (page, label) => {
     wall = await brightest(page, 0.975, 0.5); // 右边的舱壁
   assert.ok(belt[2] > 110 && belt[2] > belt[0], `${label}: the belt glows blue (${belt})`);
   assert.ok(star[0] > 170, `${label}: the star is bright (${star})`);
-  assert.ok(Math.max(...wall) < 40, `${label}: the window frame is dark (${wall})`);
+  // The refined titanium shoulder is readable but remains much dimmer than the nebula.
+  assert.ok(Math.max(...wall) < 65 && Math.max(...wall) < Math.max(...belt)*0.5, `${label}: the matte window frame stays subdued (${wall})`);
 };
 
 // ---------- 桌面 ----------

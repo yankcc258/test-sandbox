@@ -541,3 +541,15 @@ h2 {
 @media(max-width:1100px){.deck-toolbar .call{display:none}}
 @media(prefers-reduced-motion:reduce){.title,.readout,.console,.deck-toolbar > *{transition:none}}
 .loading{color:#b3cbdc;letter-spacing:.15em}
+
+/* 仪表嵌入低反光舱体，标题让开红色光柱。 */
+.title{left:18%;max-width:370px}
+h1{font-size:clamp(30px,3.1vw,44px);font-weight:350;letter-spacing:.10em}
+.eyebrow{color:#8095a4}.eyebrow span{color:#a5bccb}
+.lead{color:#aebdc8;font-size:12px}
+.console,.readout{border-radius:7px;border-color:#b7d3e52a;background:linear-gradient(135deg,#131e29e6,#080e16ef);box-shadow:inset 0 1px 0 #c3e2f014,0 12px 36px #0008}
+.deck-toolbar .stations{padding:2px 12px;border:1px solid #b6d3e225;border-radius:6px;background:linear-gradient(180deg,#15202bba,#080e15d9);box-shadow:inset 0 1px 0 #b6d3e20c}
+.deck-toolbar .tools{padding:2px 10px;border-top:1px solid #8eabb81c}
+.deck-toolbar button{font-size:11px;letter-spacing:.06em}
+.deck-toolbar button:hover{color:#edf7ff;text-shadow:0 0 12px #80b7d955}
+@media(max-width:900px){.title{left:18%;max-width:calc(74% - 180px)}.deck-toolbar > div{gap:4px 12px}.deck-toolbar .stations{padding:2px 8px}.deck-toolbar .tools{padding:2px 4px}h1{font-size:28px}}

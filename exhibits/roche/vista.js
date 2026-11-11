@@ -1,5 +1,5 @@
 // Cinematic Roche exhibit: a fragmented luminous nebula drawn toward a red stellar beacon above the lower-left horizon.
-// Cloud structure, apparent sizes and lensing are art-directed visual effects, not a physical solution.
+// Cloud structure, apparent sizes, galactic background and optical glare are art-directed.
 const QUAD = `#version 300 es
 in vec2 p; out vec2 v_uv;
 void main() { v_uv = p * 0.5 + 0.5; gl_Position = vec4(p, 0.0, 1.0); }`;
@@ -20,7 +20,7 @@ float fbm(vec3 p, int layers) {
   return sum;
 }`;
 
-// 画面：星空 → 行星带（主角）→ 中心的两颗行星 → 脚下的小世界和它的大气
+// 画面：银河背景 → 破碎星云 → 红色致密星体 → 地平线与观察舱。
 const SCENE = `#version 300 es
 precision highp float;
 uniform vec2 u_res,u_tan;
@@ -98,7 +98,7 @@ vec4 aurora(vec2 p,float z) {
   float shadow=exp(-4.2*smoothstep(0.41,0.68,dark))*mix(0.35,1.0,selfShadow);
   float depthLight=mix(0.55,1.24,smoothstep(-0.38,0.32,z-fold));
   float cloudLight=mix(0.38,1.28,smoothstep(0.35,0.65,pockets));
-  float heat=exp(-sinkR*0.62);
+  float heat=exp(-sinkR*0.85);
   vec3 blue=mix(vec3(0.004,0.009,0.024),vec3(0.105,0.255,0.39),smoothstep(0.26,0.68,cloud));
   vec3 pearl=vec3(0.60,0.75,0.83)*pow(max(detail*1.3-0.34,0.0),3.0)*2.25;
   vec3 light=(blue+pearl)*(0.35+broken*0.75)*shadow*depthLight*cloudLight;
@@ -118,17 +118,28 @@ vec3 sky(vec3 rd) {
   vec3 col=vec3(0.0004,0.0007,0.0018);
   vec3 w=vec3(fbm(rd*5.0+2.3,3),fbm(rd*5.0+13.1,3),fbm(rd*5.0+33.4,3));
   float clouds=fbm(rd*10.0+w*3.4,5),lace=fbm(rd*75.0+w*8.0,4);
-  float band=exp(-pow((rd.y-0.15-rd.x*0.15)/0.19,2.0));
-  float dust=pow(smoothstep(0.28,0.67,clouds),2.0)*(0.3+lace)*band;
-  col+=mix(vec3(0.012,0.004,0.023),vec3(0.004,0.013,0.03),smoothstep(-0.4,0.5,rd.x))*dust;
-  for(int layer=0;layer<3;layer++) {
-    float scale=layer==0?77.0:layer==1?171.0:337.0;
+  // A stationary galactic band behind the moving nebula. Irregular dust lanes break its light.
+  float latitude=dot(rd,normalize(vec3(0.42,1.0,-0.08)));
+  float longitude=dot(rd,normalize(vec3(1.0,-0.42,0.0)));
+  float warp=(fbm(rd*24.0+w*2.0,4)-0.48)*0.045;
+  float band=exp(-pow((latitude+warp)/0.060,2.0));
+  float halo=exp(-pow(latitude/0.135,2.0));
+  float dustLane=exp(-pow((latitude+warp*1.7+0.009)/0.018,2.0));
+  float extinction=exp(-3.4*dustLane*(0.45+lace));
+  float clumps=smoothstep(0.25,0.70,clouds)*(0.35+lace);
+  float bulge=exp(-pow((longitude+0.26)/0.29,2.0));
+  col+=vec3(0.009,0.009,0.017)*halo*clumps;
+  col+=mix(vec3(0.048,0.050,0.070),vec3(0.105,0.081,0.069),bulge)*band*clumps*extinction;
+  col+=vec3(0.037,0.044,0.064)*pow(smoothstep(0.38,0.72,lace),2.0)*band*extinction;
+  for(int layer=0;layer<4;layer++) {
+    float scale=layer==0?77.0:layer==1?171.0:layer==2?337.0:601.0;
     vec3 g=rd*scale,cell=floor(g);
     float pick=hash13(cell+7.7);
-    if(pick<0.86)continue;
+    float threshold=layer==3?0.97-0.28*band:0.86-0.09*band;
+    if(pick<threshold)continue;
     vec3 at=cell+0.25+0.5*vec3(hash13(cell),hash13(cell+17.3),hash13(cell+41.7));
-    float power=(pick-0.86)/0.14,point=1.0-smoothstep(0.0,0.075,length(g-at));
-    col+=mix(vec3(0.36,0.60,0.84),vec3(0.93,0.71,0.56),hash13(cell+3.1))*point*(0.09+power*power*0.65);
+    float power=(pick-threshold)/(1.0-threshold),point=1.0-smoothstep(0.0,0.075,length(g-at));
+    col+=mix(vec3(0.42,0.57,0.78),vec3(0.88,0.74,0.61),hash13(cell+3.1))*point*(0.09+power*power*0.65)*(layer==3?0.35:1.0);
   }
   return col;
 }
@@ -150,9 +161,9 @@ vec3 compactSurface(vec3 rd,vec3 center,float t) {
   vec3 n=normalize(rd*t-center);
   float cloud=fbm(n*36.0+u_time*0.004,4);
   float face=max(dot(n,-rd),0.0);
-  vec3 body=vec3(2.4,0.012,0.035)*(0.15+0.30*cloud)*pow(face,1.5);
+  vec3 body=vec3(1.3,0.008,0.022)*(0.15+0.30*cloud)*pow(face,2.0);
   // Preserve an unmistakable light point rather than placing an opaque dark sphere over the source.
-  body+=vec3(18.0,5.0,6.0)*pow(face,25.0);
+  body+=vec3(6.0,1.8,2.4)*pow(face,46.0);
   return body;
 }
 
@@ -166,14 +177,13 @@ void main() {
   vec3 col=sky(rd);
   float tg=sphere(rd,host,GIANT_RADIUS),ts=sphere(rd,sink,SINK_RADIUS);
   float opaque=tg>0.0?tg:1e5;
-  if(ts>0.0&&ts<opaque)opaque=ts;
-  if(opaque<1e4)col=ts==opaque?compactSurface(rd,sink,ts):giantSurface(rd,host,tg);
+  if(opaque<1e4)col=giantSurface(rd,host,tg);
   float impact=length(cross(rd,host));
   if(tg<0.0)col+=vec3(0.045,0.18,0.30)*exp(-max(impact-GIANT_RADIUS,0.0)/0.045)*0.12;
   float miss=length(cross(rd,sink));
   // A continuous corona crosses the limb smoothly, preserving the white-pink light point.
-  col+=vec3(0.83,0.013,0.035)*exp(-miss*miss/0.19);
-  col+=vec3(0.055,0.0016,0.005)*exp(-miss*miss/1.9);
+  col+=vec3(0.28,0.006,0.017)*exp(-miss*miss/0.095);
+  col+=vec3(0.009,0.0004,0.0016)*exp(-miss*miss/0.65);
   float denom=dot(rd,N),s=dot(host,N)/denom;
   if(s>0.0&&abs(denom)>0.018) {
     for(int k=127;k>=0;k--) {
@@ -186,6 +196,12 @@ void main() {
       float alpha=1.0-exp(-cloud.a*(1.8/128.0)*3.0/abs(denom));
       col=col*(1.0-alpha)+cloud.rgb*alpha;
     }
+  }
+  // A tapered emissive limb keeps the compact source crisp without a hard red disc.
+  // Composite at the front of the incoming cloud, retaining its geometric centre and radius.
+  if(ts>0.0&&ts<opaque) {
+    float face=max(dot(normalize(rd*ts-sink),-rd),0.0);
+    col=mix(col,compactSurface(rd,sink,ts),smoothstep(0.05,0.78,face));
   }
   // Foreground world and observation window remain small against the celestial scale.
   vec3 sun=normalize(vec3(-0.5100,-0.19125,1.0));
@@ -204,12 +220,12 @@ void main() {
     float cloud=smoothstep(0.37,0.68,fbm(w,6));
     float fine=smoothstep(0.41,0.69,fbm(w*3.5+5.0,5));
     col=vec3(0.0005,0.0011,0.0021)+vec3(0.027,0.047,0.064)*(cloud*0.65+fine*0.32)*(0.3+0.7*max(dot(n,shine),0.0));
-    col+=warm*0.12*max(dot(n,sun),0.0)*(0.3+0.7*cloud);
-    col=mix(col,mix(vec3(0.02,0.05,0.085),warm*0.15,toward),graze*0.30);
+    col+=warm*0.035*max(dot(n,sun),0.0)*(0.3+0.7*cloud);
+    col=mix(col,mix(vec3(0.02,0.05,0.085),warm*0.045,toward),graze*0.30);
   } else {
     float height=max(far-R,0.0);
     float air=(exp(-height/0.0005)+0.22*exp(-height/0.0028))*(1.0-smoothstep(0.35*lift,0.95*lift,height));
-    col+=mix(cool*0.11,warm*0.9,toward)*air*(b<0.0?1.0:0.0);
+    col+=mix(cool*0.11,warm*0.18,toward)*air*(b<0.0?1.0:0.0);
   }
   o=vec4(col,1.0);
 }
@@ -308,18 +324,18 @@ vec3 reconstructedScene(vec2 uv) {
   return c;
 }
 vec3 outside(vec2 uv) {
-  vec3 c = reconstructedScene(uv) + texture(u_bloom, uv).rgb * 0.14 * texture(u_scene,uv).a;
+  vec3 c = reconstructedScene(uv) + texture(u_bloom, uv).rgb * 0.075 * texture(u_scene,uv).a;
   vec2 p = (uv - u_star) * vec2(u_res.x / u_res.y, 1.0);
   // Three optical scales: a narrow bright core, red body, then a very soft light veil.
-  float axial=1.0/(1.0+5.5*p.y*p.y);
+  float axial=1.0/(1.0+9.0*p.y*p.y);
   float pillar=exp(-pow(abs(p.x)*780.0,1.35))*axial;
   float beamBody=exp(-abs(p.x)*145.0)/(1.0+8.0*p.y*p.y);
   float beamVeil=exp(-pow(p.x*28.0,2.0))/(1.0+15.0*p.y*p.y);
-  float streak = exp(-abs(p.y) * 320.0) / (1.0 + 80.0 * p.x * p.x);
-  c += (vec3(3.5,0.20,0.27)*pillar*0.72
-       + vec3(0.43,0.008,0.022)*beamBody
-       + vec3(0.024,0.0008,0.0024)*beamVeil
-       + vec3(1.1,0.23,0.28)*streak*0.26)*u_flare;
+  float streak = exp(-abs(p.y) * 430.0) / (1.0 + 180.0 * p.x * p.x);
+  c += (vec3(2.8,0.12,0.20)*pillar*0.47
+       + vec3(0.18,0.004,0.012)*beamBody
+       + vec3(0.006,0.0003,0.0008)*beamVeil
+       + vec3(1.1,0.23,0.28)*streak*0.07)*u_flare;
   return c;
 }
 void main() {
@@ -343,8 +359,8 @@ void main() {
     // 地板：映着窗外，越靠近人越暗
     float depth = (floorTop - px.y) / floorTop;
     vec2 mirror = vec2(v_uv.x, (2.0 * floorTop - px.y + depth * 0.10 * u_res.y) / u_res.y);
-    c = texture(u_soft,mirror).rgb * (0.16-0.13*depth) + texture(u_bloom,mirror).rgb * 0.035 * (1.0-depth);
-    c += vec3(0.0014,0.0022,0.0030);
+    c = texture(u_soft,mirror).rgb * (0.085-0.065*depth) + texture(u_bloom,mirror).rgb * 0.009 * (1.0-depth);
+    c += vec3(0.0022,0.0033,0.0045);
     // 哑光面板的透视接缝、细纹和窗根阴影，使前景有材料与结构。
     float tiles = (v_uv.x - 0.62) / (0.13 + depth * 0.31);
     float joint = 1.0 - smoothstep(0.002,0.010,abs(fract(tiles+0.5)-0.5));
@@ -353,17 +369,28 @@ void main() {
     c *= 0.90+0.1*noise3(vec3(px.x*0.45,px.y*3.0,4.0));
     c *= smoothstep(0.0,0.08,depth)*0.5+0.5;
     c += vec3(0.10,0.18,0.23) * 0.12 * exp(-pow((floorTop-px.y-4.0)/1.4,2.0));
+    // Recessed threshold, brushed deck panels and a quiet blue guide light.
+    float threshold=(floorTop-px.y)/u_res.y;
+    c*=1.0-0.48*exp(-pow((threshold-0.013)/0.003,2.0));
+    c+=vec3(0.013,0.026,0.034)*exp(-pow((threshold-0.021)/0.0015,2.0));
+    float lightSegments=smoothstep(0.06,0.11,abs(fract(v_uv.x*7.0)-0.5));
+    c+=vec3(0.012,0.030,0.044)*exp(-pow((threshold-0.0235)/0.00065,2.0))*lightSegments;
   } else {
     float mm=d/u_res.y;
     // 密封条、斜切的金属内框、退后的外壳；高光随面朝向改变。
     float bevel=smoothstep(0.002,0.005,mm)*(1.0-smoothstep(0.013,0.018,mm));
     float facet=0.35+0.65*smoothstep(0.70,0.96,v_uv.x);
-    c=vec3(0.0012,0.0017,0.0023)+vec3(0.022,0.035,0.045)*bevel*facet;
+    c=vec3(0.0020,0.0030,0.0043)+vec3(0.036,0.049,0.061)*bevel*facet;
     c+=vec3(0.07,0.10,0.13)*exp(-pow((mm-0.004)/0.0011,2.0))*facet;
     c+=vec3(0.004,0.007,0.010)*smoothstep(0.02,0.035,mm);
     c*=0.92+0.08*noise3(vec3(px.x*0.9,px.y*0.12,6.3));
     float seam=exp(-pow((mm-0.026)/0.0009,2.0));
     c*=1.0-0.80*seam;
+    // A second recessed shoulder gives the frame thickness without narrowing the view.
+    float shoulder=smoothstep(0.029,0.034,mm)*(1.0-smoothstep(0.050,0.056,mm));
+    c+=vec3(0.010,0.016,0.022)*shoulder*facet;
+    c+=vec3(0.031,0.045,0.056)*exp(-pow((mm-0.034)/0.0012,2.0))*facet;
+    c*=0.96+0.04*noise3(vec3(px.x*0.04,px.y*1.8,7.0));
     // 克制的固定螺钉：沉孔和小面受光。
     if(v_uv.x>0.93 && v_uv.y>0.15 && v_uv.y<0.93){
       vec2 bolt=vec2((v_uv.x-0.952)*u_res.x,(fract(v_uv.y*4.0+0.12)-0.5)*u_res.y/4.0);

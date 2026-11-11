@@ -1,6 +1,6 @@
 // 观景舱：艺术化星云流场；下半页：独立的洛希瓣教学模型。
 import {lagrange,planetShape,volumeRadius,periodHours,roche} from './binary.js?v=1';
-import {createVista,aim,FOCUS} from './vista.js?v=6';
+import {createVista,aim,FOCUS} from './vista.js?v=7';
 const $=id=>document.getElementById(id);
 const query=new URLSearchParams(location.search);
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
