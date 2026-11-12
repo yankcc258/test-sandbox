@@ -1,6 +1,6 @@
 # 理解星图 · 样稿
 
-2026-11-12 · 入口：[`preview/study-stars/`](../../preview/study-stars/)。在本机分支 `preview/study-stars` 上，**没提交、没推送**。Yank 看过静帧，说方向对（2026-11-12），接着往正式站搬。
+2026-11-12 · 入口：[`preview/study-stars/`](../../preview/study-stars/)。在分支 `preview/study-stars` 上，已开 PR，等 Yank 合并。Yank 看过静帧，说方向对（2026-11-12），接着往正式站搬。
 
 ![几个月以后：36 颗星，七个板块](shots/grown.jpg)
 
