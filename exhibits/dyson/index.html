@@ -7,12 +7,13 @@
     <meta name="description" content="站在戴森球内壁的观测台，仰望被巨型采能结构包围的恒星。一份关于恒星尺度建筑的动态设想。" />
     <title>戴森球 · 恒星之内｜新奇想法</title>
     <link rel="stylesheet" href="../shared/observation-report.css?v=2" />
-    <link rel="stylesheet" href="dyson.css?v=1" />
+    <link rel="stylesheet" href="dyson.css?v=2" />
   </head>
   <body data-report="dyson">
     <a class="skip" href="#report">跳至工程报告</a>
     <main>
       <section class="observatory" id="observatory" aria-label="戴森球内部观测台">
+        <img id="backplate" src="assets/interior-clean-v2.png" alt="" hidden />
         <div class="viewport" id="viewport">
           <img id="plate" src="assets/concept-v1.png" width="1672" height="941" alt="观测台上的人极其渺小；左侧厚重结构遮住一部分金色恒星，右侧球壳内壁延伸到视野尽头。" fetchpriority="high" />
           <canvas id="scene" tabindex="0" aria-label="戴森球动态影像。方向键微调取景，Home 回全景，空格暂停，H 隐藏界面，Esc 恢复。"></canvas>
@@ -39,6 +40,8 @@
           </div>
           <span class="deck-rule" aria-hidden="true"></span>
           <button type="button" id="pause" aria-label="暂停动态影像" aria-pressed="false">Ⅱ 暂停</button>
+          <button type="button" id="travel" aria-pressed="true">缓行中</button>
+          <button type="button" id="reference" aria-pressed="false">蓝本对照</button>
           <button type="button" id="hide" aria-label="隐藏界面，Esc 恢复">纯净画面</button>
           <button type="button" id="fullscreen">全屏</button>
         </div>
@@ -74,10 +77,10 @@
           </div>
           <p class="model-note">F = L / (4πR²) · P = fL · A = f4πR² · T = (F/σ)<sup>¼</sup><br />理想模型：完全吸收；等面积黑体表面向外辐射全部截获能量；不计能量存储、反射与内部回照。温度不随覆盖率改变，是因为此模型的采光面积与散热面积一起改变。此处不计算球壳的结构强度或动力学稳定性。</p>
         </section>
-        <section class="method" id="method"><p class="report-kicker">03 / METHOD &amp; ARCHIVE</p><div><h2>先确定一个值得走进去的世界</h2><p>本版沿用已确认的概念蓝本，以影像投射、局部流动和动态光影构成观测场景。取景可在全景、恒星与内壁之间切换；这是固定观测台的动态概念影像，尚不是可自由飞行的完整三维球壳。</p><p>恒星大小、可见距离与平台位置为电影构图而调整，影像中的日珥与阴影是视觉动画。工程估算与影像时钟独立。</p><p class="source-links">常数依据：<a href="https://arxiv.org/abs/1510.07674" target="_blank" rel="noreferrer">IAU 2015 · 太阳标称量</a> / <a href="https://srd.nist.gov/jpcrdreprint/5.0064853.pdf" target="_blank" rel="noreferrer">NIST · CODATA 2018</a><br /><a href="https://github.com/yankcc258/test-sandbox/blob/main/docs/exhibits/dyson.md">版本、蓝本与验证记录 ↗</a></p></div></section>
+        <section class="method" id="method"><p class="report-kicker">03 / METHOD &amp; ARCHIVE</p><div><h2>先确定一个值得走进去的世界</h2><p>本版沿用已确认的概念蓝本，把近处采能结构、栈道与远处星体放入不同深度。镜头缓慢横移时，近景掠过远景；也可以手动取景，或用“蓝本对照”回看原机位。这是带浅层几何的 2.5D 观测场景，尚不是可自由飞行的完整三维球壳。</p><p>恒星大小、可见距离与平台位置为电影构图而调整，影像中的日珥与阴影是视觉动画。工程估算与影像时钟独立。</p><p class="source-links">常数依据：<a href="https://arxiv.org/abs/1510.07674" target="_blank" rel="noreferrer">IAU 2015 · 太阳标称量</a> / <a href="https://srd.nist.gov/jpcrdreprint/5.0064853.pdf" target="_blank" rel="noreferrer">NIST · CODATA 2018</a><br /><a href="https://github.com/yankcc258/test-sandbox/blob/main/docs/exhibits/dyson.md">版本、蓝本与验证记录 ↗</a></p></div></section>
         <footer class="report-end"><a href="../roche/">← 星云潮汐</a><a href="#observatory">重返恒星之内 ↑</a><a href="../schwarzschild/">史瓦西黑洞 →</a></footer>
       </article>
     </main>
-    <script type="module" src="main.js?v=1"></script>
+    <script type="module" src="main.js?v=2"></script>
   </body>
 </html>

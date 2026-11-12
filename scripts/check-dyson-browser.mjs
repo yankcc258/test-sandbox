@@ -25,6 +25,7 @@ try{
   const click=s=>touch?p.tap(s):p.click(s);
   await p.waitForTimeout(1400);
   assert.equal((await state(p)).renderer,'webgl');
+  assert.equal((await state(p)).depth,true);
   await p.screenshot({path:path.join(out,name+'.png')});
   for(const s of ['.station','.deck','.scene-title']){const b=await p.locator(s).boundingBox();assert.ok(b.x>=0&&b.y>=0&&b.x+b.width<=width+1&&b.y+b.height<=height+1,`${name} ${s} visible`);}
   assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
@@ -34,16 +35,23 @@ try{
   const frame1=await p.locator('#scene').screenshot();
   await p.waitForTimeout(220);assert.equal((await state(p)).time,paused.time);
   assert.ok(frame1.equals(await p.locator('#scene').screenshot()),'paused GPU pixels are stable');
+  const stillShift=(await state(p)).shift;
   await click('#pause');await p.waitForTimeout(1800);await click('#pause');
   const moving=await state(p);assert.ok(moving.time>paused.time+1);
+  assert.notDeepEqual(moving.shift,stillShift,'camera rail produces perspective motion');
   assert.ok(!frame1.equals(await p.locator('#scene').screenshot()),'animation changes the actual picture');
   await click('[data-view="star"]');await settled(p);assert.equal((await state(p)).view,'star');assert.equal((await state(p)).time,moving.time);
   await p.screenshot({path:path.join(out,name+'-star.png')});
   await click('[data-view="shell"]');await settled(p);await p.screenshot({path:path.join(out,name+'-shell.png')});
   await click('[data-view="wide"]');await settled(p);
+  await click('#reference');assert.equal((await state(p)).depth,false);await p.waitForTimeout(100);
+  const originalView=await p.locator('#scene').screenshot();
+  await click('#reference');assert.equal((await state(p)).depth,true);await p.waitForTimeout(100);
+  assert.ok(!originalView.equals(await p.locator('#scene').screenshot()),'reference toggle changes actual GPU projection');
   await click('#hide');assert.ok(await p.locator('#restore').isVisible());await click('#restore');
   await p.locator('#scene').focus();await p.keyboard.press('ArrowRight');await settled(p);assert.ok((await state(p)).camera.x>.5);
   await p.keyboard.press('Home');await settled(p);assert.equal((await state(p)).camera.zoom,1);
+  const heldRail=(await state(p)).railTime;assert.equal((await state(p)).travel,false);
   if(!touch){await p.keyboard.press('h');assert.ok(await p.locator('#restore').isVisible());await p.keyboard.press('Escape');assert.ok(await p.locator('#restore').isHidden());}
   await click('#pause');
   await p.locator('#energy').scrollIntoViewIfNeeded();await p.waitForTimeout(700);
@@ -53,6 +61,7 @@ try{
   await p.screenshot({path:path.join(out,name+'-energy.png')});
   await p.evaluate(()=>{scrollTo({top:0,behavior:'instant'});});await p.waitForTimeout(350);
   assert.ok((await state(p)).time>off.time,'resume on return to the observatory');
+  assert.equal((await state(p)).railTime,heldRail,'manual framing stops auto camera while solar time continues');
   await click('#pause');assert.equal(await p.evaluate(()=>document.querySelector('#scene').getContext('webgl2').getError()),0);
   if(name==='desktop'){
    const pixelsBeforeLoss=(await state(p)).pixels;
@@ -66,14 +75,14 @@ try{
    await p.locator('#scene').screenshot({path:path.join(out,'dyson-still.png')});
    // Thumbnail is a captured browser frame, not relabeled concept art.
    await p.locator('#scene').screenshot({path:path.join(out,'dyson.jpg'),type:'jpeg',quality:88});
-   await p.keyboard.press('Escape');await click('#pause');
+   await p.keyboard.press('Escape');await click('#travel');await click('#pause');
    const video=await p.evaluate(async()=>{
     const stream=document.querySelector('#scene').captureStream(30);
     const mime=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(x=>MediaRecorder.isTypeSupported(x));
     const recorder=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:8000000}),chunks=[];
     recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
     const done=new Promise(resolve=>recorder.onstop=resolve);recorder.start();
-    await new Promise(r=>setTimeout(r,9000));recorder.stop();await done;stream.getTracks().forEach(t=>t.stop());
+    await new Promise(r=>setTimeout(r,12000));recorder.stop();await done;stream.getTracks().forEach(t=>t.stop());
     const data=new Uint8Array(await new Blob(chunks).arrayBuffer());let binary='';for(let i=0;i<data.length;i+=8192)binary+=String.fromCharCode(...data.subarray(i,i+8192));return btoa(binary);
    });
    await writeFile(path.join(out,'dyson-motion.webm'),Buffer.from(video,'base64'));
@@ -84,9 +93,16 @@ try{
  for(const mode of ['reduced','fallback']){
   const {ctx,page:p,errors}=await open({viewport:{width:1194,height:834},reducedMotion:'reduce'},mode==='fallback'?async ctx=>ctx.addInitScript(()=>{const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return type==='webgl2'?null:original.call(this,type,...args);};}):null);
   await p.waitForTimeout(300);
-  if(mode==='reduced'){assert.ok((await state(p)).paused);assert.equal((await state(p)).time,0);assert.equal((await state(p)).pending,false);await p.click('[data-view="shell"]');await settled(p);assert.equal((await state(p)).time,0);}
+  if(mode==='reduced'){assert.ok((await state(p)).paused);assert.equal((await state(p)).travel,false);assert.equal((await state(p)).railTime,0);assert.equal((await state(p)).time,0);assert.equal((await state(p)).pending,false);await p.click('[data-view="shell"]');await settled(p);assert.equal((await state(p)).time,0);}
   else{assert.equal((await state(p)).renderer,'static');assert.ok(await p.locator('#pause').isDisabled());assert.ok(await p.locator('#plate').isVisible());await p.locator('#radius').press('Home');assert.equal(await p.locator('#flux').textContent(),'136,117 W/m²');}
   assert.deepEqual(errors,[]);results.push({mode,state:await state(p)});await ctx.close();console.log('PASS: '+mode);
+ }
+ {
+  const {ctx,page:p}=await open({viewport:{width:1194,height:834}},async ctx=>ctx.route('**/interior-clean-v2.png',route=>route.abort()));
+  assert.equal((await state(p)).renderer,'webgl');assert.equal((await state(p)).depth,false);
+  assert.ok(await p.locator('#travel').isDisabled());assert.ok(await p.locator('#reference').isDisabled());
+  assert.ok((await p.locator('#status').textContent()).includes('原机位'));
+  await ctx.close();console.log('PASS: missing clean plate gracefully retains the original animated view');
  }
  await writeFile(path.join(out,'browser-results.json'),JSON.stringify(results,null,2));
 }finally{await browser.close();}
