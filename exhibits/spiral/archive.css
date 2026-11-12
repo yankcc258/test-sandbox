@@ -1,0 +1,480 @@
+/* The archive stays in the same graphite space as the closed sculpture. */
+.discipline-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0 16px;
+  margin: 24px 0 0;
+  border-top: 1px solid var(--line);
+}
+.discipline-button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  min-height: 54px;
+}
+.discipline-button small {
+  font: 11px/1.7 var(--mono);
+  color: var(--dim);
+}
+.discipline-button[aria-pressed='true'] {
+  color: var(--accent);
+  border-bottom-color: #c9e75599;
+}
+.chapter-labels {
+  position: fixed;
+  z-index: 3;
+  top: 110px;
+  bottom: 76px;
+  left: 38px;
+  width: 200px;
+  padding: 4px 7px 7px 4px;
+  pointer-events: auto;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #74817755 transparent;
+  scrollbar-gutter: stable;
+}
+.chapter-labels-title {
+  margin: 0 0 12px;
+  padding-left: 17px;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+.chapter-label {
+  position: relative;
+  display: block;
+  text-align: left;
+  pointer-events: auto;
+  width: 100%;
+  padding: 10px 8px 10px 17px;
+  margin-bottom: 8px;
+  background: linear-gradient(90deg, #15191bd4, #15191b55 75%, transparent);
+  min-height: 74px;
+  border-left: 1px solid #a8b6a83d;
+  border-bottom: 1px solid #e8ebe410;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+.chapter-label strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.65;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.chapter-label small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin: 3px 0;
+}
+.chapter-label .label-leader {
+  position: absolute;
+  left: 0;
+  top: 19px;
+  width: 10px;
+  height: 1px;
+  background: var(--accent);
+  opacity: 0.5;
+}
+.chapter-label[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.chapter-label:focus-visible {
+  outline-offset: 2px;
+}
+.question-marks {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 10px;
+  width: max-content;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 3px;
+}
+.question-marks i {
+  display: block;
+  width: 12px;
+  height: 3px;
+  background: #6b7774;
+  border: 1px solid #87938f33;
+}
+.question-marks i[data-result='correct'] {
+  background: #e3e1d6;
+}
+.question-marks i[data-result='wrong'] {
+  background: #b99b72;
+}
+.question-marks i[data-result='partial'] {
+  background: linear-gradient(90deg, #b99b72 50%, #6b7774 50%);
+}
+.question-marks i[data-result='unknown'] {
+  background: transparent;
+  border-color: #8faeb4;
+}
+.question-marks[data-read='true'] {
+  border-bottom-color: var(--accent);
+}
+.archive-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 90px auto;
+  gap: 7px;
+  align-items: center;
+  margin: 12px 0;
+}
+.archive-search label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.archive-search input,
+.archive-search select {
+  min-width: 0;
+  width: 100%;
+  background: #e8ebe404;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  font: inherit;
+  font-size: 13px;
+  padding: 9px;
+  min-height: 38px;
+}
+.archive-search select option {
+  background: var(--bg);
+}
+.archive-search button {
+  font-size: 12px;
+  padding: 8px 0;
+  color: var(--muted);
+}
+.archive-legend,
+.archive-empty {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.9;
+  margin: 16px 0;
+}
+.chapter-list .archive-entry {
+  grid-template-columns: 22px minmax(0, 1fr) 68px;
+  gap: 3px 7px;
+  min-height: 70px;
+}
+.archive-entry > .question-marks {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  align-self: center;
+}
+.chapter-list .archive-entry > span:not(.question-marks) {
+  font-size: 11px;
+}
+.archive-entry[aria-pressed='true'] {
+  border-bottom-color: var(--accent);
+  color: var(--accent);
+}
+.chapter-detail {
+  padding: 20px 0 24px;
+  border-bottom: 1px solid var(--line);
+}
+.chapter-detail h2 {
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.6;
+  margin: 9px 0 12px;
+}
+.archive-detail-tabs {
+  display: flex;
+  gap: 22px;
+  border-bottom: 1px solid var(--line);
+}
+.archive-detail-tabs button {
+  padding: 9px 0;
+  font-size: 13px;
+  color: var(--muted);
+  border-bottom: 1px solid transparent;
+}
+.archive-detail-tabs button[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.archive-detail-body {
+  font-size: 13px;
+  color: #bdc6c0;
+  line-height: 1.9;
+  padding: 6px 0;
+  max-height: 210px;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+.detail-meta {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.chapter-detail > .primary-action {
+  margin-top: 12px;
+  width: 100%;
+}
+body[data-stage='observe'] .content-column {
+  top: 112px;
+  bottom: 50px;
+  width: 32%;
+  max-width: 430px;
+}
+body[data-stage='observe'] .stage-intro h1 {
+  font-size: 23px;
+  margin-top: 7px;
+}
+body[data-stage='observe'] .discipline-list {
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 12px;
+  gap: 0 12px;
+}
+body[data-stage='observe'] .discipline-button {
+  min-height: 37px;
+  padding: 7px 0;
+}
+body[data-stage='observe'] .discipline-button small {
+  display: none;
+}
+body[data-stage='observe'] .study-panel {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+body[data-stage='observe'] #observer-controls {
+  margin-top: 16px;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--line);
+}
+body[data-stage='observe'] #observation-tabs {
+  display: none;
+}
+body:not([data-stage='lesson']) .observation-disclaimer {
+  display: none;
+}
+body[data-stage='lesson'] #observation-tabs {
+  display: none;
+}
+body[data-stage='lesson'] #observer-controls .probe-control,
+body[data-stage='observe'] #observer-controls .probe-control {
+  display: block;
+  margin-top: 3px;
+}
+body[data-stage='observe'] .chapter-heading {
+  margin-top: 20px;
+}
+body[data-stage='observe'] .scene-viewport {
+  width: 65%;
+}
+body[data-stage='observe'] .scene-index {
+  bottom: 62px;
+}
+body[data-stage='lesson'] .chapter-labels {
+  display: none;
+}
+body[data-ready='fallback'] .chapter-labels {
+  display: none;
+}
+body[data-archive-search='true'] .chapter-labels {
+  display: none;
+}
+body[data-ready='fallback'] #observer-controls {
+  display: none;
+}
+@media (min-width: 901px) {
+  body[data-archive-search='false'][data-ready='true'] #chapter-list {
+    display: none;
+  }
+  body[data-catalog-density='dense'] .chapter-label {
+    min-height: 64px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+    margin-bottom: 5px;
+  }
+  body[data-catalog-density='dense'] .chapter-label .label-leader {
+    top: 15px;
+  }
+  body[data-catalog-density='dense'] .chapter-label strong {
+    font-size: 12px;
+  }
+  body[data-catalog-density='dense'] .chapter-label small {
+    font-size: 11px;
+    margin: 1px 0;
+  }
+  body[data-stage='observe'] .content-column {
+    scrollbar-gutter: stable;
+  }
+  .chapter-detail .primary-action {
+    min-height: 42px;
+  }
+}
+@media (max-width: 1100px) and (min-width: 901px) {
+  .chapter-labels {
+    left: 28px;
+    width: 180px;
+  }
+  .chapter-label {
+    padding-left: 13px;
+  }
+  .chapter-label strong {
+    font-size: 12px;
+  }
+  .chapter-label small {
+    font-size: 11px;
+  }
+  body[data-stage='observe'] .content-column {
+    right: 2%;
+    width: 34%;
+  }
+}
+@media (max-width: 900px) {
+  .discipline-list {
+    margin-top: 18px;
+  }
+  .discipline-button {
+    min-height: 46px;
+  }
+  body[data-stage='observe'] .scene-viewport {
+    position: relative;
+    top: auto;
+    width: 100%;
+    height: 240px;
+    border-bottom: 1px solid var(--line);
+    z-index: 1;
+    background: transparent;
+  }
+  body[data-stage='observe'][data-selection='true'] .scene-viewport {
+    height: 270px;
+  }
+  body[data-stage='observe'] .content-column {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    max-width: 680px;
+    padding: 18px 24px 30px;
+  }
+  .chapter-labels {
+    display: none;
+  }
+  .archive-search {
+    grid-template-columns: minmax(0, 1fr) 95px auto;
+  }
+  .archive-search input,
+  .archive-search select,
+  .archive-search button,
+  .archive-detail-tabs button {
+    min-height: 44px;
+  }
+  body[data-stage='observe'] .scene-index {
+    bottom: 13px;
+  }
+  .scene-scale {
+    opacity: 0.5;
+  }
+  body[data-stage='observe'] #study-panel {
+    scroll-margin-top: 20px;
+  }
+  .chapter-detail {
+    padding-top: 20px;
+  }
+  .chapter-detail h2 {
+    font-size: 20px;
+  }
+  .archive-detail-body {
+    max-height: none;
+  }
+  .chapter-list .archive-entry {
+    min-height: 72px;
+  }
+  .archive-legend {
+    max-width: 40em;
+  }
+}
+
+/* Give the chapter catalogue its own space beside the measuring ring. */
+.chapter-label strong,
+body[data-catalog-density='dense'] .chapter-label strong,
+.chapter-list .archive-entry strong {
+  font-size: 15px;
+}
+.chapter-label small,
+body[data-catalog-density='dense'] .chapter-label small {
+  font-size: 12px;
+}
+.chapter-label {
+  min-height: 94px;
+  padding: 13px 10px 13px 17px;
+}
+body[data-catalog-density='dense'] .chapter-label {
+  min-height: 86px;
+  padding-top: 11px;
+  padding-bottom: 11px;
+}
+.chapter-labels {
+  left: 4vw;
+  width: 250px;
+  top: 120px;
+}
+.archive-search {
+  grid-template-columns: minmax(0, 1fr) 115px auto;
+}
+.archive-legend {
+  font-size: 12px;
+}
+.catalog-invitation {
+  position: absolute;
+  inset: 44% 15% auto;
+  margin: 0;
+  text-align: center;
+  color: #a6b4aa;
+  font-size: 15px;
+  line-height: 1.9;
+  pointer-events: none;
+}
+.catalog-invitation small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+@media (min-width: 901px) {
+  body[data-stage='observe'] .scene-viewport {
+    left: calc(4vw + 270px);
+    width: calc(61% - 270px);
+  }
+}
+@media (min-width: 901px) and (max-width: 1200px) {
+  .chapter-labels {
+    left: 28px;
+    width: 220px;
+  }
+  body[data-stage='observe'] .scene-viewport {
+    left: 260px;
+    width: calc(64% - 260px);
+  }
+}
+@media (max-width: 900px) {
+  .catalog-invitation {
+    inset: 40% 15% auto;
+    font-size: 14px;
+  }
+  .archive-search {
+    grid-template-columns: minmax(0, 1fr) 110px auto;
+  }
+}
+
+body[data-ready='fallback'] .catalog-invitation {
+  display: none;
+}

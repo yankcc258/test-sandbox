@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#15191b" />
+    <meta
+      name="description"
+      content="大螺旋：知序原来的学习区。一条螺旋分成六个学科，点开是章节，288 片薄片沿测量环汇入，组成这一章的观察模型。"
+    />
+    <title>大螺旋 · 知序学习区｜新奇想法</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./spiral.css?v=1" />
+    <link rel="stylesheet" href="./course-workspace.css?v=1" />
+    <link rel="stylesheet" href="./archive.css?v=1" />
+    <script type="module" src="./app.js?v=1"></script>
+  </head>
+  <body data-stage="overview">
+    <div class="laboratory">
+      <header class="site-header">
+        <a class="brand" href="../../" aria-label="新奇想法，返回沙盒目录">
+          <span class="brand-name">新奇想法 <span>／ 04</span></span>
+          <span class="brand-description">大螺旋 · 知序原学习区</span>
+        </a>
+        <div class="header-tools">
+          <time id="tokyo-time" aria-label="东京时间">TOKYO / JST</time>
+          <button type="button" id="motion-toggle" aria-pressed="false">关闭动效</button>
+          <a class="catalog-link" href="../../">沙盒目录 <span aria-hidden="true">↗</span></a>
+        </div>
+      </header>
+
+      <main class="lab-main">
+        <div class="scene-viewport">
+          <canvas
+            id="lab-canvas"
+            tabindex="0"
+            aria-label="三叶结学科模型，可通过聚焦数学按钮开始观察"
+            aria-describedby="interaction-hint"
+          >
+            螺旋学科目录。可使用下方章节列表阅读、观察与练习。
+          </canvas>
+          <p id="catalog-invitation" class="catalog-invitation" hidden>
+            选一章，开始观察<small>薄片将沿测量环汇入，组成这一章的模型。</small>
+          </p>
+          <div class="scene-index" aria-hidden="true">
+            <span class="index-cross">+</span>
+            <span id="scene-subject">MATHEMATICS</span>
+            <span class="index-line"></span>
+            <span>01</span>
+          </div>
+          <div class="scene-scale" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          </div>
+          <p id="fallback" class="fallback" hidden>
+            当前使用文字目录，课程正文、练习与本页进度仍可使用。
+          </p>
+        </div>
+
+        <div class="content-column">
+          <button type="button" id="back-stage" class="back-stage" hidden>
+            <span aria-hidden="true">←</span> 返回总览
+          </button>
+          <section class="stage-intro" aria-labelledby="stage-title">
+            <p class="eyebrow" id="stage-eyebrow">LABORATORY / 01</p>
+            <h1 id="stage-title">从形态，<br />进入数学。</h1>
+            <p class="stage-copy" id="stage-copy">沿着数学片段，观察整体与局部的关系。</p>
+            <nav id="discipline-list" class="discipline-list" aria-label="学科"></nav>
+            <div class="stage-actions">
+              <button type="button" id="primary-action" class="primary-action">
+                聚焦数学 <span aria-hidden="true">↗</span>
+              </button>
+              <button type="button" id="skip-study" class="text-action">
+                直接查看章节 <span aria-hidden="true">→</span>
+              </button>
+            </div>
+          </section>
+
+          <section
+            id="study-panel"
+            class="study-panel"
+            hidden
+            tabindex="-1"
+            aria-labelledby="specimen-title"
+          >
+            <div class="section-heading">
+              <h2 id="specimen-title">曲面观察</h2>
+              <span class="section-code" aria-hidden="true">M / 01</span>
+            </div>
+            <p class="specimen-copy">从整体形态进入局部，比较曲面、切平面与截面的关系。</p>
+            <section
+              id="chapter-detail"
+              class="chapter-detail"
+              hidden
+              aria-label="所选章节详情"
+            ></section>
+            <div id="observer-controls" hidden>
+              <div
+                id="observation-tabs"
+                class="observation-tabs"
+                role="group"
+                aria-label="切换数学观察方式"
+              >
+                <button type="button" data-mode="surface" aria-pressed="true">曲面</button>
+                <button type="button" data-mode="tangent" aria-pressed="false">切平面</button>
+                <button type="button" data-mode="section" aria-pressed="false">截面</button>
+              </div>
+              <div id="probe-controls"></div>
+              <p id="specimen-note" class="specimen-note">
+                切换观察方式，或移动取样位置，看看局部结构如何变化。
+              </p>
+            </div>
+            <div class="section-heading chapter-heading">
+              <h2 id="chapters-title">数学 · 课程目录</h2>
+              <span id="archive-count" class="section-code">本页</span>
+            </div>
+            <div class="archive-search">
+              <label for="archive-search">检索章节</label>
+              <input
+                id="archive-search"
+                type="search"
+                placeholder="搜索全部课程…"
+                autocomplete="off"
+              />
+              <label for="archive-track">大类</label>
+              <select id="archive-track">
+                <option value="">全部大类</option>
+              </select>
+              <button id="archive-clear" type="button">清除</button>
+            </div>
+            <nav
+              id="chapter-list"
+              class="chapter-list"
+              aria-labelledby="chapters-title"
+              aria-describedby="archive-legend"
+            ></nav>
+            <p id="archive-legend" class="archive-legend">
+              章节标题旁的 5
+              个刻度显示本页最近作答结果：浅色答对，灰色未作答，暖色待再试，半格暖色为部分答对，空框为未判定。下方细线表示已手动标记读完；刷新后清空。
+            </p>
+          </section>
+        </div>
+        <section
+          id="course-workspace"
+          class="course-workspace"
+          hidden
+          aria-labelledby="course-title"
+        >
+          <header class="course-header">
+            <button id="course-return" type="button">← 课程目录</button>
+            <div class="course-heading">
+              <p class="eyebrow">MATHEMATICS / 04 · RESEARCH NOTES</p>
+              <h1 id="course-title" tabindex="-1">偏导数与全微分</h1>
+              <p class="course-meta" id="course-scope">
+                知序课程快照 · 阅读与作答仅本页有效，刷新清空
+              </p>
+            </div>
+            <button
+              id="observer-toggle"
+              type="button"
+              aria-expanded="true"
+              aria-controls="course-observer"
+            >
+              收起观察区
+            </button>
+          </header>
+          <div class="course-layout">
+            <nav class="course-toc" id="course-toc" aria-label="本章目录"></nav>
+            <article class="course-reader" id="course-reader" tabindex="-1">
+              <div class="course-tabs" role="group" aria-label="阅读或练习">
+                <button type="button" data-course-tab="reading" aria-pressed="true">
+                  课程正文
+                </button>
+                <button type="button" data-course-tab="practice" aria-pressed="false">
+                  练习 <span id="practice-count">0 / 5</span>
+                </button>
+              </div>
+              <div id="course-reading"></div>
+              <div id="course-practice" hidden>
+                <div class="practice-summary" id="practice-summary" role="status"></div>
+                <p class="practice-scope">沿用本章原题与判题方式。刷新后清空本轮作答。</p>
+                <div id="exercise-list"></div>
+                <div class="exercise-actions">
+                  <button type="button" id="practice-to-reading">返回课程正文</button>
+                  <button type="button" id="practice-reset">重置本轮作答</button>
+                </div>
+              </div>
+            </article>
+            <aside class="course-observer" id="course-observer" aria-label="侧边观察区">
+              <div class="observer-heading">
+                <p class="eyebrow">OBSERVATION / 局部变化</p>
+                <h2>把局部变化看清楚</h2>
+              </div>
+              <div class="observer-stage"></div>
+              <div id="observer-controls-home"></div>
+              <p class="observation-disclaimer">
+                观察模型与读数按当前章节的配方生成；没有专属配方时显示课程档案。
+              </p>
+              <section
+                class="case-observation"
+                id="case-observation"
+                tabindex="-1"
+                aria-labelledby="case-title"
+              ></section>
+            </aside>
+          </div>
+        </section>
+      </main>
+
+      <footer class="lab-footer">
+        <p id="interaction-hint">点击数学片段，或使用右侧按钮开始观察。</p>
+        <p class="sandbox-note">展品 04 <span aria-hidden="true">·</span> 知序原学习区，课程为快照，不记学习记录</p>
+      </footer>
+    </div>
+  </body>
+</html>
