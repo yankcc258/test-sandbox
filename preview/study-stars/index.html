@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>理解星图 · 样稿｜知序学习区</title>
+    <meta name="description" content="知序学习区「理解星图」的样稿：聊到哪，星就长到哪。示例数据，不连正式站。" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./stars.css?v=1" />
+  </head>
+  <body>
+    <canvas id="sky" aria-hidden="true"></canvas>
+
+    <header class="brand">
+      <a href="../../" aria-label="回沙盒目录">知序 <span>／ 1F 学习区</span></a>
+      <h1>理解星图</h1>
+      <p id="count">还没有星</p>
+    </header>
+
+    <form id="new-star" class="new-star" autocomplete="off">
+      <label for="new-title">学一个新东西</label>
+      <input id="new-title" maxlength="30" placeholder="比如：导数" />
+      <button class="primary">开一颗星</button>
+    </form>
+
+    <p id="empty-hint" class="empty-hint" hidden>
+      还没有星。写一个想学的东西，第一颗星就亮了；之后聊得越多，星越多。
+    </p>
+
+    <ul id="legend" class="legend" aria-label="星的亮度"></ul>
+
+    <nav class="tools" aria-label="星图工具">
+      <button id="toggle-list" aria-pressed="false">列表</button>
+      <button id="fit">全图</button>
+      <button id="zoom-out" aria-label="缩小">−</button>
+      <button id="zoom-in" aria-label="放大">＋</button>
+    </nav>
+
+    <div class="sample" aria-label="样稿：切换示例数据">
+      <span>样稿 · 示例数据</span>
+      <div id="stages"></div>
+    </div>
+
+    <aside id="star-list" class="star-list" aria-label="星的列表"></aside>
+    <aside id="star-panel" class="star-panel" aria-label="星的页面" hidden></aside>
+    <p id="toast" class="toast" role="status" hidden></p>
+
+    <noscript><p class="noscript">这个页面需要 JavaScript。</p></noscript>
+    <script type="module" src="./app.js?v=1"></script>
+  </body>
+</html>
