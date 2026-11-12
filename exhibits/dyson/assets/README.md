@@ -11,3 +11,14 @@ Use case: stylized-concept. Asset type: one cinematic concept still for an immer
 ```
 
 提示词里的 HDR 描述指视觉风格。交付 PNG 是普通图像素材，本展品没有因此声称具备黑洞渲染器的浮点 HDR 管线。
+
+
+## 第二版隐藏背景 · 2026-11-12
+
+`interior-clean-v2.png`：以内置 `image_gen` 编辑 `concept-v1.png`，移除近处斜向构件、栈道、栏杆和人物，补全原先被遮挡的恒星与远处内壁。只在空间横移后露出的区域使用，原图仍为主体材质和无图形支持时的静态回退。保持原生成文件，本仓库保存独立副本。使用模式为编辑；输入仅为已确认原图；不透明输出。
+
+最终编辑提示词：
+
+```text
+Edit the provided image to produce a clean background plate for a layered 3D camera projection. Preserve the exact camera, framing, exposure, amber palette, surface detail and ALL already-visible star and distant concave Dyson sphere interior panels, pixel alignment as closely as possible. Remove ONLY the enormous dark diagonal foreground buttress covering the left/top, and remove the bottom foreground observation balcony, railing and tiny human. Inpaint the removed areas by extending the existing solar disk and its orange-white plasma detail behind the diagonal buttress, and by extending the curved distant panel wall behind the balcony. The star stays at exactly its existing center and radius; the rightmost solar limb stays in the same position. Do not move, enlarge, shrink or redesign the star or the distant wall. No nearby architecture or humans remain. The dark area behind the removed upper-left buttress should be the more distant interior surface with restrained lighting, continuous with the concave interior at upper center. Do not add beams, floating rocks, ships, rings, other planets, text or UI. This is a technical clean plate for revealing just narrow areas during small camera shifts, not a new composition. Keep the wide aspect ratio of the reference. Opaque background.
+```
