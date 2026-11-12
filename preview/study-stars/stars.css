@@ -1,0 +1,762 @@
+/* 理解星图样稿。好看只放在图上（画布）；按钮、列表和星的页面照朴素的写法。 */
+@font-face {
+  font-family: Inter;
+  src: url('../../assets/fonts/inter-latin-wght.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+:root {
+  color-scheme: dark;
+  --bg: #06080b;
+  --glass: #0c1015e6;
+  --ink: #e8ebe4;
+  --muted: #98a19c;
+  --dim: #6b7570;
+  --line: #e8ebe424;
+  --accent: #c9e755;
+  --red: #ff6254;
+  --mono: 'SFMono-Regular', Consolas, monospace;
+  --panel: 432px;
+}
+* {
+  box-sizing: border-box;
+}
+[hidden] {
+  display: none !important;
+}
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--bg);
+}
+body {
+  color: var(--ink);
+  font:
+    13px/1.65 Inter,
+    'PingFang SC',
+    'Microsoft YaHei',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #0c1015b3;
+  padding: 6px 13px;
+  line-height: 1.4;
+}
+button:hover {
+  border-color: #e8ebe466;
+}
+button:focus-visible,
+input:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #10140a;
+  font-weight: 600;
+}
+.muted {
+  color: var(--muted);
+}
+#sky {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+}
+
+/* ---------- 四个角 ---------- */
+.brand {
+  position: fixed;
+  top: 22px;
+  left: 28px;
+  pointer-events: none;
+}
+.brand a {
+  pointer-events: auto;
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.brand a span {
+  color: var(--dim);
+  font-weight: 400;
+}
+.brand h1 {
+  margin: 10px 0 0;
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+}
+.brand p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font: 11px var(--mono);
+  letter-spacing: 0.06em;
+}
+.new-star {
+  position: fixed;
+  top: 22px;
+  right: 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  transition: right 0.3s;
+}
+.new-star label {
+  color: var(--muted);
+  white-space: nowrap;
+}
+.new-star input {
+  width: 150px;
+  border: 0;
+  background: none;
+  outline-offset: 4px;
+}
+.new-star input::placeholder {
+  color: var(--dim);
+}
+.has-panel .new-star {
+  right: calc(var(--panel) + 28px);
+}
+.empty-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  width: min(460px, calc(100% - 40px));
+  margin: 0;
+  transform: translateX(-50%);
+  text-align: center;
+  color: var(--muted);
+}
+.legend {
+  position: fixed;
+  left: 20px;
+  bottom: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 3px;
+  font-size: 11.5px;
+  pointer-events: none;
+  padding: 10px 14px 10px 6px;
+  border-radius: 12px;
+  background: #06080bb8;
+}
+.legend li {
+  display: grid;
+  grid-template-columns: 22px 62px auto;
+  align-items: center;
+}
+.legend b {
+  font-weight: 500;
+}
+.legend span {
+  color: var(--dim);
+}
+.tools {
+  position: fixed;
+  right: 28px;
+  bottom: 22px;
+  display: flex;
+  gap: 6px;
+  transition: right 0.3s;
+}
+.has-panel .tools {
+  right: calc(var(--panel) + 28px);
+}
+.tools button[aria-pressed='true'] {
+  border-color: var(--ink);
+}
+.sample {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 6px 5px 14px;
+  border: 1px dashed #e8ebe440;
+  border-radius: 999px;
+  background: var(--glass);
+  white-space: nowrap;
+}
+.has-panel .sample {
+  left: calc((100% - var(--panel)) / 2);
+}
+.sample > span {
+  color: var(--dim);
+  font: 10.5px var(--mono);
+  letter-spacing: 0.08em;
+}
+.sample div {
+  display: flex;
+  gap: 4px;
+}
+.sample button {
+  padding: 4px 11px;
+  font-size: 12px;
+  border-color: transparent;
+  background: none;
+  color: var(--muted);
+}
+.sample button[aria-pressed='true'] {
+  color: var(--ink);
+  border-color: var(--line);
+  background: #e8ebe414;
+}
+.sample button[data-grow] {
+  color: var(--accent);
+}
+.toast {
+  position: fixed;
+  left: 50%;
+  top: 76px;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 7px 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--glass);
+  max-width: calc(100% - 40px);
+}
+.noscript {
+  position: fixed;
+  inset: 40% 0 auto;
+  text-align: center;
+}
+
+/* ---------- 亮度的小圆点（图例、列表、连着的星） ---------- */
+.dot {
+  --hue: 232, 235, 228;
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin: 0 8px;
+  border-radius: 50%;
+  background: #fff;
+  position: relative;
+  flex: none;
+}
+.dot.level-0 {
+  width: 4px;
+  height: 4px;
+  margin: 0 9px;
+  opacity: 0.7;
+  box-shadow:
+    0 0 0 3px var(--bg),
+    0 0 0 4px rgba(var(--hue), 0.5);
+}
+.dot.level-1 {
+  width: 5px;
+  height: 5px;
+  opacity: 0.85;
+  box-shadow: 0 0 6px 1px rgba(var(--hue), 0.5);
+}
+.dot.level-2 {
+  box-shadow: 0 0 9px 3px rgba(var(--hue), 0.6);
+}
+.dot.level-3 {
+  width: 7px;
+  height: 7px;
+  margin: 0 7.5px;
+  box-shadow: 0 0 12px 4px rgba(var(--hue), 0.75);
+}
+.dot.level-4 {
+  width: 8px;
+  height: 8px;
+  margin: 0 7px;
+  box-shadow: 0 0 14px 6px rgba(var(--hue), 0.85);
+}
+.dot.level-3::before,
+.dot.level-4::before,
+.dot.level-3::after,
+.dot.level-4::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #fff, transparent);
+  transform: translate(-50%, -50%);
+}
+.dot.level-3::after,
+.dot.level-4::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+.dot.level-4::before,
+.dot.level-4::after {
+  width: 30px;
+}
+.dot.wrong {
+  outline: 1.3px solid var(--red);
+  outline-offset: 4px;
+}
+
+/* ---------- 列表（画面之外也能用） ---------- */
+.star-list {
+  position: fixed;
+  top: 124px;
+  left: 28px;
+  bottom: 190px;
+  width: 268px;
+  padding: 6px 14px 14px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  display: none;
+}
+.show-list .star-list {
+  display: block;
+}
+.star-list h3,
+.star-panel h3 {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 14px 0 6px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+}
+.star-list h3 {
+  color: rgb(var(--hue));
+}
+.star-list h3 small,
+.star-panel h3 small {
+  color: var(--dim);
+  font: 10.5px var(--mono);
+  letter-spacing: 0.04em;
+}
+.star-list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.star-list li button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 5px 6px 5px 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  text-align: left;
+}
+.star-list li button:hover,
+.star-list li button[aria-current='true'] {
+  background: #e8ebe412;
+}
+.star-list li span {
+  flex: 1;
+}
+.star-list li small {
+  color: var(--dim);
+  font-size: 11px;
+}
+
+/* ---------- 星的页面 ---------- */
+.star-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--panel);
+  padding: 26px 28px 40px;
+  overflow: auto;
+  border-left: 1px solid var(--line);
+  background: #0b0e12f2;
+  backdrop-filter: blur(14px);
+  font-size: 13.5px;
+}
+.star-panel header {
+  position: relative;
+}
+.star-panel .close {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 20px;
+  color: var(--muted);
+}
+.star-panel .eyebrow {
+  color: rgb(var(--hue));
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+}
+.star-panel h2 {
+  margin: 6px 0 2px;
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.25;
+}
+.star-panel p {
+  margin: 6px 0;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 11px 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 12px;
+}
+.chip i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgb(var(--hue));
+  box-shadow: 0 0 8px 2px rgba(var(--hue), 0.7);
+}
+.chip.level-0 i,
+.chip.level-1 i {
+  box-shadow: none;
+  opacity: 0.7;
+}
+.chip small {
+  color: var(--dim);
+}
+.chip.wrong {
+  border-color: #ff625466;
+}
+.chip.wrong i {
+  background: var(--red);
+  box-shadow: none;
+}
+.star-panel section {
+  margin-top: 20px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+.star-panel h3 {
+  color: var(--muted);
+}
+.formula {
+  margin: 10px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.formula math {
+  font-size: 18px;
+}
+.formula dl {
+  margin: 10px 0 0;
+  display: grid;
+  gap: 2px;
+  font-size: 12.5px;
+}
+.formula dl div {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+}
+.formula dt {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.formula dd {
+  margin: 0;
+  color: var(--muted);
+}
+figure {
+  margin: 10px 0;
+}
+figcaption {
+  color: var(--muted);
+  font-size: 12px;
+}
+.plot {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.plot path {
+  fill: none;
+  stroke-width: 1.4;
+}
+.plot .axis {
+  stroke: #e8ebe433;
+  stroke-width: 1;
+}
+.plot .curve {
+  stroke: var(--ink);
+}
+.plot .tangent {
+  stroke: rgb(var(--hue));
+}
+.plot .secant {
+  stroke: #e8ebe455;
+  stroke-dasharray: 4 4;
+}
+.plot .dot {
+  fill: rgb(var(--hue));
+}
+.plot .dot.dim {
+  fill: #e8ebe488;
+}
+.explains,
+.links,
+.takes,
+.points {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.explains li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px solid #e8ebe412;
+}
+.explains time {
+  color: var(--dim);
+  font: 11px var(--mono);
+  white-space: nowrap;
+}
+.take {
+  padding: 10px 0 12px;
+  border-bottom: 1px solid #e8ebe412;
+}
+.take-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.take-head span {
+  color: var(--dim);
+  font: 11px var(--mono);
+}
+.take-head em {
+  color: var(--muted);
+  font-style: normal;
+  font-size: 12.5px;
+}
+.score {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1;
+}
+.score small {
+  color: var(--dim);
+  font-size: 11px;
+  font-weight: 400;
+}
+.score.s1,
+.score.s2 {
+  color: #ff9a8f;
+}
+.score.s3 {
+  color: #f0d38a;
+}
+.score.s4,
+.score.s5 {
+  color: var(--accent);
+}
+.compare {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 12.5px;
+}
+.compare > span {
+  color: var(--dim);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+.diff b {
+  display: inline-block;
+  min-width: 76px;
+  font-weight: 500;
+}
+.diff.bad b {
+  color: #ff9a8f;
+}
+.diff.good b {
+  color: var(--accent);
+}
+blockquote {
+  margin: 8px 0;
+  padding-left: 12px;
+  border-left: 2px solid #e8ebe433;
+  color: var(--muted);
+}
+.points li {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 4px;
+  padding: 2px 0;
+}
+.points i {
+  font-style: normal;
+  font-size: 11.5px;
+  color: var(--dim);
+}
+.points .right i {
+  color: var(--accent);
+}
+.points .wrong i {
+  color: #ff9a8f;
+}
+.points .vague i,
+.points .missing i {
+  color: #f0d38a;
+}
+.star-panel .primary {
+  margin-top: 12px;
+  padding: 8px 20px;
+}
+.links li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 4px 0;
+}
+.links button {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px 4px 4px;
+  white-space: nowrap;
+}
+.links small {
+  color: var(--muted);
+}
+
+/* 星的页面开着、屏幕又不够宽时，图例只留名字，给下面那排按钮让位置 */
+@media (max-width: 1599px) {
+  .has-panel .legend span {
+    display: none;
+  }
+  .has-panel .legend li {
+    grid-template-columns: 22px auto;
+  }
+}
+
+/* ---------- 窄屏：星的页面从下面出来 ---------- */
+@media (max-width: 899px) {
+  .brand {
+    top: 14px;
+    left: 16px;
+  }
+  .brand h1 {
+    font-size: 21px;
+    margin-top: 4px;
+  }
+  .new-star {
+    top: auto;
+    right: 16px;
+    left: 16px;
+    bottom: 68px;
+  }
+  .new-star input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+  .has-panel .new-star,
+  .has-panel .sample,
+  .has-panel .legend {
+    display: none;
+  }
+  .legend {
+    left: 16px;
+    top: 92px;
+    bottom: auto;
+  }
+  .legend span {
+    display: none;
+  }
+  .legend li {
+    grid-template-columns: 22px auto;
+  }
+  .tools,
+  .has-panel .tools {
+    top: 14px;
+    right: 16px;
+    bottom: auto;
+  }
+  .sample,
+  .has-panel .sample {
+    left: 16px;
+    right: 16px;
+    bottom: 14px;
+    transform: none;
+    justify-content: space-between;
+    overflow-x: auto;
+  }
+  .sample > span {
+    display: none;
+  }
+  .empty-hint {
+    bottom: 128px;
+  }
+  .star-list {
+    top: 62px;
+    left: 16px;
+    right: 16px;
+    bottom: 124px;
+    width: auto;
+  }
+  .star-panel {
+    top: auto;
+    left: 0;
+    width: auto;
+    height: 56%;
+    padding: 20px 20px 32px;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    border-radius: 18px 18px 0 0;
+  }
+}
+/* 手机：图例收起来（列表里每颗星都写着状态） */
+@media (max-width: 599px) {
+  .legend {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
