@@ -11,7 +11,7 @@
     "check:workstation": "node scripts/check-workstation.mjs",
     "check:links": "node scripts/check-links.mjs",
     "check:motion": "node scripts/check-motion.mjs",
-    "check:exhibits": "node scripts/check-schwarzschild.mjs && node scripts/check-infall.mjs && node scripts/check-flight.mjs && node scripts/check-roche-binary.mjs && node scripts/check-roche.mjs && node scripts/check-gravity-atlas.mjs && node scripts/check-dyson.mjs",
+    "check:exhibits": "node scripts/check-schwarzschild.mjs && node scripts/check-infall.mjs && node scripts/check-flight.mjs && node scripts/check-roche-binary.mjs && node scripts/check-roche.mjs && node scripts/check-gravity-atlas.mjs && node scripts/check-dyson.mjs && node scripts/check-spiral.mjs",
     "check": "npm run check:pulse && npm run check:experience && npm run check:terminal && npm run check:workstation && npm run check:links && npm run check:motion && npm run check:starfield && npm run check:laboratory && npm run check:exhibits && npm run check:docs",
     "check:laboratory": "node scripts/check-specimen.mjs && node scripts/check-laboratory.mjs && node scripts/check-course-data.mjs && node scripts/check-course-session.mjs && node scripts/check-assembly-models.mjs && node scripts/check-assembly-flow.mjs && node scripts/check-specimen-materials.mjs && node scripts/check-orbital-motion.mjs && node scripts/check-particle-field.mjs && node scripts/check-specimen-kit.mjs && node scripts/check-extension.mjs",
     "check:starfield": "node scripts/check-starfield.mjs && node scripts/check-starfield-observation.mjs && node scripts/check-starfield-controls.mjs",

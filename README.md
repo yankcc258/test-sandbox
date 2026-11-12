@@ -16,7 +16,7 @@
 | B1 复习区      | [recall.html](recall.html?i=1&workbench=1)                 | `recall.html`、`recall/` | [docs/recall/](docs/recall/)                     |
 | 2F 工作台      | [workstation/](workstation/)                               | `workstation/`           | [docs/workstation/](docs/workstation/)           |
 | 星空           | [preview/starfield/](preview/starfield/?from=catalog&v=29) | `preview/starfield/`     | [docs/starfield/](docs/starfield/)               |
-| 实验展品       | [史瓦西黑洞](exhibits/schwarzschild/) · [洛希极限](exhibits/roche/) · [戴森球](exhibits/dyson/) | `exhibits/`              | [史瓦西黑洞](docs/exhibits/schwarzschild.md) · [洛希极限](docs/exhibits/roche.md) · [戴森球](docs/exhibits/dyson.md) |
+| 实验展品       | [史瓦西黑洞](exhibits/schwarzschild/) · [洛希极限](exhibits/roche/) · [戴森球](exhibits/dyson/) · [大螺旋](exhibits/spiral/) | `exhibits/`              | [史瓦西黑洞](docs/exhibits/schwarzschild.md) · [洛希极限](docs/exhibits/roche.md) · [戴森球](docs/exhibits/dyson.md) · [大螺旋](docs/exhibits/spiral.md) |
 | 小样与历史原型 | [preview/](preview/)                                       | `preview/`               | [docs/history/](docs/history/)                   |
 
 ## 接手先读
@@ -29,6 +29,7 @@
 | 复习区                           | [七个系统的解剖与信号](docs/recall/spine-anatomy.md) · [记忆生命体设定](docs/recall/living-specimen.md)                                               |
 | 工作台                           | [工作台范本](docs/workstation/workstation-prototype.md) · [竖井、纸飞机与平板](docs/workstation/region-motion.md) · [希可](docs/workstation/seeko.md) |
 | 新奇想法网站的展品（史瓦西黑洞） | [交接（先读）](docs/exhibits/handoff.md) · [展品 01 说明和审阅清单](docs/exhibits/schwarzschild.md)                                                   |
+| 大螺旋（知序原学习区，现在是展品 04） | [大螺旋说明](docs/exhibits/spiral.md)：怎么从 `laboratory/` 拆出来的、和正式站的差别、检查                                                         |
 | 以前每一版改了什么               | [更新记录 v23–v36](docs/history/changelog.md) · [v17 之前](docs/history/review-sandbox-v17.md)                                                        |
 
 协作方式：直接在 `main` 上迭代，推送前先同步远端，保留别人的并行修改。改了别人负责的文件，在对应交接里写一句改了什么。
