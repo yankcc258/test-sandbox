@@ -11,6 +11,7 @@ const queue = [
   'preview/index.html',
   'docs/index.html',
   'preview/starfield/index.html',
+  'preview/study-stars/index.html',
   'laboratory/index.html',
   'laboratory/specimens/index.html',
   'exhibits/schwarzschild/index.html',
